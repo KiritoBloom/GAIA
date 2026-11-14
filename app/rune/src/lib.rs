@@ -22,6 +22,8 @@ enum ResearchView { Sources, Notebook, Models }
 #[derive(Clone, Copy, PartialEq)]
 enum EvidencePanel { Summary, Acquire }
 #[derive(Clone, Copy, PartialEq)]
+enum EvidenceView { Findings, Observation, Scenarios, Field, Audit }
+#[derive(Clone, Copy, PartialEq)]
 enum RecordView { Graph, Portfolio, Tests }
 struct State {
     tab: Tab,
@@ -36,6 +38,7 @@ struct State {
     record_view:RecordView,
     paper_id:String,
     evidence_panel: EvidencePanel,
+    evidence_view: EvidenceView,
     audit_open: bool,
     cache: Option<ImageCache>,
     marks: Vec<Image>,
@@ -54,7 +57,7 @@ impl Default for State {
         fields[32]=TextEdit::new("5,6,7,8,9");
         fields[33]=TextEdit::new("");
         Self { tab: Tab::System, selected: String::new(), snapshot: json!({}), revision: String::new(),
-            fields,field_domain:"chloris".to_string(),handoff_confirmed:false,import_domain:"aura".to_string(),research_view:ResearchView::Sources,record_view:RecordView::Graph,paper_id:String::new(),evidence_panel:EvidencePanel::Summary,audit_open:false,cache: None, marks: vec![], chart: None, chart_key: String::new(), scenario:None,scenario_key:String::new(),graph:None,graph_key:String::new() }
+            fields,field_domain:"chloris".to_string(),handoff_confirmed:false,import_domain:"aura".to_string(),research_view:ResearchView::Sources,record_view:RecordView::Graph,paper_id:String::new(),evidence_panel:EvidencePanel::Summary,evidence_view:EvidenceView::Findings,audit_open:false,cache: None, marks: vec![], chart: None, chart_key: String::new(), scenario:None,scenario_key:String::new(),graph:None,graph_key:String::new() }
     }
 }
 fn setup(s: &mut State, wake: Waker) {
@@ -203,12 +206,22 @@ fn conversation(s: &State, k: &Kit, current: &Value) -> El {
         .child(button(k,"Technical explanations","depth",json!({"sessionID":s.selected,"depth":"technical"})))
         .child(label("Investigations continue until completed or stopped. Provider costs and source-request approvals remain visible; stalled individual requests are handled separately.")).into()
 }
-fn investigation(s: &State, k: &Kit, current: &Value) -> El {
-    let mut body=col().w_full().gap(16.).child(heading("Evidence records"));
+fn investigation(s: &State, k: &Kit, current: &Value, compact:bool) -> El {
+    let mut body=col().w_full().gap(16.).child(heading("Evidence records"))
+        .child(label("One focused workspace for measured trends, observation updates, scenarios, private field reports and audit history."));
+    let tab_button=|title:&'static str,tab:EvidenceView|Button::new(title).variant(if s.evidence_view==tab{rune_kit::ButtonVariant::Contrast}else{rune_kit::ButtonVariant::Outline}).build(k).min_h(44.).on_press(move|s:&mut State|s.evidence_view=tab);
+    let mut tabs=row().w_full().gap(6.).child(tab_button("Findings",EvidenceView::Findings)).child(tab_button("Observation",EvidenceView::Observation)).child(tab_button("Scenarios",EvidenceView::Scenarios));
+    if compact {body=body.child(tabs).child(row().w_full().gap(6.).child(tab_button("Field notes",EvidenceView::Field)).child(tab_button("Audit",EvidenceView::Audit)));}
+    else {tabs=tabs.child(tab_button("Field notes",EvidenceView::Field)).child(tab_button("Audit",EvidenceView::Audit));body=body.child(tabs);}
     for record in list(&current["artifacts"]){body=body.child(button(k,&format!("{}: {} to {}",string(&record["acquisition"]["variable"]["name"]),string(&record["analysis"]["requested_start"]),string(&record["analysis"]["requested_end"])),"artifact-select",json!({"artifactID":record["id"]})));}
-    if !s.snapshot["artifact"].is_null(){body=body.child(evidence_summary(s,k));}
-    body=body.child(Button::new(if s.evidence_panel==EvidencePanel::Acquire{"Close data-entry controls"}else{"Add another dataset"}).build(k).on_press(|s:&mut State|s.evidence_panel=if s.evidence_panel==EvidencePanel::Acquire{EvidencePanel::Summary}else{EvidencePanel::Acquire}));
-    if list(&current["artifacts"]).is_empty()||s.evidence_panel==EvidencePanel::Acquire{
+    if s.evidence_view==EvidenceView::Findings {
+        if !s.snapshot["artifact"].is_null(){body=body.child(evidence_summary(s,k));}
+        body=body.child(Button::new("Open observation and data controls").build(k).min_h(44.).on_press(|s:&mut State|{s.evidence_view=EvidenceView::Observation;s.evidence_panel=EvidencePanel::Acquire;}));
+    }
+    if s.evidence_view==EvidenceView::Observation {
+        body=body.child(Button::new(if s.evidence_panel==EvidencePanel::Acquire{"Close data-entry controls"}else{"Add another dataset"}).build(k).min_h(44.).on_press(|s:&mut State|s.evidence_panel=if s.evidence_panel==EvidencePanel::Acquire{EvidencePanel::Summary}else{EvidencePanel::Acquire}));
+    }
+    if s.evidence_view==EvidenceView::Observation && (list(&current["artifacts"]).is_empty()||s.evidence_panel==EvidencePanel::Acquire){
     body=body.child(heading("Variables, location and period"));
     for (i,name) in [(5,"Variable: T2M, PRECTOTCORR, RH2M or EVI"),(1,"Latitude"),(2,"Longitude"),(3,"Start year"),(4,"End year"),(15,"MODIS fixed-site identifier (EVI only)")] {
         body=body.child(field(s,k,i,name,false));
@@ -232,11 +245,14 @@ fn investigation(s: &State, k: &Kit, current: &Value) -> El {
     body=body.child(label(format!("Import domain: {}",s.import_domain))).child(Button::new("Choose and import CSV").build(k).on_press(|s: &mut State|command("import-file",json!({"sessionID":s.selected,"source":s.fields[10].text,"units":s.fields[11].text,"frequency":s.fields[12].text,"domain":s.import_domain,"date_column":if s.fields[20].text.is_empty(){Value::Null}else{json!(s.fields[20].text)},"value_column":if s.fields[21].text.is_empty(){Value::Null}else{json!(s.fields[21].text)},"support":s.fields[22].text}))))
         .child(label("Imported values remain user-supplied evidence; a citation does not independently authenticate them."));
     }
+    if s.evidence_view==EvidenceView::Findings {
     body=body.child(button(k,"Download investigation export","export",selected_action(s)))
         .child(heading("Competing explanations and additional observations"));
     for hypothesis in list(&current["hypothesisRecords"]) {
-        body=body.child(heading(string(&hypothesis["name"]))).child(label(string(&hypothesis["expectation"])));
-        for assessment in list(&hypothesis["evidence"]) {body=body.child(label(format!("{} · {}",string(&assessment["status"]),string(&assessment["reason"]))));}
+        let evidence=list(&hypothesis["evidence"]);
+        let statuses=["supported_signatures","contradicted_signatures","context_only","untestable","unresolved"];
+        let counts=statuses.iter().filter_map(|status|{let count=evidence.iter().filter(|item|string(&item["status"])==*status).count();(count>0).then(||format!("{status}: {count}"))}).collect::<Vec<_>>().join(" · ");
+        body=body.child(surface(col().w_full().gap(8.).child(heading(string(&hypothesis["name"]))).child(label(string(&hypothesis["expectation"]))).child(label(format!("{} assessment(s) · {}",evidence.len(),if counts.is_empty(){"no assessments".to_string()}else{counts}))),"#14221e"));
     }
     let plan=if current["observationPlan"]["protocol"].is_object(){&current["observationPlan"]["protocol"]}else{&current["observationPlan"]};
     if !plan.is_null(){
@@ -248,10 +264,14 @@ fn investigation(s: &State, k: &Kit, current: &Value) -> El {
         if string(&plan["operation"])=="power"||existing{body=body.child(button(k,if existing{"Reassess existing evidence (no new observation)"}else{"Retrieve selected observation and update"},"observation",selected_action(s)));}
         else{body=body.child(label("This protocol requires real imported observations or qualified field evidence. Use Add another dataset for a lawful CSV import; no automatic retrieval or diagnosis is claimed."));}
     }
+    }
+    if s.evidence_view==EvidenceView::Observation {
     body=body.child(heading("Select a registered observation protocol")).child(label("Selecting a protocol freezes the current evidence baseline. Earlier selections and inspected data remain disclosed; selection is not a successful scientific test."));
     for protocol in list(&s.snapshot["catalog"]["protocols"]) {body=body.child(button(k,&format!("Select: {}",string(&protocol["name"])),"observation-plan",json!({"sessionID":s.selected,"protocolID":protocol["id"]})));}
     for update in list(&current["evidenceUpdates"]).iter().rev().take(5) {body=body.child(label(format!("Update {} · {} new evidence records. {}",string(&update["time"]),list(&update["added_artifacts"]).len(),string(&update["reason"]))));}
+    }
     let artifact=string(&s.snapshot["artifact"]["id"]);
+    if s.evidence_view==EvidenceView::Scenarios {
     let frequency=string(&s.snapshot["artifact"]["acquisition"]["frequency"]);
     body=body.child(button(k,"Run seasonal continuation","simulate",json!({"sessionID":s.selected,"artifactID":artifact,"model":"seasonal_continuation_v1","horizon":if frequency=="annual" {2} else {12},"members":64,"seed":20261114})));
     for candidate in list(&current["artifacts"]) {
@@ -263,6 +283,8 @@ fn investigation(s: &State, k: &Kit, current: &Value) -> El {
         .child(label("Illustrative arithmetic only. Use one declared control-volume area and compatible mm per timestep; no discharge or root-water prediction is inferred."))
         .child(field(s,k,13,"Bucket inputs JSON: capacity, initial_storage, fluxes",false))
         .child(Button::new("Evaluate declared water budget").build(k).on_press(|s: &mut State|command("bucket",json!({"sessionID":s.selected,"inputs_json":s.fields[13].text}))));
+    }
+    if s.evidence_view==EvidenceView::Field {
     body=body.child(heading("Private field-observation intake"))
         .child(label("Reported outcomes remain unverified. Packets are excluded from standard public export and are not sent to a model provider by default."))
         .child(row().gap(6.).child(Button::new("Plant case / CHLORIS").build(k).on_press(|s:&mut State|s.field_domain="chloris".to_string())).child(Button::new("Water case / THALASSA").build(k).on_press(|s:&mut State|s.field_domain="thalassa".to_string())).child(Button::new("Animal case / ZOE").build(k).on_press(|s:&mut State|s.field_domain="zoe".to_string())))
@@ -284,6 +306,8 @@ fn investigation(s: &State, k: &Kit, current: &Value) -> El {
         .child(field(s,k,25,"Verified recipient or service name",false)).child(field(s,k,26,"Recipient official HTTPS source",false)).child(field(s,k,27,"Confirmed service/case jurisdiction",false)).child(field(s,k,28,"Relevant professional scope",false)).child(field(s,k,29,"How qualifications and current acceptance were confirmed",false));
       if s.handoff_confirmed{let case_id=packet["id"].clone();let domain=packet["reported"]["domain"].clone();body=body.child(Button::new("Prepare user-confirmed private handoff draft").build(k).on_press(move|s:&mut State|command("field-handoff",json!({"sessionID":s.selected,"caseID":case_id,"selection":{"jurisdiction":s.fields[27].text,"recipient":{"name":s.fields[25].text,"source":s.fields[26].text,"domain":domain,"jurisdiction":s.fields[27].text,"scope":s.fields[28].text,"qualification_basis":s.fields[29].text},"consent":true,"recipient_confirmed":true}}))));}
     }
+    }
+    if s.evidence_view==EvidenceView::Scenarios {
     body=body.child(heading("Historical prediction record"))
         .child(label("Selection, prediction, actual access-denial proof and reveal are recorded. This implementation retains a staged label unless complete access-route integrity is established."));
     let test=&current["predictionTest"];
@@ -304,12 +328,14 @@ fn investigation(s: &State, k: &Kit, current: &Value) -> El {
                 .child(label("This historical comparison is not a causal test or a calibrated forecast. Its committed values, rule, observed pairs and audit remain in the investigation export."));
         }else if status!="cancelled"{body=body.child(button(k,"Cancel target, preserve history","prediction",json!({"sessionID":s.selected,"action":"cancel"})));}
     }
-    body
+    }
+    if s.evidence_view==EvidenceView::Audit { body
         .child(inspect(k,"Executed numerical models",list(&current["simulations"])))
         .child(button(k,"Search bounded comparison candidates","references",json!({"sessionID":s.selected,"artifactID":artifact})))
         .child(inspect(k,"Comparison records",list(&current["comparisons"])))
         .child(inspect(k,"Experimental Jev judgments (shadow only)",list(&current["semanticReviews"])))
-        .child(inspect(k,"Recorded execution events",list(&current["events"]))).into()
+        .child(inspect(k,"Recorded execution events",list(&current["events"]))).into() }
+    else { body.into() }
 }
 fn mission_control(s:&State,k:&Kit,current:&Value,compact:bool)->El{
     let current_artifacts=list(&current["artifacts"]);
@@ -404,7 +430,7 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
     let compact=s.snapshot["viewportWidth"].as_f64().unwrap_or(1280.)<900.;
     let content=match s.tab {
         Tab::History=>history(s,&k),
-        Tab::Provider=>provider(s,&k),Tab::Conversation=>conversation(s,&k,&current),Tab::Evidence=>investigation(s,&k,&current),
+        Tab::Provider=>provider(s,&k),Tab::Conversation=>conversation(s,&k,&current),Tab::Evidence=>investigation(s,&k,&current,compact),
         Tab::Research=>research(s,&k,&current),
         Tab::Investigation=>record_workspace(s,&k),
         Tab::Sources=>inspect(&k,"Data access and provenance",list(&s.snapshot["catalog"]["resources"])),
