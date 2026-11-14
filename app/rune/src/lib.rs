@@ -30,6 +30,7 @@ struct State {
     revision: String,
     fields: Vec<TextEdit>,
     field_domain: String,
+    handoff_confirmed:bool,
     import_domain: String,
     research_view:ResearchView,
     record_view:RecordView,
@@ -47,9 +48,9 @@ struct State {
 }
 impl Default for State {
     fn default() -> Self {
-        let initial = ["", "53.91", "-122.75", "2001", "2025", "T2M", "", "", "", "", "", "", "monthly", "", "", "", "", "", "", "", "", "", "", "", ""];
+        let initial = ["", "53.91", "-122.75", "2001", "2025", "T2M", "", "", "", "", "", "", "monthly", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""];
         Self { tab: Tab::System, selected: String::new(), snapshot: json!({}), revision: String::new(),
-            fields: initial.into_iter().map(TextEdit::new).collect(), field_domain:"chloris".to_string(),import_domain:"aura".to_string(),research_view:ResearchView::Sources,record_view:RecordView::Graph,paper_id:String::new(),evidence_panel:EvidencePanel::Summary,audit_open:false,cache: None, marks: vec![], chart: None, chart_key: String::new(), scenario:None,scenario_key:String::new(),graph:None,graph_key:String::new() }
+            fields: initial.into_iter().map(TextEdit::new).collect(),field_domain:"chloris".to_string(),handoff_confirmed:false,import_domain:"aura".to_string(),research_view:ResearchView::Sources,record_view:RecordView::Graph,paper_id:String::new(),evidence_panel:EvidencePanel::Summary,audit_open:false,cache: None, marks: vec![], chart: None, chart_key: String::new(), scenario:None,scenario_key:String::new(),graph:None,graph_key:String::new() }
     }
 }
 fn setup(s: &mut State, wake: Waker) {
@@ -221,7 +222,7 @@ fn investigation(s: &State, k: &Kit, current: &Value) -> El {
         .child(Button::new("Evaluate declared water budget").build(k).on_press(|s: &mut State|command("bucket",json!({"sessionID":s.selected,"inputs_json":s.fields[13].text}))));
     body=body.child(heading("Private field-observation intake"))
         .child(label("Reported outcomes remain unverified. Packets are excluded from standard public export and are not sent to a model provider by default."))
-        .child(row().gap(6.).child(Button::new("Plants / CHLORIS").build(k).on_press(|s:&mut State|s.field_domain="chloris".to_string())).child(Button::new("Water / THALASSA").build(k).on_press(|s:&mut State|s.field_domain="thalassa".to_string())).child(Button::new("Animals / ZOE").build(k).on_press(|s:&mut State|s.field_domain="zoe".to_string())))
+        .child(row().gap(6.).child(Button::new("Plant case / CHLORIS").build(k).on_press(|s:&mut State|s.field_domain="chloris".to_string())).child(Button::new("Water case / THALASSA").build(k).on_press(|s:&mut State|s.field_domain="thalassa".to_string())).child(Button::new("Animal case / ZOE").build(k).on_press(|s:&mut State|s.field_domain="zoe".to_string())))
         .child(line("Selected observation domain",&json!(s.field_domain)))
         .child(field(s,k,16,"Region or site description",false))
         .child(field(s,k,14,"What was actually observed or reported?",false))
@@ -230,6 +231,16 @@ fn investigation(s: &State, k: &Kit, current: &Value) -> El {
         .child(field(s,k,19,"Recent changes in weather, sampling or management",false))
         .child(Button::new("Save private reported-context packet").build(k).on_press(|s: &mut State|command("field-intake",json!({"sessionID":s.selected,"case":{"domain":s.field_domain,"region":s.fields[16].text,"reported_observation":s.fields[14].text,"organism":s.fields[17].text,"onset":s.fields[18].text,"recent_changes":if s.fields[19].text.is_empty(){Vec::<String>::new()}else{vec![s.fields[19].text.clone()]}}}))));
     for packet in list(&current["fieldCases"]){body=body.child(line("Private intake and safe next observations",packet));}
+    if let Some(packet)=list(&current["fieldCases"]).last(){
+      body=body.child(heading("Private professional handoff"))
+        .child(label("Confirm the service jurisdiction, professional scope, current acceptance and minimum necessary case data before preparing a draft. This does not send anything or authorize sample handling."))
+        .child(button(k,"Load documented referral guidance","field-referrals",json!({})))
+        .child(Button::new(if s.handoff_confirmed{"Withdraw recipient confirmation and preparation consent"}else{"I confirm recipient scope/jurisdiction and consent to prepare a private draft"}).build(k).on_press(|s:&mut State|s.handoff_confirmed=!s.handoff_confirmed));
+      for referral in list(&s.snapshot["referrals"]){if referral["domain"]!=packet["reported"]["domain"]{continue;}body=body.child(heading(string(&referral["name"]))).child(line("Service jurisdiction",&referral["jurisdiction"])).child(line("Official source",&referral["source"])).child(line("Scope",&referral["scope"])).child(line("Limits and current acceptance",&referral["limits"]));if s.handoff_confirmed{body=body.child(button(k,&format!("Prepare private draft for {}",string(&referral["name"])),"field-handoff",json!({"sessionID":s.selected,"caseID":packet["id"],"selection":{"recipient_id":referral["id"],"jurisdiction":referral["jurisdiction"],"consent":true,"recipient_confirmed":true}})));}}
+      body=body.child(label("Other jurisdictions: supply a recipient you have verified. GAIA labels this user-confirmed, not independently certified."))
+        .child(field(s,k,25,"Verified recipient or service name",false)).child(field(s,k,26,"Recipient official HTTPS source",false)).child(field(s,k,27,"Confirmed service/case jurisdiction",false)).child(field(s,k,28,"Relevant professional scope",false)).child(field(s,k,29,"How qualifications and current acceptance were confirmed",false));
+      if s.handoff_confirmed{let case_id=packet["id"].clone();let domain=packet["reported"]["domain"].clone();body=body.child(Button::new("Prepare user-confirmed private handoff draft").build(k).on_press(move|s:&mut State|command("field-handoff",json!({"sessionID":s.selected,"caseID":case_id,"selection":{"jurisdiction":s.fields[27].text,"recipient":{"name":s.fields[25].text,"source":s.fields[26].text,"domain":domain,"jurisdiction":s.fields[27].text,"scope":s.fields[28].text,"qualification_basis":s.fields[29].text},"consent":true,"recipient_confirmed":true}}))));}
+    }
     body=body.child(heading("Historical prediction record"))
         .child(label("Selection, prediction, actual access-denial proof and reveal are recorded. This implementation retains a staged label unless complete access-route integrity is established."));
     let test=&current["predictionTest"];

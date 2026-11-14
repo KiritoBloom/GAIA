@@ -1,5 +1,5 @@
 import {mechanismGraph} from './graph.mjs';
-const state={status:{},catalog:{},competence:{},models:[],sites:[],stations:null,operation:null,error:null,selected:null,selectedArtifact:'',artifact:null,investigation:null,graphSvg:'',chartSvg:'',scenarioSvg:''};
+const state={status:{},catalog:{},competence:{},referrals:[],models:[],sites:[],stations:null,operation:null,error:null,selected:null,selectedArtifact:'',artifact:null,investigation:null,graphSvg:'',chartSvg:'',scenarioSvg:''};
 let notifier=()=>{},privateConfiguration=false;
 function publish(){const session=state.status.sessions?.find(value=>value.id===state.selected);state.artifact=session?.artifacts?.find(value=>value.id===state.selectedArtifact)||session?.artifacts?.at(-1)||null;state.chartSvg=chart(state.artifact);state.scenarioSvg=scenarioChart(session?.simulations?.at(-1));state.viewportWidth=innerWidth;globalThis.gaiaSnapshot=JSON.stringify(state);notifier();}
 addEventListener('resize',publish);
@@ -75,6 +75,8 @@ globalThis.gaiaCommand=async(name,input={})=>{
       case 'bucket':await api('/bucket',{sessionID:input.sessionID,inputs:JSON.parse(input.inputs_json)});break;
       case 'stations':state.stations=await api('/stations',input);break;
       case 'field-intake':await api('/field/intake',{sessionID:input.sessionID,case:input.case || JSON.parse(input.case_json)});break;
+      case 'field-referrals':state.referrals=await api('/field/referrals');break;
+      case 'field-handoff':{const result=await api('/field/handoff',input),url=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='gaia-private-handoff.json';link.click();URL.revokeObjectURL(url);break;}
       case 'references':await api('/references/search',input);break;
       case 'prediction':await api('/prediction',input);break;
       case 'stop':await api('/jobs/stop',input);break;

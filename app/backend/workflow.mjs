@@ -8,6 +8,7 @@ import { domainSkills, validateSourceEvidence, competenceStatus } from './knowle
 import {creativeHypothesis,creativeProtocol,resolveHypothesis,resolveProtocol,assessCandidate} from './creative.mjs';
 import {validatePaperEvidence} from './research.mjs';
 import{ownedEvidenceRefs,validateReview}from'./reviews.mjs';
+import{validateReviewSources}from'./review-sources.mjs';
 
 const hypothesisIDs = Object.keys(hypotheses);
 const planSchema = z.object({ owner:z.enum(['aura','thalassa','chloris','zoe']), domains:z.array(z.enum(['aura','thalassa','chloris','zoe'])).max(4), hypotheses:z.array(z.union([z.enum(hypothesisIDs),creativeHypothesis])).min(2).max(6), protocol:z.union([z.enum(Object.keys(protocols)),creativeProtocol]), question:z.string().min(1).max(1200) }).strict();
@@ -57,13 +58,15 @@ export async function coordinate(session, request, emit, signal) {
           const corrected=await promptRole(task.sessionID,role,`Repair the report structure and citation identifiers using your already completed research; do not repeat that scientific work. Return only JSON {summary,evidence_ids,gaps,protocol,source_evidence}. Summary may be up to 6000 characters, gaps at most eight with 700 characters each, one to four exact source quotations. Protocol must be ${JSON.stringify(protocol.id)}. Scientific evidence IDs must come from this actual owned inventory: ${JSON.stringify(ownedEvidenceRefs(session))}. Diagnostics and scenarios retain their declared evidence classes; speculative models, notebook IDs, unavailable weather variables and fabricated IDs are not observations. Remove an unavailable citation rather than inventing its data. Validation issue: ${publicError(error)}. Retain uncertainty and source quotations from your actual retrieved work.`,signal);
           parsed=validateReview(session,assistantObject(corrected),protocol.id);
         }
-        const trace = toolTrace(session.id).slice(before).filter(item=>item.role === role);
+        let trace = toolTrace(session.id).slice(before).filter(item=>item.role === role);
         if (!trace.some(item=>item.tool === 'catalog') || !trace.some(item=>item.tool === 'evidence')) throw new Error('Worker did not inspect actual scoped catalog and evidence.');
         if(domainSkills(role).some(id=>!trace.some(item=>item.tool==='skill'&&item.output.id===id)))throw Error('Worker did not load its actual approved procedures.');
         if(parsed.protocol!==protocol.id)throw Error('Worker changed the recorded observation protocol.');
-        const paperIDs=new Set((session.literature||[]).map(item=>item.id));
-        const sources=[...validateSourceEvidenceOptional(role,parsed.source_evidence.filter(item=>!paperIDs.has(item.source_id))),...validatePaperEvidence(session,parsed.source_evidence.filter(item=>paperIDs.has(item.source_id)))];
-        if(sources.some(source=>!trace.some(item=>(item.tool==='reference'||item.tool==='read_paper')&&item.output.id===source.source_id)))throw Error('Worker cited a source not retrieved in this review.');
+        let sources;
+        try{sources=validateReviewSources(session,role,parsed.source_evidence,toolTrace(session.id),task.sessionID);}catch(error){
+          const corrected=await promptRole(task.sessionID,role,`Correct only the source access and report references, not the completed scientific work. Read each cited source using gaia_reference or gaia_read_paper in this conversation; retained paper text can be read without a new network charge. Quote exact actual source text, not an invented quotation. Previously read current-hash sources in this same conversation are allowed. Return strict JSON {summary,evidence_ids,gaps,protocol,source_evidence}; summary<=6000, gaps<=8 with <=700 characters, protocol=${JSON.stringify(protocol.id)}, source quotations=1-4 of 25-1000 characters. Actual scientific evidence inventory: ${JSON.stringify(ownedEvidenceRefs(session))}. Validation issue: ${publicError(error)}.`,signal);
+          parsed=validateReview(session,assistantObject(corrected),protocol.id);sources=validateReviewSources(session,role,parsed.source_evidence,toolTrace(session.id),task.sessionID);trace=toolTrace(session.id).slice(before).filter(item=>item.role===role);
+        }
         const competence=competenceStatus(role,providerStatus().model);
         const review = { role,threadID:task.sessionID,...parsed,sources,competence,trace,label:'source-quoted, procedure-executed domain proposal; not independent professional certification',time:new Date().toISOString() };
         session.roleSummaries[role] = { text:review.summary, source:review.label, threadID:task.sessionID, gaps:parsed.gaps,sources,cited_evidence:parsed.cited_evidence,competence,trace,time:review.time,graphID };

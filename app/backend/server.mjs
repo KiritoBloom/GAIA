@@ -12,9 +12,12 @@ import { semanticStatus } from './jev.mjs';
 import { reserve, getTest, commit, authorize, evaluate, publicTest, cancel, preparePrediction } from './integrity.mjs';
 import { powerContextRequest } from './scope.mjs';
 import { diagnosticPacket } from './field.mjs';
+import{prepareHandoff,referralDirectory}from'./handoff.mjs';
 import { executionVersions } from './versions.mjs';
 import { domainSkills, referenceCatalog, skillProfile } from './knowledge.mjs';
 import {investigationRecords} from './investigation-records.mjs';
+import{observationProtocol}from'./observations.mjs';
+import{assessCandidate}from'./creative.mjs';
 import {searchLiterature,readPaper,increaseResearchBudget} from './research.mjs';
 import {stopRuntimeSession} from './runtime.mjs';
 
@@ -94,6 +97,8 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='POST'&&url.pathname==='/api/research/read'){const input=await body(request),session=sessionFor(input.sessionID);return json(response,await scientificAccess.paper(session.id,'gaia',{id:input.id},AbortSignal.timeout(45_000)));}
     if(request.method==='POST'&&url.pathname==='/api/animals'){const input=await body(request),session=sessionFor(input.sessionID);return json(response,await scientificAccess.animals(session.id,'zoe',{scientific_name:input.scientific_name},AbortSignal.timeout(180_000)));}
     if(request.method==='POST' && url.pathname==='/api/field/intake') {const input=await body(request),session=sessionFor(input.sessionID),packet={id:randomUUID(),created:new Date().toISOString(),...diagnosticPacket(input.case)};session.fieldCases ||= [];session.fieldCases.push(packet);event(session,'field.intake.saved',{summary:'Private reported-context intake saved; no verified diagnosis or professional contact is claimed.'});return json(response,packet);}
+    if(request.method==='GET'&&url.pathname==='/api/field/referrals')return json(response,referralDirectory);
+    if(request.method==='POST'&&url.pathname==='/api/field/handoff'){const input=await body(request),session=sessionFor(input.sessionID),packet=session.fieldCases?.find(item=>item.id===input.caseID);if(!packet)throw Error('Private handoff needs an owned reported-context packet.');const result={id:randomUUID(),caseID:packet.id,created:new Date().toISOString(),...prepareHandoff(packet,input.selection)};session.handoffPackets ||= [];session.handoffPackets.push(result);event(session,'field.handoff.prepared',{summary:'User-confirmed private handoff draft prepared locally; nothing sent and no diagnosis claimed.'});return json(response,result);}
     if (request.method === 'GET' && url.pathname === '/api/models') return json(response,await science({operation:'models'}));
     if (request.method === 'GET' && url.pathname === '/api/events') {
       response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
@@ -105,8 +110,9 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/provider/models') return json(response, await discoverModels(await body(request)));
     if (request.method === 'POST' && url.pathname === '/api/provider/connect') {
+      if(sessions.some(session=>session.chatRunning)||providerStatus().proof?.state==='running')return json(response,{error:'Stop active investigations or finish provider verification before changing the provider.'},409);
       const input = await body(request);
-      return json(response, await configureProvider(input.use_local ? { ...localProvider(), model: input.model } : input));
+      const result=await configureProvider(input.use_local ? { ...localProvider(), model: input.model } : input);for(const session of sessions){session.threads={};}save();return json(response,result);
     }
     if (request.method === 'POST' && url.pathname === '/api/provider/proof') return json(response,await proveRuntime(progress=>{const message=`data: ${JSON.stringify({type:'provider.proof.progress',progress})}\n\n`;for(const listener of listeners)listener.write(message);}));
     if (request.method === 'POST' && url.pathname === '/api/provider/remove') { const result = await removeProvider(); for (const session of sessions) session.threads = {}; save(); return json(response, result); }
@@ -172,12 +178,13 @@ const server = http.createServer(async (request, response) => {
       catch(error){job.status=controller.signal.aborted?'cancelled':'failed';job.error=publicError(error);event(session,'simulation.failed',{jobID:job.id,summary:job.error});} return;
     }
     if(request.method==='POST' && url.pathname==='/api/observation/get') {
-      const input=await body(request),session=sessionFor(input.sessionID),protocol=session.observationPlan;
+      const input=await body(request),session=sessionFor(input.sessionID),protocol=observationProtocol(session);
       if(!protocol || protocol.operation!=='power') throw new Error('This observation needs a licensed import or qualified field evidence, not an invented adapter.');
       const before={id:randomUUID(),artifacts:session.artifacts.map(item=>item.id),hypotheses:structuredClone(session.hypothesisRecords),time:new Date().toISOString()};
       const artifact=await scientificAccess.acquire(session.id,protocol.variable,AbortSignal.timeout(180_000));
-      const after=session.hypothesisRecords.map(record=>({...record,evidence:session.artifacts.map(item=>evaluateSignature(record.id,item,session.artifacts[0]))}));
-      session.hypothesisRecords=after; session.evidenceUpdates ||= []; session.evidenceUpdates.push({id:randomUUID(),before,after,artifactID:artifact.id,mode:'staged_reveal',reason:'Actual compatible observable acquired or retrieved from the real-data cache; directional signatures recomputed without claiming causal proof.',time:new Date().toISOString()});
+      const after=session.hypothesisRecords.map(record=>({...record,evidence:session.artifacts.map(item=>assessCandidate(record,item,session.artifacts[0]))}));
+      const added=before.artifacts.includes(artifact.id)?[]:[artifact.id];
+      session.hypothesisRecords=after; session.evidenceUpdates ||= []; session.evidenceUpdates.push({id:randomUUID(),before,after,artifactID:artifact.id,added_artifacts:added,mode:'staged_reveal',reason:added.length?'Actual compatible observable acquired or retrieved from the real-data cache; expectations recomputed without causal proof.':'Existing owned evidence reassessed; no new observation or causal proof is claimed.',time:new Date().toISOString()});
       event(session,'evidence.updated',{artifactID:artifact.id,summary:'Before/after evidence snapshots retained; inconclusive signatures remain inconclusive.'}); return json(response,session.evidenceUpdates.at(-1));
     }
     if (request.method === 'GET' && url.pathname.startsWith('/api/export/')) {

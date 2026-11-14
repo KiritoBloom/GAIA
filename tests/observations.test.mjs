@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{observationProtocol}from'../app/backend/observations.mjs';
+test('current and earlier observation-plan envelopes preserve the committed protocol',()=>{const p={id:'precipitation',operation:'power',variable:'PRECTOTCORR'};assert.equal(observationProtocol({observationPlan:p}),p);assert.equal(observationProtocol({observationPlan:{protocol:p}}),p);assert.equal(observationProtocol({observationPlan:{}}),null);});
