@@ -1,0 +1,11 @@
+.env
+/plan.md
+node_modules/
+*.log
+.DS_Store
+board/trace.json
+board/jev-calibration.jsonl
+demo/take*.mkv
+demo/take*.mp4
+gaia_submit_*.mp4
+gaia_<date>_take*
