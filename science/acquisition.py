@@ -21,7 +21,7 @@ from .catalog import VARIABLES
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / ".runtime" / "science-cache"
-ALLOWED = {"power.larc.nasa.gov", "modis.ornl.gov", "www.ncei.noaa.gov", "cmr.earthdata.nasa.gov"}
+ALLOWED = {"power.larc.nasa.gov", "modis.ornl.gov", "www.ncei.noaa.gov", "cmr.earthdata.nasa.gov", "api.gbif.org"}
 MAX_BYTES = 48 * 1024 * 1024
 
 
@@ -39,7 +39,7 @@ def read_json(url, headers=None):
     request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "GAIA-SpaceApps/0.1 scientific-prototype", **(headers or {})})
     for attempt in range(2):
         try:
-            if parsed.hostname in ('modis.ornl.gov','cmr.earthdata.nasa.gov'):
+            if parsed.hostname in ('modis.ornl.gov','cmr.earthdata.nasa.gov','api.gbif.org'):
                 executable=ROOT/'.runtime'/'bin'/('node.exe' if os.name=='nt' else 'node')
                 if not executable.exists():
                     executable='node'

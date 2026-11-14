@@ -7,6 +7,8 @@ from .catalog import VARIABLES, RESOURCES
 from .trends import analyze
 from .models import simulate, REGISTRY
 from .discovery import compare
+from .domain_methods import diagnose, METHODS
+from .animals import occurrences
 
 
 def execute(request):
@@ -17,8 +19,14 @@ def execute(request):
         return sites()
     if operation == "noaa_stations":
         return noaa_stations(request)
+    if operation == 'animal_occurrences':
+        return occurrences(request)
     if operation == "models":
         return REGISTRY
+    if operation == 'domain_methods':
+        return METHODS
+    if operation == 'domain_diagnostic':
+        return diagnose(request)
     if operation == "simulate":
         return simulate(request)
     if operation == "compare":
