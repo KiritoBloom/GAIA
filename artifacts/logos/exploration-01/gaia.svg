@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Exploration 01 — GAIA planetary guardian</title>
+  <desc id="desc">An emerald planet held by two sculptural platinum leaves, encircled by an inclined orbit. Original outlined GAIA lettering on a deep forest background.</desc>
+  <defs>
+    <radialGradient id="ground" cx="50%" cy="39%" r="65%">
+      <stop stop-color="#122b26"/><stop offset=".54" stop-color="#091614"/><stop offset="1" stop-color="#050a09"/>
+    </radialGradient>
+    <radialGradient id="halo"><stop stop-color="#6ae8bc" stop-opacity=".15"/><stop offset=".7" stop-color="#2f9978" stop-opacity=".045"/><stop offset="1" stop-color="#2f9978" stop-opacity="0"/></radialGradient>
+    <radialGradient id="planet" cx="32%" cy="24%" r="81%">
+      <stop stop-color="#b0efd5"/><stop offset=".15" stop-color="#50bf95"/><stop offset=".42" stop-color="#198764"/><stop offset=".76" stop-color="#07563f"/><stop offset="1" stop-color="#05251f"/>
+    </radialGradient>
+    <linearGradient id="platinum" x1="0" y1="0" x2=".86" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#f5f4df"/><stop offset=".23" stop-color="#c6dfd2"/><stop offset=".5" stop-color="#77988d"/><stop offset=".67" stop-color="#e7f1e5"/><stop offset="1" stop-color="#3b6354"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#eff7e9"/><stop offset=".25" stop-color="#b6d3c1"/><stop offset=".63" stop-color="#5c8a75"/><stop offset="1" stop-color="#193e30"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d6efc2"/><stop offset=".4" stop-color="#76bd89"/><stop offset="1" stop-color="#1a6b48"/>
+    </linearGradient>
+    <linearGradient id="orbit"><stop stop-color="#8dbea8"/><stop offset=".47" stop-color="#efffec"/><stop offset="1" stop-color="#82b69b"/></linearGradient>
+    <clipPath id="sphere"><circle cx="600" cy="488" r="213"/></clipPath>
+    <filter id="lift" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000" flood-opacity=".45"/></filter>
+  </defs>
+  <rect width="1200" height="1200" fill="url(#ground)"/>
+  <circle cx="600" cy="488" r="470" fill="url(#halo)"/>
+  <g id="emblem">
+  <g fill="none" stroke="#a4d1b4">
+    <circle cx="600" cy="510" r="355" stroke-width=".8" opacity=".12"/>
+    <path d="M600 143V168 M600 851V876 M230 510H253 M947 510H970" stroke-width="1" opacity=".3"/>
+    <path d="M354 254L367 267 M833 754L846 767 M354 766L367 753 M833 266L846 253" stroke-width="1" opacity=".22"/>
+  </g>
+  <!-- The upper shell and growing base share a single circular construction. -->
+  <path d="M289 440C313 278 447 185 600 185C753 185 887 278 911 440L897 435C868 288 742 204 600 204C458 204 332 288 303 435Z" fill="url(#platinum)"/>
+  <path d="M329 372C379 278 480 227 600 226" fill="none" stroke="#edffeb" stroke-width="1.4" opacity=".45"/>
+  <path d="M718 232C805 263 858 313 884 374" fill="none" stroke="#517963" stroke-width="1.4"/>
+  <circle cx="600" cy="195" r="5" fill="#f1f8df"/>
+  <path d="M600 167V183" stroke="#c8e2bd" stroke-width="1"/>
+  <ellipse cx="600" cy="490" rx="289" ry="92" transform="rotate(-28 600 490)" fill="none" stroke="#86bda3" stroke-width="1.4" opacity=".3"/>
+  <g filter="url(#lift)">
+    <circle cx="600" cy="488" r="215" fill="#083d2e" stroke="#8cceb0" stroke-width="1"/>
+    <circle cx="600" cy="488" r="213" fill="url(#planet)"/>
+    <g clip-path="url(#sphere)">
+      <!-- Deliberately abstract coast-like land forms: a sigil, not a data map. -->
+      <path d="M401 359L429 321L479 312L498 333L533 335L554 356L539 381L502 380L486 405L454 412L455 441L430 446L407 419L384 420Z" fill="url(#land)" opacity=".82"/>
+      <path d="M461 439L492 428L517 449L545 457L563 485L553 510L558 544L538 572L531 610L511 631L496 604L488 568L472 541L478 510L454 481Z" fill="url(#land)" opacity=".77"/>
+      <path d="M587 300L611 284L657 293L672 311L708 309L733 333L746 363L782 373L797 410L768 433L740 419L718 429L682 410L667 430L645 417L627 388L603 395L582 378L600 351L578 332Z" fill="url(#land)" opacity=".75"/>
+      <path d="M599 412L631 405L660 436L677 469L674 509L651 546L637 575L614 563L603 530L580 504L583 474L567 455Z" fill="url(#land)" opacity=".76"/>
+      <path d="M713 579L751 567L779 585L799 611L777 637L744 629L724 638L701 612Z" fill="url(#land)" opacity=".65"/>
+      <g fill="none" stroke="#d2f4d7" stroke-width=".9" opacity=".13">
+        <ellipse cx="600" cy="488" rx="108" ry="213"/>
+        <ellipse cx="600" cy="488" rx="171" ry="213"/>
+        <path d="M388 468Q600 527 812 468 M410 393Q600 444 790 393 M407 576Q600 633 793 576 M457 653Q600 684 743 653"/>
+        <path d="M600 275V701"/>
+      </g>
+      <path d="M430 389C481 308 581 277 665 291" fill="none" stroke="#d6ffe3" stroke-width="3" opacity=".38"/>
+      <path d="M443 402C488 329 575 298 642 302" fill="none" stroke="#c7f7d7" stroke-width="1" opacity=".5"/>
+    </g>
+  </g>
+  <!-- Front orbit crosses the planet; the hidden back half is deliberately omitted. -->
+  <path d="M343 591C377 648 520 629 664 560C815 488 904 400 864 365" fill="none" stroke="url(#orbit)" stroke-width="3.3"/>
+  <path d="M343 591C337 580 337 567 342 553 M864 365C853 356 837 351 816 352" fill="none" stroke="#86bda3" stroke-width="1.4" opacity=".6"/>
+  <circle cx="416" cy="620" r="5.5" fill="#e4f5d7"/>
+  <circle cx="782" cy="493" r="5.5" fill="#e4f5d7"/>
+  <circle cx="850" cy="408" r="3.7" fill="#bedec0"/>
+  <!-- The leaves are folded metallic planes, not a generic eco wreath. -->
+  <path d="M600 831C416 778 295 646 278 464C313 609 408 656 517 694C568 712 596 759 600 831Z" fill="url(#leaf)"/>
+  <path d="M600 831C784 778 905 646 922 464C887 609 792 656 683 694C632 712 604 759 600 831Z" fill="url(#leaf)"/>
+  <path d="M291 520C354 645 492 718 600 831C491 770 372 696 291 520Z" fill="#163d2c" opacity=".7"/>
+  <path d="M909 520C846 645 708 718 600 831C709 770 828 696 909 520Z" fill="#163d2c" opacity=".7"/>
+  <path d="M292 524C378 678 504 721 594 814 M908 524C822 678 696 721 606 814" fill="none" stroke="#cee4ce" stroke-width="1.2" opacity=".72"/>
+  <path d="M334 642C392 686 458 706 517 726 M866 642C808 686 742 706 683 726" fill="none" stroke="#65876e" stroke-width="1"/>
+  </g>
+  <!-- Custom vector wordmark. No fonts or external assets required. -->
+  <g id="wordmark" transform="translate(416 945)" fill="none" stroke="#dce8d2" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M76 15C62-4 24-6 9 18C-4 40 0 67 17 80C33 93 59 88 76 73V48H49 M70 48H83 M70 73H83"/>
+    <path d="M119 86L151 0L184 86 M132 54H171 M111 86H130 M174 86H194"/>
+    <path d="M237 0V86 M225 0H249 M225 86H249"/>
+    <path d="M294 86L326 0L359 86 M307 54H346 M286 86H305 M349 86H369"/>
+  </g>
+  <g id="family-seal" transform="translate(600 1110)" fill="none" stroke="#b6c5b2" stroke-width="1" opacity=".65">
+    <path d="M0-13V13 M-13 0H13"/><circle r="5" fill="#d5e6c6"/><circle cy="-16" r="2"/><circle cx="16" r="2"/><circle cy="16" r="2"/><circle cx="-16" r="2"/>
+  </g>
+</svg>

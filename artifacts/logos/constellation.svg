@@ -1,0 +1,267 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="2400" viewBox="0 0 2400 2400" role="img" aria-labelledby="master-title master-desc">
+  <title id="master-title">GAIA. The hexagonal Earth-system seal.</title>
+  <desc id="master-desc">Five differently colored function marks in matching six-sided frames, integrated into an interwoven hexagonal seal on pure black. Decorative identity artwork, not an operational or scientific diagram.</desc>
+  <defs>
+    <clipPath id="gaia-world-boundary">
+      <circle cx="590" cy="525" r="133" />
+    </clipPath>
+    <g id="gaia-emblem">
+      <g id="gaia-field" stroke-linecap="round" stroke-linejoin="miter">
+        <path id="gaia-surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#72a58d" stroke-width="2.5" />
+        <path id="gaia-field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#7de3bc" stroke-width="6" />
+        <path id="gaia-field-echo" d="M929 725L600 915L271 725" fill="none" stroke="#edd496" stroke-width="2.5" transform="translate(600 535) scale(.964) translate(-600 -535)" />
+      </g>
+      <g id="gaia-symbol">
+        <circle id="gaia-earth-ocean" cx="590" cy="525" r="133" fill="#246458" />
+        <g clip-path="url(#gaia-world-boundary)">
+          <path id="gaia-earth-land" d="M574 399L594 414C607 426 604 438 590 451L602 471C615 480 622 471 637 483L624 510L638 528C624 550 617 563 604 579L576 567L569 543L548 525L547 498L524 474L529 445Z M685 437C711 452 723 477 722 498L697 495L682 478L670 475L661 450Z M629 584C646 571 664 578 673 591L664 620L643 634L626 615Z" fill="#7de3bc" />
+          <path d="M469 494C543 472 636 472 713 494 M469 556C545 578 635 578 713 556 M586 392C560 443 552 583 586 658" fill="none" stroke="#000000" stroke-width="3" opacity=".4" />
+        </g>
+        <path id="gaia-planetary-shell" d="M791 341C738 292 676 269 608 269C460 269 339 389 339 539C339 686 455 788 602 788C704 788 789 740 826 657V524H641V603H741C725 658 671 692 607 692C514 692 438 626 438 536C438 441 512 365 608 365C654 365 697 381 732 413Z" fill="#e9ede0" />
+        <path id="gaia-evidence-gate" d="M641 524H826V566H671C655 553 648 539 641 524Z" fill="#edd496" />
+        <path d="M405 443C449 329 577 288 676 333" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+      </g>
+    </g>
+    <g id="gaia-wordmark" fill="#e3f2e9" transform="translate(485.2085 1023) scale(0.04401651 -0.04401651)">
+      <path d="M1180 792V529Q1180 367 1116.25 243.5Q1052.5 120 935.65 52.5Q818.8 -15 665 -15Q509.5 -15 391.5 48.5Q273.5 112 208.75 228Q144 344 144 497V926Q144 1088 207.75 1211Q271.5 1334 388.35 1401.5Q505.2 1469 659 1469Q785.5 1469 892.35 1415.5Q999.2 1362 1070.95 1264Q1142.7 1166 1168 1037H924.501Q907.4 1101.9 866.95 1148.7Q826.5 1195.501 771.95 1220.001Q717.4 1244.501 659 1244.501Q574.1 1244.501 509.85 1204.801Q445.6 1165.101 410.55 1093.15Q375.499 1021.2 375.499 926V497Q375.499 410.8 411.4 345.85Q447.3 280.899 513.05 245.199Q578.8 209.499 665 209.499Q750.2 209.499 814.45 246.999Q878.7 284.499 913.6 355.8Q948.501 427.1 948.501 525V576.3H676V792Z" transform="translate(0.000 0)" />
+      <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(1549.280 0)" />
+      <path d="M396 0H168V1454H396Z" transform="translate(3100.560 0)" />
+      <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(3889.840 0)" />
+    </g>
+    <g id="aura-emblem">
+      <g id="aura-field" stroke-linecap="round" stroke-linejoin="miter">
+        <path id="aura-surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#b77a5d" stroke-width="2.5" />
+        <path id="aura-field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#ffad79" stroke-width="6" />
+        <path id="aura-field-echo" d="M929 725L600 915L271 725" fill="none" stroke="#ef665d" stroke-width="2.5" transform="translate(600 535) scale(.964) translate(-600 -535)" />
+      </g>
+      <g id="aura-symbol">
+        <path d="M365 510C370 421 454 343 568 352C675 361 718 428 796 399C759 449 706 483 638 456C581 427 568 398 521 402C453 408 420 471 365 510Z" fill="#ffd5a2" />
+        <path d="M351 589C409 470 522 421 618 467C686 498 730 552 798 535C756 590 702 620 634 588C565 555 550 499 503 506C447 515 402 566 351 589Z" fill="#ff976a" />
+        <path d="M398 668C466 552 536 560 589 604C637 644 695 658 762 638C729 697 668 710 613 679C540 641 488 632 398 668Z" fill="#ef665d" />
+        <path d="M430 421C481 363 542 363 595 387 M423 519C483 462 549 466 595 501 M524 607C570 624 604 663 644 674" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+      </g>
+    </g>
+    <g id="aura-wordmark" fill="#ffe6ce" transform="translate(467.8440 1023) scale(0.04401651 -0.04401651)">
+      <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(0.000 0)" />
+      <path d="M154 526V1454H379V519Q379 370.2 455.1 288.6Q531.2 206.999 670 206.999Q809.8 206.999 886.4 288.6Q963 370.2 963 519V1454H1188V526Q1188 355 1127.25 233.5Q1066.5 112 950.15 48.5Q833.8 -15 670 -15Q506.9 -15 391.05 48.5Q275.2 112 214.6 233.5Q154 355 154 526Z" transform="translate(1551.280 0)" />
+      <path d="M269 821H768Q821.2 821 862.3 846.9Q903.4 872.8 925.8 920.55Q948.2 968.3 948.5 1030.5Q948.5 1092.7 926.1 1140.45Q903.7 1188.201 862.95 1214.101Q822.2 1240.001 768 1240.001H269V1455H769Q893.2 1455 987.35 1402.4Q1081.5 1349.8 1133.25 1253.4Q1185 1157 1185 1030.5Q1185 904 1132.9 807.6Q1080.8 711.2 986.5 658.6Q892.2 606 769 606H269ZM174 1455H399V0H174ZM638.001 651 868 697 1246 0H977.001Z" transform="translate(3118.560 0)" />
+      <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(4678.840 0)" />
+    </g>
+    <mask id="thalassa-water-cut" maskUnits="userSpaceOnUse" x="350" y="250" width="500" height="560">
+      <rect x="350" y="250" width="500" height="560" fill="white" />
+      <path d="M595 421C559 476 482 508 478 578C473 635 513 683 566 684C660 688 682 619 648 583C623 557 584 565 573 591C625 571 643 610 623 642C605 671 543 659 541 623C536 570 579 532 619 523C657 514 697 544 711 583C710 518 654 452 595 421Z" fill="black" />
+    </mask>
+    <clipPath id="thalassa-water-volume">
+      <path d="M600 292C582 350 442 463 424 574C397 735 548 794 652 767C747 743 796 652 767 557C746 485 680 418 600 292Z" />
+    </clipPath>
+    <g id="thalassa-emblem">
+      <g id="thalassa-field" stroke-linecap="round" stroke-linejoin="miter">
+        <path id="thalassa-surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#588ab5" stroke-width="2.5" />
+        <path id="thalassa-field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#64beff" stroke-width="6" />
+        <path id="thalassa-field-echo" d="M929 725L600 915L271 725" fill="none" stroke="#49e5cf" stroke-width="2.5" transform="translate(600 535) scale(.964) translate(-600 -535)" />
+      </g>
+      <g id="thalassa-symbol" mask="url(#thalassa-water-cut)">
+        <path d="M600 292C582 350 442 463 424 574C397 735 548 794 652 767C747 743 796 652 767 557C746 485 680 418 600 292Z" fill="#75b5ff" />
+        <g clip-path="url(#thalassa-water-volume)">
+          <path d="M417 656C469 739 573 764 647 722C715 683 733 624 718 570C786 649 739 770 648 793H445Z" fill="#49e5cf" />
+          <path d="M492 719C545 753 611 753 665 720" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+        </g>
+      </g>
+    </g>
+    <g id="thalassa-wordmark" fill="#d1f1ff" transform="translate(344.1109 1023) scale(0.04401651 -0.04401651)">
+      <path d="M380.5 1335H605.5V0H380.5ZM-26 1454H1012V1239.001H-26Z" transform="translate(0.000 0)" />
+      <path d="M991 1454H1216V0H991ZM174 1454H399V0H174ZM301 825H1120V610H301Z" transform="translate(1211.280 0)" />
+      <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(2826.560 0)" />
+      <path d="M174 1454H399V0H174ZM282 214.999H1120V0H282Z" transform="translate(4377.840 0)" />
+      <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(5777.120 0)" />
+      <path d="M84 165 211 341.999Q294.3 270.899 397.3 234.449Q500.3 197.999 617 197.999Q767.8 197.999 850.9 252.599Q934 307.2 934 407V408Q934 478.6 896.45 519.95Q858.9 561.3 799.25 581.15Q739.6 601 645.4 617.5Q642.4 618.5 639.2 618.5Q636 618.5 633 619.5L615.9 622.5Q469.9 646.9 377.05 679.3Q284.2 711.7 218.6 796.1Q153 880.5 153 1036V1037Q153 1173.8 214.25 1270.65Q275.5 1367.5 392.7 1418.25Q509.9 1469 675 1469Q753 1469 830.3 1451.7Q907.6 1434.4 982.45 1400.75Q1057.3 1367.1 1128 1317L1012 1134.001Q928.7 1194.101 843.5 1225.051Q758.3 1256.001 675 1256.001Q532.9 1256.001 454.45 1201.9Q376 1147.8 376 1049V1048Q376 976.6 416.55 935.55Q457.1 894.5 517.45 875.05Q577.8 855.6 685.7 834.5Q689.7 833.5 693.35 833Q697 832.5 701 831.5Q706.3 830.5 712.15 829.35Q718 828.2 723.3 827.2Q857.1 800.2 946.8 762.75Q1036.5 725.3 1096.75 641.9Q1157 558.5 1157 414V412Q1157 277.2 1093.4 181.35Q1029.8 85.5 908.8 35.25Q787.8 -15 617 -15Q512.3 -15 416.65 5.3Q321 25.6 237.7 65.75Q154.4 105.9 84 165Z" transform="translate(7328.400 0)" />
+      <path d="M84 165 211 341.999Q294.3 270.899 397.3 234.449Q500.3 197.999 617 197.999Q767.8 197.999 850.9 252.599Q934 307.2 934 407V408Q934 478.6 896.45 519.95Q858.9 561.3 799.25 581.15Q739.6 601 645.4 617.5Q642.4 618.5 639.2 618.5Q636 618.5 633 619.5L615.9 622.5Q469.9 646.9 377.05 679.3Q284.2 711.7 218.6 796.1Q153 880.5 153 1036V1037Q153 1173.8 214.25 1270.65Q275.5 1367.5 392.7 1418.25Q509.9 1469 675 1469Q753 1469 830.3 1451.7Q907.6 1434.4 982.45 1400.75Q1057.3 1367.1 1128 1317L1012 1134.001Q928.7 1194.101 843.5 1225.051Q758.3 1256.001 675 1256.001Q532.9 1256.001 454.45 1201.9Q376 1147.8 376 1049V1048Q376 976.6 416.55 935.55Q457.1 894.5 517.45 875.05Q577.8 855.6 685.7 834.5Q689.7 833.5 693.35 833Q697 832.5 701 831.5Q706.3 830.5 712.15 829.35Q718 828.2 723.3 827.2Q857.1 800.2 946.8 762.75Q1036.5 725.3 1096.75 641.9Q1157 558.5 1157 414V412Q1157 277.2 1093.4 181.35Q1029.8 85.5 908.8 35.25Q787.8 -15 617 -15Q512.3 -15 416.65 5.3Q321 25.6 237.7 65.75Q154.4 105.9 84 165Z" transform="translate(8814.680 0)" />
+      <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(10300.960 0)" />
+    </g>
+    <g id="chloris-emblem">
+      <g id="chloris-field" stroke-linecap="round" stroke-linejoin="miter">
+        <path id="chloris-surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#90a65e" stroke-width="2.5" />
+        <path id="chloris-field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#d1ed79" stroke-width="6" />
+        <path id="chloris-field-echo" d="M929 725L600 915L271 725" fill="none" stroke="#ffe6a2" stroke-width="2.5" transform="translate(600 535) scale(.964) translate(-600 -535)" />
+      </g>
+      <g id="chloris-symbol">
+        <path d="M427 674C411 513 493 388 719 329C661 389 602 477 562 556C509 627 472 674 427 674Z" fill="#cee96f" />
+        <path d="M448 735C566 659 624 561 705 380C818 584 717 748 536 761C498 765 469 753 448 735Z" fill="#a5d68a" />
+        <path d="M421 777C476 601 577 489 722 329C616 530 554 671 450 797Z" fill="#ffe6a2" />
+        <path d="M457 572C486 477 548 414 618 386 M638 664C684 619 705 557 700 512" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+      </g>
+    </g>
+    <g id="chloris-wordmark" fill="#ecf2cc" transform="translate(387.2973 1023) scale(0.04401651 -0.04401651)">
+      <path d="M144 527V926Q144 1091 206.7 1213.55Q269.4 1336.1 384.95 1402.55Q500.5 1469 656 1469Q784.6 1469 890.5 1413.85Q996.4 1358.7 1066.9 1256.35Q1137.4 1154 1163 1016.001H931.501Q913.4 1085.201 872.2 1137.951Q831 1190.701 774.75 1219.101Q718.5 1247.501 656 1247.501Q570.6 1247.501 507.5 1207.951Q444.4 1168.4 409.95 1096Q375.499 1023.6 375.499 926V527Q375.499 430.1 409.95 357.5Q444.4 284.9 507.5 245.699Q570.6 206.499 656 206.499Q719.5 206.499 775.55 233.349Q831.6 260.199 872.65 312.599Q913.7 364.999 931.501 437.999H1163Q1137.1 300 1066.25 197.65Q995.4 95.3 889.65 40.15Q783.9 -15 656 -15Q500.5 -15 384.95 50.95Q269.4 116.9 206.7 239.45Q144 362 144 527Z" transform="translate(0.000 0)" />
+      <path d="M991 1454H1216V0H991ZM174 1454H399V0H174ZM301 825H1120V610H301Z" transform="translate(1492.280 0)" />
+      <path d="M174 1454H399V0H174ZM282 214.999H1120V0H282Z" transform="translate(3107.560 0)" />
+      <path d="M144 521V933Q144 1093 208.25 1214.5Q272.5 1336 389.85 1402.5Q507.2 1469 661 1469Q814.8 1469 932.15 1402.5Q1049.5 1336 1113.75 1214.5Q1178 1093 1178 933V521Q1178 361 1113.75 239.5Q1049.5 118 932.15 51.5Q814.8 -15 661 -15Q507.2 -15 389.85 51.5Q272.5 118 208.25 239.5Q144 361 144 521ZM946.501 514V940Q946.501 1031.4 911.1 1100.95Q875.7 1170.501 810.95 1208.301Q746.2 1246.101 661 1246.101Q575.8 1246.101 511.05 1208.301Q446.3 1170.501 410.9 1100.95Q375.499 1031.4 375.499 940V514Q375.499 422.6 410.9 353.05Q446.3 283.499 511.05 245.699Q575.8 207.899 661 207.899Q746.2 207.899 810.95 245.699Q875.7 283.499 911.1 353.05Q946.501 422.6 946.501 514Z" transform="translate(4506.840 0)" />
+      <path d="M269 821H768Q821.2 821 862.3 846.9Q903.4 872.8 925.8 920.55Q948.2 968.3 948.5 1030.5Q948.5 1092.7 926.1 1140.45Q903.7 1188.201 862.95 1214.101Q822.2 1240.001 768 1240.001H269V1455H769Q893.2 1455 987.35 1402.4Q1081.5 1349.8 1133.25 1253.4Q1185 1157 1185 1030.5Q1185 904 1132.9 807.6Q1080.8 711.2 986.5 658.6Q892.2 606 769 606H269ZM174 1455H399V0H174ZM638.001 651 868 697 1246 0H977.001Z" transform="translate(6054.120 0)" />
+      <path d="M396 0H168V1454H396Z" transform="translate(7614.400 0)" />
+      <path d="M84 165 211 341.999Q294.3 270.899 397.3 234.449Q500.3 197.999 617 197.999Q767.8 197.999 850.9 252.599Q934 307.2 934 407V408Q934 478.6 896.45 519.95Q858.9 561.3 799.25 581.15Q739.6 601 645.4 617.5Q642.4 618.5 639.2 618.5Q636 618.5 633 619.5L615.9 622.5Q469.9 646.9 377.05 679.3Q284.2 711.7 218.6 796.1Q153 880.5 153 1036V1037Q153 1173.8 214.25 1270.65Q275.5 1367.5 392.7 1418.25Q509.9 1469 675 1469Q753 1469 830.3 1451.7Q907.6 1434.4 982.45 1400.75Q1057.3 1367.1 1128 1317L1012 1134.001Q928.7 1194.101 843.5 1225.051Q758.3 1256.001 675 1256.001Q532.9 1256.001 454.45 1201.9Q376 1147.8 376 1049V1048Q376 976.6 416.55 935.55Q457.1 894.5 517.45 875.05Q577.8 855.6 685.7 834.5Q689.7 833.5 693.35 833Q697 832.5 701 831.5Q706.3 830.5 712.15 829.35Q718 828.2 723.3 827.2Q857.1 800.2 946.8 762.75Q1036.5 725.3 1096.75 641.9Q1157 558.5 1157 414V412Q1157 277.2 1093.4 181.35Q1029.8 85.5 908.8 35.25Q787.8 -15 617 -15Q512.3 -15 416.65 5.3Q321 25.6 237.7 65.75Q154.4 105.9 84 165Z" transform="translate(8403.680 0)" />
+    </g>
+    <mask id="zoe-gaze-cut" maskUnits="userSpaceOnUse" x="300" y="280" width="550" height="550">
+      <rect x="300" y="280" width="550" height="550" fill="white" />
+      <path d="M514 489C552 453 604 450 648 481C608 519 558 525 514 489Z" fill="black" />
+    </mask>
+    <g id="zoe-emblem">
+      <g id="zoe-field" stroke-linecap="round" stroke-linejoin="miter">
+        <path id="zoe-surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#9b80ba" stroke-width="2.5" />
+        <path id="zoe-field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#c2a5f2" stroke-width="6" />
+        <path id="zoe-field-echo" d="M929 725L600 915L271 725" fill="none" stroke="#f18db4" stroke-width="2.5" transform="translate(600 535) scale(.964) translate(-600 -535)" />
+      </g>
+      <g id="zoe-symbol">
+        <path d="M353 551C415 438 492 353 574 371C614 379 647 408 666 435L805 458L682 514C664 527 657 568 654 612C651 671 609 714 534 706C565 676 592 639 589 607C513 580 432 606 353 551Z" fill="#cfb7f5" mask="url(#zoe-gaze-cut)" />
+        <path d="M367 597C428 641 509 625 563 657C608 684 621 720 659 744C575 753 540 707 493 683C443 657 401 657 367 597Z" fill="#f18db4" />
+        <circle cx="583" cy="485" r="17" fill="#fdedc1" />
+        <path d="M440 484C467 449 495 427 522 426 M458 650C489 649 514 666 535 678" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+      </g>
+    </g>
+    <g id="zoe-wordmark" fill="#f0e6ff" transform="translate(509.5338 1023) scale(0.04401651 -0.04401651)">
+      <path d="M1010 1257.001 387.499 214.999H1030V0H114V196.999L740.001 1239.001H132V1454H1010Z" transform="translate(0.000 0)" />
+      <path d="M144 521V933Q144 1093 208.25 1214.5Q272.5 1336 389.85 1402.5Q507.2 1469 661 1469Q814.8 1469 932.15 1402.5Q1049.5 1336 1113.75 1214.5Q1178 1093 1178 933V521Q1178 361 1113.75 239.5Q1049.5 118 932.15 51.5Q814.8 -15 661 -15Q507.2 -15 389.85 51.5Q272.5 118 208.25 239.5Q144 361 144 521ZM946.501 514V940Q946.501 1031.4 911.1 1100.95Q875.7 1170.501 810.95 1208.301Q746.2 1246.101 661 1246.101Q575.8 1246.101 511.05 1208.301Q446.3 1170.501 410.9 1100.95Q375.499 1031.4 375.499 940V514Q375.499 422.6 410.9 353.05Q446.3 283.499 511.05 245.699Q575.8 207.899 661 207.899Q746.2 207.899 810.95 245.699Q875.7 283.499 911.1 353.05Q946.501 422.6 946.501 514Z" transform="translate(1339.280 0)" />
+      <path d="M174 1454H399V0H174ZM273 214.999H1120V0H273ZM273 829.5H1010V614.5H273ZM273 1454H1120V1239.001H273Z" transform="translate(2886.560 0)" />
+    </g>
+    <mask id="caption-clearance" maskUnits="userSpaceOnUse" x="0" y="0" width="2400" height="2400">
+      <rect width="2400" height="2400" fill="white" />
+      <rect x="1070" y="1509" width="260" height="78" fill="black" rx="12" />
+      <rect x="1100" y="700" width="200" height="64" fill="black" rx="12" />
+      <rect x="1720" y="1396" width="320" height="64" fill="black" rx="12" />
+      <rect x="430" y="1396" width="180" height="64" fill="black" rx="12" />
+      <rect x="1060" y="2070" width="280" height="65" fill="black" rx="12" />
+    </mask>
+    <clipPath id="seal-boundary" clipPathUnits="userSpaceOnUse">
+      <path d="M1200 45L2178.609 610L2178.609 1740L1200 2305L221.391 1740L221.391 610Z" />
+    </clipPath>
+    <path id="field-loop" d="M0-958C164-958 468-709 431-378C403-209 242-177 0-237C-242-297-403-209-431-378C-468-709-164-958 0-958Z" />
+  </defs>
+  <rect width="2400" height="2400" fill="#000000" />
+  <g id="woven-field" mask="url(#caption-clearance)" clip-path="url(#seal-boundary)">
+    <path id="overall-surface" d="M1200 45L2178.609 610L2178.609 1740L1200 2305L221.391 1740L221.391 610Z" fill="#000000" stroke="#474747" stroke-width="1.2" />
+    <path d="M1200 45L2178.609 610" fill="none" stroke="#b77a5d" stroke-width="3.2" opacity="0.8" />
+    <path d="M1200 45L2178.609 610" fill="none" stroke="#ffad79" stroke-width="1.1" opacity="0.65" transform="translate(1200 1175) scale(.979) translate(-1200 -1175)" />
+    <path d="M2178.609 610L2178.609 1740" fill="none" stroke="#588ab5" stroke-width="3.2" opacity="0.8" />
+    <path d="M2178.609 610L2178.609 1740" fill="none" stroke="#64beff" stroke-width="1.1" opacity="0.65" transform="translate(1200 1175) scale(.979) translate(-1200 -1175)" />
+    <path d="M2178.609 1740L1200 2305" fill="none" stroke="#90a65e" stroke-width="3.2" opacity="0.8" />
+    <path d="M2178.609 1740L1200 2305" fill="none" stroke="#d1ed79" stroke-width="1.1" opacity="0.65" transform="translate(1200 1175) scale(.979) translate(-1200 -1175)" />
+    <path d="M1200 2305L221.391 1740" fill="none" stroke="#9b80ba" stroke-width="3.2" opacity="0.8" />
+    <path d="M1200 2305L221.391 1740" fill="none" stroke="#c2a5f2" stroke-width="1.1" opacity="0.65" transform="translate(1200 1175) scale(.979) translate(-1200 -1175)" />
+    <path d="M221.391 1740L221.391 610L1200 45" fill="none" stroke="#72a58d" stroke-width="3.2" opacity="0.8" />
+    <path d="M221.391 1740L221.391 610L1200 45" fill="none" stroke="#7de3bc" stroke-width="1.1" opacity="0.65" transform="translate(1200 1175) scale(.979) translate(-1200 -1175)" />
+    <g transform="translate(1200 1175) rotate(-9) scale(0.98 0.96)" fill="none">
+      <use href="#field-loop" stroke="#000000" stroke-width="15" />
+      <use href="#field-loop" stroke="#b77a5d" stroke-width="6.5" opacity="0.7" />
+      <use href="#field-loop" stroke="#ffad79" stroke-width="1.5" opacity="0.85" />
+      <use href="#field-loop" transform="scale(.957)" stroke="#b77a5d" stroke-width="1.2" opacity="0.65" />
+    </g>
+    <g transform="translate(1200 1175) rotate(78) scale(1.02 0.99)" fill="none">
+      <use href="#field-loop" stroke="#000000" stroke-width="15" />
+      <use href="#field-loop" stroke="#588ab5" stroke-width="6.5" opacity="0.7" />
+      <use href="#field-loop" stroke="#64beff" stroke-width="1.5" opacity="0.85" />
+      <use href="#field-loop" transform="scale(.957)" stroke="#588ab5" stroke-width="1.2" opacity="0.65" />
+    </g>
+    <g transform="translate(1200 1175) rotate(151) scale(0.93 1.04)" fill="none">
+      <use href="#field-loop" stroke="#000000" stroke-width="15" />
+      <use href="#field-loop" stroke="#90a65e" stroke-width="6.5" opacity="0.7" />
+      <use href="#field-loop" stroke="#d1ed79" stroke-width="1.5" opacity="0.85" />
+      <use href="#field-loop" transform="scale(.957)" stroke="#90a65e" stroke-width="1.2" opacity="0.65" />
+    </g>
+    <g transform="translate(1200 1175) rotate(228) scale(1.03 0.95)" fill="none">
+      <use href="#field-loop" stroke="#000000" stroke-width="15" />
+      <use href="#field-loop" stroke="#9b80ba" stroke-width="6.5" opacity="0.7" />
+      <use href="#field-loop" stroke="#c2a5f2" stroke-width="1.5" opacity="0.85" />
+      <use href="#field-loop" transform="scale(.957)" stroke="#9b80ba" stroke-width="1.2" opacity="0.65" />
+    </g>
+    <g transform="translate(1200 1175) rotate(304) scale(0.94 1.02)" fill="none">
+      <use href="#field-loop" stroke="#000000" stroke-width="15" />
+      <use href="#field-loop" stroke="#72a58d" stroke-width="6.5" opacity="0.7" />
+      <use href="#field-loop" stroke="#7de3bc" stroke-width="1.5" opacity="0.85" />
+      <use href="#field-loop" transform="scale(.957)" stroke="#72a58d" stroke-width="1.2" opacity="0.65" />
+    </g>
+    <g transform="translate(1200 1175) rotate(-9) scale(0.98 0.96)" fill="none">
+      <path d="M262.619 -821.950C337.732 -747.740 401.217 -647.087 424.541 -529.898" stroke="#000000" stroke-width="17" stroke-linecap="round" />
+      <path d="M262.619 -821.950C337.732 -747.740 401.217 -647.087 424.541 -529.898" stroke="#ffad79" stroke-width="3.6" opacity="0.85" stroke-linecap="round" />
+    </g>
+    <g transform="translate(1200 1175) rotate(78) scale(1.02 0.99)" fill="none">
+      <path d="M262.619 -821.950C337.732 -747.740 401.217 -647.087 424.541 -529.898" stroke="#000000" stroke-width="17" stroke-linecap="round" />
+      <path d="M262.619 -821.950C337.732 -747.740 401.217 -647.087 424.541 -529.898" stroke="#64beff" stroke-width="3.6" opacity="0.85" stroke-linecap="round" />
+    </g>
+    <g transform="translate(1200 1175) rotate(151) scale(0.93 1.04)" fill="none">
+      <path d="M262.619 -821.950C337.732 -747.740 401.217 -647.087 424.541 -529.898" stroke="#000000" stroke-width="17" stroke-linecap="round" />
+      <path d="M262.619 -821.950C337.732 -747.740 401.217 -647.087 424.541 -529.898" stroke="#d1ed79" stroke-width="3.6" opacity="0.85" stroke-linecap="round" />
+    </g>
+    <g transform="translate(1200 1175) rotate(228) scale(1.03 0.95)" fill="none">
+      <path d="M262.619 -821.950C337.732 -747.740 401.217 -647.087 424.541 -529.898" stroke="#000000" stroke-width="17" stroke-linecap="round" />
+      <path d="M262.619 -821.950C337.732 -747.740 401.217 -647.087 424.541 -529.898" stroke="#c2a5f2" stroke-width="3.6" opacity="0.85" stroke-linecap="round" />
+    </g>
+    <g transform="translate(1200 1175) rotate(304) scale(0.94 1.02)" fill="none">
+      <path d="M262.619 -821.950C337.732 -747.740 401.217 -647.087 424.541 -529.898" stroke="#000000" stroke-width="17" stroke-linecap="round" />
+      <path d="M262.619 -821.950C337.732 -747.740 401.217 -647.087 424.541 -529.898" stroke="#7de3bc" stroke-width="3.6" opacity="0.85" stroke-linecap="round" />
+    </g>
+    <path d="M1003 559C883 663 861 817 894 953" fill="none" stroke="#000000" stroke-width="25" />
+    <path d="M1003 559C883 663 861 817 894 953" fill="none" stroke="#000000" stroke-width="17" />
+    <path d="M1003 559C883 663 861 817 894 953" fill="none" stroke="#ffad79" stroke-width="3.5" opacity="0.95" />
+    <path d="M1003 559C883 663 861 817 894 953" fill="none" stroke="#ef665d" stroke-width="1.1" opacity="0.8" transform="translate(5 5)" />
+    <path d="M1397 559C1517 663 1539 817 1506 953" fill="none" stroke="#000000" stroke-width="25" />
+    <path d="M1397 559C1517 663 1539 817 1506 953" fill="none" stroke="#000000" stroke-width="17" />
+    <path d="M1397 559C1517 663 1539 817 1506 953" fill="none" stroke="#ffad79" stroke-width="3.5" opacity="0.95" />
+    <path d="M1397 559C1517 663 1539 817 1506 953" fill="none" stroke="#ef665d" stroke-width="1.1" opacity="0.8" transform="translate(5 5)" />
+    <path d="M1506 953C1550 908 1647 950 1683 1026" fill="none" stroke="#000000" stroke-width="25" />
+    <path d="M1506 953C1550 908 1647 950 1683 1026" fill="none" stroke="#000000" stroke-width="17" />
+    <path d="M1506 953C1550 908 1647 950 1683 1026" fill="none" stroke="#64beff" stroke-width="3.5" opacity="0.95" />
+    <path d="M1506 953C1550 908 1647 950 1683 1026" fill="none" stroke="#49e5cf" stroke-width="1.1" opacity="0.8" transform="translate(5 5)" />
+    <path d="M1506 1307C1566 1395 1651 1340 1683 1254" fill="none" stroke="#000000" stroke-width="25" />
+    <path d="M1506 1307C1566 1395 1651 1340 1683 1254" fill="none" stroke="#000000" stroke-width="17" />
+    <path d="M1506 1307C1566 1395 1651 1340 1683 1254" fill="none" stroke="#64beff" stroke-width="3.5" opacity="0.95" />
+    <path d="M1506 1307C1566 1395 1651 1340 1683 1254" fill="none" stroke="#49e5cf" stroke-width="1.1" opacity="0.8" transform="translate(5 5)" />
+    <path d="M894 1307C838 1525 894 1666 1003 1706" fill="none" stroke="#000000" stroke-width="25" />
+    <path d="M894 1307C838 1525 894 1666 1003 1706" fill="none" stroke="#000000" stroke-width="17" />
+    <path d="M894 1307C838 1525 894 1666 1003 1706" fill="none" stroke="#d1ed79" stroke-width="3.5" opacity="0.95" />
+    <path d="M894 1307C838 1525 894 1666 1003 1706" fill="none" stroke="#ffe6a2" stroke-width="1.1" opacity="0.8" transform="translate(5 5)" />
+    <path d="M1506 1307C1562 1525 1506 1666 1397 1706" fill="none" stroke="#000000" stroke-width="25" />
+    <path d="M1506 1307C1562 1525 1506 1666 1397 1706" fill="none" stroke="#000000" stroke-width="17" />
+    <path d="M1506 1307C1562 1525 1506 1666 1397 1706" fill="none" stroke="#d1ed79" stroke-width="3.5" opacity="0.95" />
+    <path d="M1506 1307C1562 1525 1506 1666 1397 1706" fill="none" stroke="#ffe6a2" stroke-width="1.1" opacity="0.8" transform="translate(5 5)" />
+    <path d="M894 953C850 908 753 950 717 1026" fill="none" stroke="#000000" stroke-width="25" />
+    <path d="M894 953C850 908 753 950 717 1026" fill="none" stroke="#000000" stroke-width="17" />
+    <path d="M894 953C850 908 753 950 717 1026" fill="none" stroke="#c2a5f2" stroke-width="3.5" opacity="0.95" />
+    <path d="M894 953C850 908 753 950 717 1026" fill="none" stroke="#f18db4" stroke-width="1.1" opacity="0.8" transform="translate(5 5)" />
+    <path d="M894 1307C834 1395 749 1340 717 1254" fill="none" stroke="#000000" stroke-width="25" />
+    <path d="M894 1307C834 1395 749 1340 717 1254" fill="none" stroke="#000000" stroke-width="17" />
+    <path d="M894 1307C834 1395 749 1340 717 1254" fill="none" stroke="#c2a5f2" stroke-width="3.5" opacity="0.95" />
+    <path d="M894 1307C834 1395 749 1340 717 1254" fill="none" stroke="#f18db4" stroke-width="1.1" opacity="0.8" transform="translate(5 5)" />
+    <path d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="none" stroke="#72a58d" stroke-width="1.7" opacity="0.7" transform="translate(1200 1130) scale(1.0) translate(-600 -535)" />
+    <path d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="none" stroke="#edd496" stroke-width="0.9" opacity="0.7" transform="translate(1200 1130) scale(1.04) translate(-600 -535)" />
+  </g>
+  <g transform="translate(1200 1130) scale(0.93) translate(-600 -535)">
+    <use href="#gaia-emblem" />
+  </g>
+  <g transform="translate(1200 1525) scale(0.68) translate(-600 -959)">
+    <use href="#gaia-wordmark" />
+  </g>
+  <g transform="translate(1200 445) scale(0.6) translate(-600 -535)">
+    <use href="#aura-emblem" />
+  </g>
+  <g transform="translate(1200 715) scale(0.53) translate(-600 -959)">
+    <use href="#aura-wordmark" />
+  </g>
+  <g transform="translate(1880 1140) scale(0.6) translate(-600 -535)">
+    <use href="#thalassa-emblem" />
+  </g>
+  <g transform="translate(1880 1410) scale(0.45) translate(-600 -959)">
+    <use href="#thalassa-wordmark" />
+  </g>
+  <g transform="translate(1200 1820) scale(0.6) translate(-600 -535)">
+    <use href="#chloris-emblem" />
+  </g>
+  <g transform="translate(1200 2085) scale(0.5) translate(-600 -959)">
+    <use href="#chloris-wordmark" />
+  </g>
+  <g transform="translate(520 1140) scale(0.6) translate(-600 -535)">
+    <use href="#zoe-emblem" />
+  </g>
+  <g transform="translate(520 1410) scale(0.53) translate(-600 -959)">
+    <use href="#zoe-wordmark" />
+  </g>
+</svg>

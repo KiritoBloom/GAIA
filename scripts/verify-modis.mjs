@@ -1,0 +1,16 @@
+import '../app/backend/runtime.mjs';
+import { science } from '../app/backend/science.mjs';
+import { mkdir,writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+const status=await(await fetch('http://127.0.0.1:4317/api/status')).json();
+const session=status.sessions.find(s=>s.artifacts.some(a=>a.acquisition.variable.id==='EVI'));
+if(!session)throw new Error('No actual browser-acquired MODIS record exists.');
+const exported=await(await fetch(`http://127.0.0.1:4317/api/export/${session.id}`)).json();
+const original=exported.artifacts.find(a=>a.acquisition.variable.id==='EVI');
+const a=original.acquisition;
+const replay=await science({operation:'modis',siteid:a.geometry.siteid,latitude:a.geometry.latitude,longitude:a.geometry.longitude,start:Number(original.analysis.requested_start.slice(0,4)),end:Number(original.analysis.requested_end.slice(0,4)),months:a.provenance.recipe.months});
+if(replay.analysis.inputs_sha256!==original.analysis.inputs_sha256||replay.analysis.specification_hash!==original.analysis.specification_hash)throw new Error('Raw-band QA replay changed the numerical inputs or method.');
+await mkdir('.runtime/proofs',{recursive:true});await writeFile('.runtime/proofs/modis-ui-export.json',JSON.stringify(exported,null,2));
+const run=spawnSync(process.execPath,['scripts/reproduce.mjs','.runtime/proofs/modis-ui-export.json'],{cwd:process.cwd(),env:process.env,stdio:'inherit'});
+if(run.status!==0)throw new Error('Separate-process export reproduction failed.');
+console.log(JSON.stringify({provider:'NASA MODIS / ORNL DAAC',site:a.geometry.siteid,collection:a.provenance.collection_versions,acceptedGranules:a.provenance.collection_identity_evidence.matched_granules.length,excludedGranules:a.provenance.collection_identity_evidence.excluded_granules.length,rawQaReplay:true,annualObservations:original.analysis.n,missing:original.analysis.missing,status:original.analysis.status},null,2));

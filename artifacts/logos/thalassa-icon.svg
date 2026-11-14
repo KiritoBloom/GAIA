@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="180 115 840 840" role="img" aria-labelledby="title desc">
+  <title id="title">THALASSA. The circulating volume.</title>
+  <desc id="desc">A cobalt water volume and lagoon return current sit within a six-sided blue and turquoise frame on pure black.</desc>
+  <defs>
+    <mask id="water-cut" maskUnits="userSpaceOnUse" x="350" y="250" width="500" height="560">
+      <rect x="350" y="250" width="500" height="560" fill="white" />
+      <path d="M595 421C559 476 482 508 478 578C473 635 513 683 566 684C660 688 682 619 648 583C623 557 584 565 573 591C625 571 643 610 623 642C605 671 543 659 541 623C536 570 579 532 619 523C657 514 697 544 711 583C710 518 654 452 595 421Z" fill="black" />
+    </mask>
+    <clipPath id="water-volume">
+      <path d="M600 292C582 350 442 463 424 574C397 735 548 794 652 767C747 743 796 652 767 557C746 485 680 418 600 292Z" />
+    </clipPath>
+  </defs>
+  <g id="emblem">
+    <g id="field" stroke-linecap="round" stroke-linejoin="miter">
+      <path id="surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#588ab5" stroke-width="9" />
+      <path id="field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#64beff" stroke-width="12" />
+    </g>
+    <g id="symbol" mask="url(#water-cut)">
+      <path d="M600 292C582 350 442 463 424 574C397 735 548 794 652 767C747 743 796 652 767 557C746 485 680 418 600 292Z" fill="#75b5ff" />
+      <g clip-path="url(#water-volume)">
+        <path d="M417 656C469 739 573 764 647 722C715 683 733 624 718 570C786 649 739 770 648 793H445Z" fill="#49e5cf" />
+        <path d="M492 719C545 753 611 753 665 720" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+      </g>
+    </g>
+  </g>
+</svg>

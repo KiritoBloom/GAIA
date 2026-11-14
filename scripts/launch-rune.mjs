@@ -1,0 +1,10 @@
+import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { portableNode } from './portable-node.mjs';
+const root=resolve(process.cwd());
+if(!existsSync(resolve(root,'.runtime/rune/gaia/gaia_bg.wasm')))throw new Error('Build the local Rune frontend with npm run setup:rune and npm run build before starting.');
+const node=await portableNode(root),child=spawn(node,['app/backend/server.mjs'],{cwd:root,stdio:'inherit',env:{...process.env,TEMP:resolve(root,'.tmp'),TMP:resolve(root,'.tmp')}});
+console.log('GAIA Rune UI: http://127.0.0.1:4317/rune/');
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>child.kill());
+child.on('error',error=>{console.error(error.message);process.exitCode=1;});child.on('exit',code=>process.exit(code||0));

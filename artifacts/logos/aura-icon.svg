@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="180 115 840 840" role="img" aria-labelledby="title desc">
+  <title id="title">AURA. The atmospheric sweep.</title>
+  <desc id="desc">Sunrise-peach, coral and ember air ribbons sit within a six-sided frame on pure black.</desc>
+  <defs />
+  <g id="emblem">
+    <g id="field" stroke-linecap="round" stroke-linejoin="miter">
+      <path id="surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#b77a5d" stroke-width="9" />
+      <path id="field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#ffad79" stroke-width="12" />
+    </g>
+    <g id="symbol">
+      <path d="M365 510C370 421 454 343 568 352C675 361 718 428 796 399C759 449 706 483 638 456C581 427 568 398 521 402C453 408 420 471 365 510Z" fill="#ffd5a2" />
+      <path d="M351 589C409 470 522 421 618 467C686 498 730 552 798 535C756 590 702 620 634 588C565 555 550 499 503 506C447 515 402 566 351 589Z" fill="#ff976a" />
+      <path d="M398 668C466 552 536 560 589 604C637 644 695 658 762 638C729 697 668 710 613 679C540 641 488 632 398 668Z" fill="#ef665d" />
+      <path d="M430 421C481 363 542 363 595 387 M423 519C483 462 549 466 595 501 M524 607C570 624 604 663 644 674" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">GAIA. The planetary G.</title>
+  <desc id="desc">An opal planetary G and emerald Earth sit within a six-sided jade and gold frame on pure black. The Earth is symbolic artwork, not geographic data.</desc>
+  <defs>
+    <clipPath id="world-boundary">
+      <circle cx="590" cy="525" r="133" />
+    </clipPath>
+  </defs>
+  <rect width="1200" height="1200" fill="#000000" />
+  <g id="emblem">
+    <g id="field" stroke-linecap="round" stroke-linejoin="miter">
+      <path id="surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#72a58d" stroke-width="2.5" />
+      <path id="field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#7de3bc" stroke-width="6" />
+      <path id="field-echo" d="M929 725L600 915L271 725" fill="none" stroke="#edd496" stroke-width="2.5" transform="translate(600 535) scale(.964) translate(-600 -535)" />
+    </g>
+    <g id="symbol">
+      <circle id="earth-ocean" cx="590" cy="525" r="133" fill="#246458" />
+      <g clip-path="url(#world-boundary)">
+        <path id="earth-land" d="M574 399L594 414C607 426 604 438 590 451L602 471C615 480 622 471 637 483L624 510L638 528C624 550 617 563 604 579L576 567L569 543L548 525L547 498L524 474L529 445Z M685 437C711 452 723 477 722 498L697 495L682 478L670 475L661 450Z M629 584C646 571 664 578 673 591L664 620L643 634L626 615Z" fill="#7de3bc" />
+        <path d="M469 494C543 472 636 472 713 494 M469 556C545 578 635 578 713 556 M586 392C560 443 552 583 586 658" fill="none" stroke="#000000" stroke-width="3" opacity=".4" />
+      </g>
+      <path id="planetary-shell" d="M791 341C738 292 676 269 608 269C460 269 339 389 339 539C339 686 455 788 602 788C704 788 789 740 826 657V524H641V603H741C725 658 671 692 607 692C514 692 438 626 438 536C438 441 512 365 608 365C654 365 697 381 732 413Z" fill="#e9ede0" />
+      <path id="evidence-gate" d="M641 524H826V566H671C655 553 648 539 641 524Z" fill="#edd496" />
+      <path d="M405 443C449 329 577 288 676 333" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+    </g>
+  </g>
+  <g id="wordmark" fill="#e3f2e9" transform="translate(485.2085 1023) scale(0.04401651 -0.04401651)">
+    <path d="M1180 792V529Q1180 367 1116.25 243.5Q1052.5 120 935.65 52.5Q818.8 -15 665 -15Q509.5 -15 391.5 48.5Q273.5 112 208.75 228Q144 344 144 497V926Q144 1088 207.75 1211Q271.5 1334 388.35 1401.5Q505.2 1469 659 1469Q785.5 1469 892.35 1415.5Q999.2 1362 1070.95 1264Q1142.7 1166 1168 1037H924.501Q907.4 1101.9 866.95 1148.7Q826.5 1195.501 771.95 1220.001Q717.4 1244.501 659 1244.501Q574.1 1244.501 509.85 1204.801Q445.6 1165.101 410.55 1093.15Q375.499 1021.2 375.499 926V497Q375.499 410.8 411.4 345.85Q447.3 280.899 513.05 245.199Q578.8 209.499 665 209.499Q750.2 209.499 814.45 246.999Q878.7 284.499 913.6 355.8Q948.501 427.1 948.501 525V576.3H676V792Z" transform="translate(0.000 0)" />
+    <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(1549.280 0)" />
+    <path d="M396 0H168V1454H396Z" transform="translate(3100.560 0)" />
+    <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(3889.840 0)" />
+  </g>
+</svg>

@@ -1,0 +1,14 @@
+import { science } from '../app/backend/science.mjs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { ROOT } from '../app/backend/environment.mjs';
+const { sites } = await science({ operation: 'sites' });
+const candidates = sites.filter(site => /Canada/i.test(site.country)).sort((a,b) => a.siteid.localeCompare(b.siteid));
+console.log('Provider-listed Canadian footprints:', candidates.length);
+if (!candidates.length) throw new Error('No Canadian fixed footprint; choose another supported region, not an invented site.');
+const site = candidates.find(site => /British Columbia|BC/i.test(site.state || '') && Number(site.latitude) < 56) || candidates.find(site => Number(site.latitude) < 56) || candidates[0];
+console.log('Operational coverage probe (not outcome-selected):', site.siteid, site.sitename);
+const result = await science({ operation: 'modis', siteid: site.siteid, variable: 'EVI', latitude: Number(site.latitude), longitude: Number(site.longitude), start: 2001, end: 2025, months: [5,6,7,8,9] });
+const path = resolve(ROOT, '.runtime/proofs'); mkdirSync(path, { recursive: true });
+writeFileSync(resolve(path, 'nasa-modis.json'), JSON.stringify(result, null, 2));
+console.log(JSON.stringify({ variable: result.acquisition.variable, geometry: result.acquisition.geometry, status: result.analysis.status, n: result.analysis.n, missing: result.analysis.missing }, null, 2));

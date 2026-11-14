@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Exploration 01 — THALASSA carved current</title>
+  <desc id="desc">Two interlocking water currents cut from a deep teal disk, with carved parallel wave lines, a mineral-teal print and warm ivory paper. Original serif-like vector lettering.</desc>
+  <defs>
+    <pattern id="paper" width="127" height="113" patternUnits="userSpaceOnUse">
+      <path d="M5 12L31 11 M76 34L114 33 M19 64L52 63 M62 95L95 94 M2 98L14 97 M93 8L105 7" fill="none" stroke="#7b7763" stroke-width=".6" opacity=".13"/>
+      <path d="M12 40L18 42 M51 20L57 21 M92 75L99 76 M31 100L35 101" fill="none" stroke="#fffdf2" stroke-width="1" opacity=".65"/>
+    </pattern>
+    <clipPath id="disk"><circle cx="600" cy="514" r="313"/></clipPath>
+    <pattern id="ink" width="86" height="57" patternUnits="userSpaceOnUse"><path d="M0 16L62 8 M11 43L86 33" stroke="#d7e4d2" stroke-width=".65" opacity=".07" fill="none"/></pattern>
+  </defs>
+  <rect width="1200" height="1200" fill="#0d1c1b"/>
+  <rect width="1200" height="1200" fill="url(#paper)" opacity=".13"/>
+  <path d="M130 147H1070" fill="none" stroke="#a6bdac" stroke-width=".7" opacity=".23"/>
+  <g id="emblem">
+  <circle cx="600" cy="514" r="336" fill="none" stroke="#91b4a3" stroke-width="1.2"/>
+  <circle cx="600" cy="514" r="325" fill="none" stroke="#759c8c" stroke-width="3"/>
+  <circle cx="600" cy="514" r="313" fill="#123b3b"/>
+  <g clip-path="url(#disk)">
+    <rect x="280" y="195" width="640" height="640" fill="url(#ink)"/>
+    <!-- An original opposing-current construction: ocean swell / descending flow. -->
+    <path d="M262 646C312 478 422 344 565 367C709 390 721 531 615 594C664 509 633 458 573 461C488 466 459 579 438 675C380 700 308 686 262 646Z" fill="#e8e2d1"/>
+    <path d="M938 382C888 550 778 684 635 661C491 638 479 497 585 434C536 519 567 570 627 567C712 562 741 449 762 353C820 328 892 342 938 382Z" fill="#7fac9f"/>
+    <!-- Carved directional ridges, kept broad enough for a readable icon. -->
+    <g fill="none" stroke="#123b3b" stroke-width="6" stroke-linecap="round">
+      <path d="M294 639C345 487 440 377 557 397C628 409 660 449 655 488"/>
+      <path d="M320 650C368 510 452 408 551 423C591 429 615 442 628 462"/>
+      <path d="M348 657C394 539 457 450 532 448"/>
+      <path d="M381 661C408 582 443 514 477 486"/>
+      <path d="M906 389C855 541 760 651 643 631C572 619 540 579 545 540"/>
+      <path d="M880 378C832 518 748 620 649 605C609 599 585 586 572 566"/>
+      <path d="M852 371C806 489 743 578 668 580"/>
+      <path d="M819 367C792 446 757 514 723 542"/>
+    </g>
+    <!-- Quiet water strata across the top and base. -->
+    <g fill="none" stroke="#e8e2d1" stroke-width="3" opacity=".78" stroke-linecap="round">
+      <path d="M311 317C405 315 460 273 564 284C647 293 702 321 756 309"/>
+      <path d="M345 290C424 286 486 252 566 260C632 266 680 285 722 285"/>
+      <path d="M391 262C452 257 498 234 567 237C610 239 647 250 680 256"/>
+      <path d="M444 236C488 225 528 215 571 216"/>
+      <path d="M444 719C499 707 553 735 636 744C740 755 795 713 889 711"/>
+      <path d="M478 743C520 743 568 762 634 768C714 776 776 742 855 738"/>
+      <path d="M520 772C553 778 590 789 633 791C702 794 748 771 809 766"/>
+      <path d="M629 812C672 813 712 803 756 792"/>
+    </g>
+    <g fill="#e8e2d1">
+      <path d="M478 328C484 312 494 306 502 313C509 320 496 331 478 328Z"/>
+      <path d="M519 326C521 313 530 307 536 313C543 319 533 328 519 326Z"/>
+      <path d="M705 704C711 697 721 703 727 719C709 722 696 711 705 704Z"/>
+    </g>
+  </g>
+  <path d="M254 500V528 M240 514H268 M932 514H960 M946 500V528" fill="none" stroke="#91b4a3" stroke-width="1.2"/>
+  <path d="M583 166H617 M600 151V181 M583 862H617 M600 847V877" fill="none" stroke="#91b4a3" stroke-width="1.2"/>
+  </g>
+  <!-- Letterforms are drawn, not font-dependent: slightly flared nautical capitals. -->
+  <g id="wordmark" transform="translate(322 973)" fill="none" stroke="#dedfca" stroke-width="4.5" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M0 0H52 M26 0V70 M0 0V9 M52 0V9 M17 70H35"/>
+    <path d="M72 0V70 M124 0V70 M72 35H124 M66 0H78 M118 0H130 M66 70H78 M118 70H130"/>
+    <path d="M144 70L170 0L196 70 M154 46H186 M138 70H151 M189 70H202"/>
+    <path d="M216 0V70H266V60 M210 0H227"/>
+    <path d="M288 70L314 0L340 70 M298 46H330 M282 70H295 M333 70H346"/>
+    <path d="M410 9C398-5 363-5 362 17C360 35 377 34 395 41C424 53 415 75 387 72C373 71 365 66 360 61 M410 0V13 M360 58V72"/>
+    <path d="M482 9C470-5 435-5 434 17C432 35 449 34 467 41C496 53 487 75 459 72C445 71 437 66 432 61 M482 0V13 M432 58V72"/>
+    <path d="M504 70L530 0L556 70 M514 46H546 M498 70H511 M549 70H562"/>
+  </g>
+  <g id="family-seal" transform="translate(600 1110)" fill="none" stroke="#b6c5b2" stroke-width="1" opacity=".65">
+    <path d="M0-13V13 M-13 0H13"/><circle r="5"/><circle cy="-16" r="2"/><circle cx="16" r="2" fill="#91c6b3"/><circle cy="16" r="2"/><circle cx="-16" r="2"/>
+  </g>
+</svg>

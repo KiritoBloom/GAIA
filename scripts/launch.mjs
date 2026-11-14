@@ -1,0 +1,10 @@
+import { spawn } from 'node:child_process';
+import { resolve } from 'node:path';
+import { portableNode } from './portable-node.mjs';
+const root = process.cwd(), node = await portableNode(root);
+const processes = [];
+const env = { ...process.env, TEMP: resolve('.tmp'), TMP: resolve('.tmp'), npm_config_cache: resolve('.cache/npm') };
+processes.push(spawn(node, [...(process.argv.includes('--dev') ? ['--watch','--watch-path=app/backend','--watch-path=science'] : []), 'app/backend/server.mjs'], { cwd: root, env, stdio: 'inherit', windowsHide: true }));
+if (process.argv.includes('--dev')) processes.push(spawn(node, ['node_modules/vite/bin/vite.js', '--config', 'vite.config.ts'], { cwd: root, env, stdio: 'inherit', windowsHide: true }));
+for (const child of processes) child.on('exit', code => { for (const other of processes) if (other !== child) other.kill(); process.exit(code ?? 1); });
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { for (const child of processes) child.kill(); process.exit(0); });

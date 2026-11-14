@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="180 115 840 840" role="img" aria-labelledby="title desc">
+  <title id="title">GAIA. The planetary G.</title>
+  <desc id="desc">An opal planetary G and emerald Earth sit within a six-sided jade and gold frame on pure black. The Earth is symbolic artwork, not geographic data.</desc>
+  <defs>
+    <clipPath id="world-boundary">
+      <circle cx="590" cy="525" r="133" />
+    </clipPath>
+  </defs>
+  <g id="emblem">
+    <g id="field" stroke-linecap="round" stroke-linejoin="miter">
+      <path id="surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#72a58d" stroke-width="9" />
+      <path id="field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#7de3bc" stroke-width="12" />
+    </g>
+    <g id="symbol">
+      <circle id="earth-ocean" cx="590" cy="525" r="133" fill="#246458" />
+      <g clip-path="url(#world-boundary)">
+        <path id="earth-land" d="M574 399L594 414C607 426 604 438 590 451L602 471C615 480 622 471 637 483L624 510L638 528C624 550 617 563 604 579L576 567L569 543L548 525L547 498L524 474L529 445Z M685 437C711 452 723 477 722 498L697 495L682 478L670 475L661 450Z M629 584C646 571 664 578 673 591L664 620L643 634L626 615Z" fill="#7de3bc" />
+        <path d="M469 494C543 472 636 472 713 494 M469 556C545 578 635 578 713 556 M586 392C560 443 552 583 586 658" fill="none" stroke="#000000" stroke-width="3" opacity=".4" />
+      </g>
+      <path id="planetary-shell" d="M791 341C738 292 676 269 608 269C460 269 339 389 339 539C339 686 455 788 602 788C704 788 789 740 826 657V524H641V603H741C725 658 671 692 607 692C514 692 438 626 438 536C438 441 512 365 608 365C654 365 697 381 732 413Z" fill="#e9ede0" />
+      <path id="evidence-gate" d="M641 524H826V566H671C655 553 648 539 641 524Z" fill="#edd496" />
+      <path d="M405 443C449 329 577 288 676 333" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+    </g>
+  </g>
+</svg>

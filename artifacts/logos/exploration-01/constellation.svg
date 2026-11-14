@@ -1,0 +1,450 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 1800 1800" role="img" aria-labelledby="master-title master-desc">
+  <title id="master-title">Exploration 01 — five-function planetary seal</title>
+  <desc id="master-desc">The five original emblems combine into a single four-petaled Earth-system seal. GAIA is the emerald center, AURA the silver-blue north, THALASSA the teal east, CHLORIS the sage south, and ZOE the amber west.</desc>
+  <defs>
+    <radialGradient id="master-ground" cx="50%" cy="49%" r="65%">
+      <stop stop-color="#182a24" />
+      <stop offset=".6" stop-color="#0b1513" />
+      <stop offset="1" stop-color="#050b0a" />
+    </radialGradient>
+    <linearGradient id="master-rim" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#c6d5b9" />
+      <stop offset=".35" stop-color="#537565" />
+      <stop offset=".7" stop-color="#9cbfa5" />
+      <stop offset="1" stop-color="#435d50" />
+    </linearGradient>
+    <radialGradient id="master-core">
+      <stop stop-color="#193b2c" />
+      <stop offset="1" stop-color="#0a1712" />
+    </radialGradient>
+    <linearGradient id="master-air">
+      <stop stop-color="#16293e" />
+      <stop offset="1" stop-color="#0b1518" />
+    </linearGradient>
+    <linearGradient id="master-water">
+      <stop stop-color="#0c2928" />
+      <stop offset="1" stop-color="#0b1715" />
+    </linearGradient>
+    <linearGradient id="master-plant">
+      <stop stop-color="#273320" />
+      <stop offset="1" stop-color="#0d1911" />
+    </linearGradient>
+    <linearGradient id="master-life">
+      <stop stop-color="#34291b" />
+      <stop offset="1" stop-color="#17170f" />
+    </linearGradient>
+    <path id="master-petal" d="M900 586C637 520 592 222 900 110C1208 222 1163 520 900 586Z" />
+    <radialGradient id="gaia-ground" cx="50%" cy="39%" r="65%">
+      <stop stop-color="#122b26" />
+      <stop offset=".54" stop-color="#091614" />
+      <stop offset="1" stop-color="#050a09" />
+    </radialGradient>
+    <radialGradient id="gaia-halo">
+      <stop stop-color="#6ae8bc" stop-opacity=".15" />
+      <stop offset=".7" stop-color="#2f9978" stop-opacity=".045" />
+      <stop offset="1" stop-color="#2f9978" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="gaia-planet" cx="32%" cy="24%" r="81%">
+      <stop stop-color="#b0efd5" />
+      <stop offset=".15" stop-color="#50bf95" />
+      <stop offset=".42" stop-color="#198764" />
+      <stop offset=".76" stop-color="#07563f" />
+      <stop offset="1" stop-color="#05251f" />
+    </radialGradient>
+    <linearGradient id="gaia-platinum" x1="0" y1="0" x2=".86" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#f5f4df" />
+      <stop offset=".23" stop-color="#c6dfd2" />
+      <stop offset=".5" stop-color="#77988d" />
+      <stop offset=".67" stop-color="#e7f1e5" />
+      <stop offset="1" stop-color="#3b6354" />
+    </linearGradient>
+    <linearGradient id="gaia-leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#eff7e9" />
+      <stop offset=".25" stop-color="#b6d3c1" />
+      <stop offset=".63" stop-color="#5c8a75" />
+      <stop offset="1" stop-color="#193e30" />
+    </linearGradient>
+    <linearGradient id="gaia-land" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d6efc2" />
+      <stop offset=".4" stop-color="#76bd89" />
+      <stop offset="1" stop-color="#1a6b48" />
+    </linearGradient>
+    <linearGradient id="gaia-orbit">
+      <stop stop-color="#8dbea8" />
+      <stop offset=".47" stop-color="#efffec" />
+      <stop offset="1" stop-color="#82b69b" />
+    </linearGradient>
+    <clipPath id="gaia-sphere">
+      <circle cx="600" cy="488" r="213" />
+    </clipPath>
+    <filter id="gaia-lift" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000" flood-opacity=".45" />
+    </filter>
+    <g id="gaia-emblem">
+      <g fill="none" stroke="#a4d1b4">
+        <circle cx="600" cy="510" r="355" stroke-width=".8" opacity=".12" />
+        <path d="M600 143V168 M600 851V876 M230 510H253 M947 510H970" stroke-width="1" opacity=".3" />
+        <path d="M354 254L367 267 M833 754L846 767 M354 766L367 753 M833 266L846 253" stroke-width="1" opacity=".22" />
+      </g>
+      <path d="M289 440C313 278 447 185 600 185C753 185 887 278 911 440L897 435C868 288 742 204 600 204C458 204 332 288 303 435Z" fill="url(#gaia-platinum)" />
+      <path d="M329 372C379 278 480 227 600 226" fill="none" stroke="#edffeb" stroke-width="1.4" opacity=".45" />
+      <path d="M718 232C805 263 858 313 884 374" fill="none" stroke="#517963" stroke-width="1.4" />
+      <circle cx="600" cy="195" r="5" fill="#f1f8df" />
+      <path d="M600 167V183" stroke="#c8e2bd" stroke-width="1" />
+      <ellipse cx="600" cy="490" rx="289" ry="92" transform="rotate(-28 600 490)" fill="none" stroke="#86bda3" stroke-width="1.4" opacity=".3" />
+      <g filter="url(#gaia-lift)">
+        <circle cx="600" cy="488" r="215" fill="#083d2e" stroke="#8cceb0" stroke-width="1" />
+        <circle cx="600" cy="488" r="213" fill="url(#gaia-planet)" />
+        <g clip-path="url(#gaia-sphere)">
+          <path d="M401 359L429 321L479 312L498 333L533 335L554 356L539 381L502 380L486 405L454 412L455 441L430 446L407 419L384 420Z" fill="url(#gaia-land)" opacity=".82" />
+          <path d="M461 439L492 428L517 449L545 457L563 485L553 510L558 544L538 572L531 610L511 631L496 604L488 568L472 541L478 510L454 481Z" fill="url(#gaia-land)" opacity=".77" />
+          <path d="M587 300L611 284L657 293L672 311L708 309L733 333L746 363L782 373L797 410L768 433L740 419L718 429L682 410L667 430L645 417L627 388L603 395L582 378L600 351L578 332Z" fill="url(#gaia-land)" opacity=".75" />
+          <path d="M599 412L631 405L660 436L677 469L674 509L651 546L637 575L614 563L603 530L580 504L583 474L567 455Z" fill="url(#gaia-land)" opacity=".76" />
+          <path d="M713 579L751 567L779 585L799 611L777 637L744 629L724 638L701 612Z" fill="url(#gaia-land)" opacity=".65" />
+          <g fill="none" stroke="#d2f4d7" stroke-width=".9" opacity=".13">
+            <ellipse cx="600" cy="488" rx="108" ry="213" />
+            <ellipse cx="600" cy="488" rx="171" ry="213" />
+            <path d="M388 468Q600 527 812 468 M410 393Q600 444 790 393 M407 576Q600 633 793 576 M457 653Q600 684 743 653" />
+            <path d="M600 275V701" />
+          </g>
+          <path d="M430 389C481 308 581 277 665 291" fill="none" stroke="#d6ffe3" stroke-width="3" opacity=".38" />
+          <path d="M443 402C488 329 575 298 642 302" fill="none" stroke="#c7f7d7" stroke-width="1" opacity=".5" />
+        </g>
+      </g>
+      <path d="M343 591C377 648 520 629 664 560C815 488 904 400 864 365" fill="none" stroke="url(#gaia-orbit)" stroke-width="3.3" />
+      <path d="M343 591C337 580 337 567 342 553 M864 365C853 356 837 351 816 352" fill="none" stroke="#86bda3" stroke-width="1.4" opacity=".6" />
+      <circle cx="416" cy="620" r="5.5" fill="#e4f5d7" />
+      <circle cx="782" cy="493" r="5.5" fill="#e4f5d7" />
+      <circle cx="850" cy="408" r="3.7" fill="#bedec0" />
+      <path d="M600 831C416 778 295 646 278 464C313 609 408 656 517 694C568 712 596 759 600 831Z" fill="url(#gaia-leaf)" />
+      <path d="M600 831C784 778 905 646 922 464C887 609 792 656 683 694C632 712 604 759 600 831Z" fill="url(#gaia-leaf)" />
+      <path d="M291 520C354 645 492 718 600 831C491 770 372 696 291 520Z" fill="#163d2c" opacity=".7" />
+      <path d="M909 520C846 645 708 718 600 831C709 770 828 696 909 520Z" fill="#163d2c" opacity=".7" />
+      <path d="M292 524C378 678 504 721 594 814 M908 524C822 678 696 721 606 814" fill="none" stroke="#cee4ce" stroke-width="1.2" opacity=".72" />
+      <path d="M334 642C392 686 458 706 517 726 M866 642C808 686 742 706 683 726" fill="none" stroke="#65876e" stroke-width="1" />
+    </g>
+    <g id="gaia-wordmark" transform="translate(416 945)" fill="none" stroke="#dce8d2" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter">
+      <path d="M76 15C62-4 24-6 9 18C-4 40 0 67 17 80C33 93 59 88 76 73V48H49 M70 48H83 M70 73H83" />
+      <path d="M119 86L151 0L184 86 M132 54H171 M111 86H130 M174 86H194" />
+      <path d="M237 0V86 M225 0H249 M225 86H249" />
+      <path d="M294 86L326 0L359 86 M307 54H346 M286 86H305 M349 86H369" />
+    </g>
+    <linearGradient id="aura-ground" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#101c2c" />
+      <stop offset=".6" stop-color="#09101e" />
+      <stop offset="1" stop-color="#050914" />
+    </linearGradient>
+    <linearGradient id="aura-metal" x1="0" y1="0" x2=".8" y2="1">
+      <stop stop-color="#f2f6fa" />
+      <stop offset=".26" stop-color="#b8d7ee" />
+      <stop offset=".46" stop-color="#7298c6" />
+      <stop offset=".73" stop-color="#2a4e80" />
+      <stop offset="1" stop-color="#152540" />
+    </linearGradient>
+    <linearGradient id="aura-edge" x1="0" y1="0" x2="1" y2=".4">
+      <stop stop-color="#f6fbff" />
+      <stop offset=".5" stop-color="#9dcdef" />
+      <stop offset="1" stop-color="#3d679e" />
+    </linearGradient>
+    <linearGradient id="aura-fold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#71a7d5" />
+      <stop offset="1" stop-color="#0a1c36" />
+    </linearGradient>
+    <pattern id="aura-grid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M50 0H0V50" fill="none" stroke="#799dbd" stroke-width=".7" opacity=".065" />
+    </pattern>
+    <filter id="aura-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="11" flood-color="#000" flood-opacity=".32" />
+    </filter>
+    <g id="aura-vane">
+      <path d="M-34-270C127-285 266-181 266-34C266 39 232 99 190 138C224 74 205 24 160-9C104-50 65-63 15-66H-69C-131-66-176-91-165-139C-151-204-104-251-34-270Z" fill="url(#aura-metal)" />
+      <path d="M-34-270C127-285 266-181 266-34C264 10 251 53 229 87C246 0 213-84 150-136C87-189 24-203-70-191C-112-186-145-164-165-139C-151-204-104-251-34-270Z" fill="url(#aura-edge)" opacity=".75" />
+      <path d="M-165-139C-115-195-24-211 59-184C-50-181-71-140-69-66C-131-66-176-91-165-139Z" fill="url(#aura-fold)" />
+      <path d="M-145-175C-55-257 98-243 191-157" fill="none" stroke="#e4f5ff" stroke-width="1.8" opacity=".75" />
+      <path d="M-69-66H15C65-63 104-50 160-9" fill="none" stroke="#b6d5f2" stroke-width="1.5" opacity=".75" />
+    </g>
+    <g id="aura-emblem">
+      <g fill="none" stroke="#86a8ce" stroke-width="1">
+        <path d="M220 263V190H293 M907 190H980V263 M220 777V850H293 M907 850H980V777" opacity=".55" />
+        <path d="M238 237H268 M253 222V252 M932 237H962 M947 222V252 M238 803H268 M253 788V818 M932 803H962 M947 788V818" opacity=".22" />
+        <path d="M600 156V193 M600 843V880 M178 520H215 M985 520H1022" opacity=".36" />
+        <path d="M304 224L342 262 M858 778L896 816 M304 816L342 778 M858 262L896 224" opacity=".18" />
+        <path d="M271 407C319 280 452 214 593 217 M927 658C879 785 746 851 605 848" opacity=".23" />
+        <path d="M325 298L318 310 M342 277L335 289 M364 255L357 267 M826 788L833 776 M848 771L855 759 M869 752L876 740" opacity=".5" />
+      </g>
+      <g transform="translate(600 520)" filter="url(#aura-shadow)">
+        <use href="#aura-vane" />
+        <use href="#aura-vane" transform="rotate(120)" />
+        <use href="#aura-vane" transform="rotate(240)" />
+      </g>
+      <g transform="translate(600 520)" fill="none" stroke="#c6e5fa">
+        <path d="M0-51L44 25H-44Z" stroke-width="1.3" opacity=".7" />
+        <path d="M0-68V-88 M59 34L76 44 M-59 34L-76 44" stroke-width="1" opacity=".38" />
+      </g>
+      <g fill="none" stroke="#7aa4cd" stroke-width="1.2" opacity=".4">
+        <path d="M349 312C389 273 441 254 484 258 M332 296C379 252 432 232 486 233" />
+        <path d="M900 438C914 500 904 550 878 590 M924 432C939 504 926 562 898 604" />
+        <path d="M513 814C450 806 410 778 382 739 M507 839C436 829 388 798 361 755" />
+      </g>
+      <g fill="#b5cfe8">
+        <path d="M198 495H202V503H198Z M198 516H206V524H198Z M198 537H202V545H198Z" opacity=".6" />
+        <path d="M998 495H1002V503H998Z M994 516H1002V524H994Z M998 537H1002V545H998Z" opacity=".6" />
+      </g>
+    </g>
+    <g id="aura-wordmark" transform="translate(392 960)" fill="none" stroke="#d8e7f3" stroke-width="7" stroke-linejoin="miter" stroke-linecap="square">
+      <path d="M0 80L36 0H48L84 80 M20 54H64" />
+      <path d="M116 0V53Q116 82 149 82Q182 82 182 53V0" />
+      <path d="M221 80V0H261Q292 0 292 27Q292 54 261 54H221 M258 54L296 80" />
+      <path d="M332 80L368 0H380L416 80 M352 54H396" />
+    </g>
+    <pattern id="thalassa-paper" width="127" height="113" patternUnits="userSpaceOnUse">
+      <path d="M5 12L31 11 M76 34L114 33 M19 64L52 63 M62 95L95 94 M2 98L14 97 M93 8L105 7" fill="none" stroke="#7b7763" stroke-width=".6" opacity=".13" />
+      <path d="M12 40L18 42 M51 20L57 21 M92 75L99 76 M31 100L35 101" fill="none" stroke="#fffdf2" stroke-width="1" opacity=".65" />
+    </pattern>
+    <clipPath id="thalassa-disk">
+      <circle cx="600" cy="514" r="313" />
+    </clipPath>
+    <pattern id="thalassa-ink" width="86" height="57" patternUnits="userSpaceOnUse">
+      <path d="M0 16L62 8 M11 43L86 33" stroke="#d7e4d2" stroke-width=".65" opacity=".07" fill="none" />
+    </pattern>
+    <g id="thalassa-emblem">
+      <circle cx="600" cy="514" r="336" fill="none" stroke="#91b4a3" stroke-width="1.2" />
+      <circle cx="600" cy="514" r="325" fill="none" stroke="#759c8c" stroke-width="3" />
+      <circle cx="600" cy="514" r="313" fill="#123b3b" />
+      <g clip-path="url(#thalassa-disk)">
+        <rect x="280" y="195" width="640" height="640" fill="url(#thalassa-ink)" />
+        <path d="M262 646C312 478 422 344 565 367C709 390 721 531 615 594C664 509 633 458 573 461C488 466 459 579 438 675C380 700 308 686 262 646Z" fill="#e8e2d1" />
+        <path d="M938 382C888 550 778 684 635 661C491 638 479 497 585 434C536 519 567 570 627 567C712 562 741 449 762 353C820 328 892 342 938 382Z" fill="#7fac9f" />
+        <g fill="none" stroke="#123b3b" stroke-width="6" stroke-linecap="round">
+          <path d="M294 639C345 487 440 377 557 397C628 409 660 449 655 488" />
+          <path d="M320 650C368 510 452 408 551 423C591 429 615 442 628 462" />
+          <path d="M348 657C394 539 457 450 532 448" />
+          <path d="M381 661C408 582 443 514 477 486" />
+          <path d="M906 389C855 541 760 651 643 631C572 619 540 579 545 540" />
+          <path d="M880 378C832 518 748 620 649 605C609 599 585 586 572 566" />
+          <path d="M852 371C806 489 743 578 668 580" />
+          <path d="M819 367C792 446 757 514 723 542" />
+        </g>
+        <g fill="none" stroke="#e8e2d1" stroke-width="3" opacity=".78" stroke-linecap="round">
+          <path d="M311 317C405 315 460 273 564 284C647 293 702 321 756 309" />
+          <path d="M345 290C424 286 486 252 566 260C632 266 680 285 722 285" />
+          <path d="M391 262C452 257 498 234 567 237C610 239 647 250 680 256" />
+          <path d="M444 236C488 225 528 215 571 216" />
+          <path d="M444 719C499 707 553 735 636 744C740 755 795 713 889 711" />
+          <path d="M478 743C520 743 568 762 634 768C714 776 776 742 855 738" />
+          <path d="M520 772C553 778 590 789 633 791C702 794 748 771 809 766" />
+          <path d="M629 812C672 813 712 803 756 792" />
+        </g>
+        <g fill="#e8e2d1">
+          <path d="M478 328C484 312 494 306 502 313C509 320 496 331 478 328Z" />
+          <path d="M519 326C521 313 530 307 536 313C543 319 533 328 519 326Z" />
+          <path d="M705 704C711 697 721 703 727 719C709 722 696 711 705 704Z" />
+        </g>
+      </g>
+      <path d="M254 500V528 M240 514H268 M932 514H960 M946 500V528" fill="none" stroke="#91b4a3" stroke-width="1.2" />
+      <path d="M583 166H617 M600 151V181 M583 862H617 M600 847V877" fill="none" stroke="#91b4a3" stroke-width="1.2" />
+    </g>
+    <g id="thalassa-wordmark" transform="translate(322 973)" fill="none" stroke="#dedfca" stroke-width="4.5" stroke-linecap="square" stroke-linejoin="miter">
+      <path d="M0 0H52 M26 0V70 M0 0V9 M52 0V9 M17 70H35" />
+      <path d="M72 0V70 M124 0V70 M72 35H124 M66 0H78 M118 0H130 M66 70H78 M118 70H130" />
+      <path d="M144 70L170 0L196 70 M154 46H186 M138 70H151 M189 70H202" />
+      <path d="M216 0V70H266V60 M210 0H227" />
+      <path d="M288 70L314 0L340 70 M298 46H330 M282 70H295 M333 70H346" />
+      <path d="M410 9C398-5 363-5 362 17C360 35 377 34 395 41C424 53 415 75 387 72C373 71 365 66 360 61 M410 0V13 M360 58V72" />
+      <path d="M482 9C470-5 435-5 434 17C432 35 449 34 467 41C496 53 487 75 459 72C445 71 437 66 432 61 M482 0V13 M432 58V72" />
+      <path d="M504 70L530 0L556 70 M514 46H546 M498 70H511 M549 70H562" />
+    </g>
+    <radialGradient id="chloris-ground" cx="50%" cy="43%" r="73%">
+      <stop stop-color="#233226" />
+      <stop offset=".55" stop-color="#142018" />
+      <stop offset="1" stop-color="#0b130e" />
+    </radialGradient>
+    <linearGradient id="chloris-gold" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#dcca8b" />
+      <stop offset=".45" stop-color="#8e814c" />
+      <stop offset=".72" stop-color="#c5b57c" />
+      <stop offset="1" stop-color="#6e6b40" />
+    </linearGradient>
+    <linearGradient id="chloris-sage" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#b8cb99" />
+      <stop offset=".55" stop-color="#86a375" />
+      <stop offset="1" stop-color="#435f43" />
+    </linearGradient>
+    <linearGradient id="chloris-petal" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d4d7a5" />
+      <stop offset=".4" stop-color="#acbe8d" />
+      <stop offset="1" stop-color="#56784c" />
+    </linearGradient>
+    <pattern id="chloris-grain" width="91" height="89" patternUnits="userSpaceOnUse">
+      <path d="M11 19H35 M49 50H70 M6 77H14 M69 8H80" stroke="#d3cd98" stroke-width=".5" opacity=".045" />
+    </pattern>
+    <g id="chloris-petal-shape">
+      <path d="M600 398C547 362 524 305 557 269C581 244 619 242 645 269C679 305 653 363 600 398Z" fill="url(#chloris-petal)" stroke="#c7ca96" stroke-width="1" />
+      <path d="M600 383C582 345 577 303 600 269 M600 352C588 332 575 320 560 312 M601 332C617 315 630 305 645 300" fill="none" stroke="#3c613d" stroke-width="1.4" />
+      <path d="M576 278C556 304 567 338 582 358" fill="none" stroke="#e5e3b9" stroke-width="1.1" opacity=".6" />
+    </g>
+    <clipPath id="chloris-left-leaf">
+      <path d="M600 717C481 685 371 557 382 415C480 439 552 520 577 621C587 661 597 692 600 717Z" />
+    </clipPath>
+    <clipPath id="chloris-right-leaf">
+      <path d="M608 655C696 646 813 545 825 411C724 424 663 476 638 557C625 597 617 630 608 655Z" />
+    </clipPath>
+    <g id="chloris-emblem">
+      <g fill="none" stroke="url(#chloris-gold)">
+        <path d="M336 730V453C336 290 449 194 600 149C751 194 864 290 864 453V730C864 822 748 889 600 913C452 889 336 822 336 730Z" stroke-width="2.5" />
+        <path d="M353 729V455C353 302 459 211 600 168C741 211 847 302 847 455V729C847 813 739 872 600 896C461 872 353 813 353 729Z" stroke-width=".8" opacity=".6" />
+        <path d="M336 608C300 593 300 556 336 541 M864 608C900 593 900 556 864 541" stroke-width="1.4" />
+        <path d="M600 149V120 M592 134H608 M600 913V935" stroke-width="1.3" />
+        <path d="M466 231C424 272 407 313 401 352 M734 231C776 272 793 313 799 352" stroke-width="1" />
+      </g>
+      <g fill="#b9ae71">
+        <path d="M600 125L606 135L600 145L594 135Z" />
+        <circle cx="335" cy="573" r="3" />
+        <circle cx="865" cy="573" r="3" />
+      </g>
+      <use href="#chloris-petal-shape" />
+      <use href="#chloris-petal-shape" transform="rotate(72 600 398)" />
+      <use href="#chloris-petal-shape" transform="rotate(144 600 398)" />
+      <use href="#chloris-petal-shape" transform="rotate(216 600 398)" />
+      <use href="#chloris-petal-shape" transform="rotate(288 600 398)" />
+      <circle cx="600" cy="398" r="37" fill="#172c1c" stroke="url(#chloris-gold)" stroke-width="3" />
+      <circle cx="600" cy="398" r="24" fill="none" stroke="#afbb7e" stroke-width="1" />
+      <g fill="#cbbf84">
+        <circle cx="600" cy="384" r="2.5" />
+        <circle cx="613" cy="391" r="2.5" />
+        <circle cx="613" cy="406" r="2.5" />
+        <circle cx="600" cy="413" r="2.5" />
+        <circle cx="587" cy="406" r="2.5" />
+        <circle cx="587" cy="391" r="2.5" />
+        <circle cx="600" cy="398" r="3.5" />
+      </g>
+      <path d="M600 717C481 685 371 557 382 415C480 439 552 520 577 621C587 661 597 692 600 717Z" fill="url(#chloris-sage)" stroke="#b4bf8b" stroke-width="1.4" />
+      <path d="M608 655C696 646 813 545 825 411C724 424 663 476 638 557C625 597 617 630 608 655Z" fill="url(#chloris-sage)" stroke="#b4bf8b" stroke-width="1.4" />
+      <g fill="none" stroke="#263f29" stroke-width="1.7" clip-path="url(#chloris-left-leaf)">
+        <path d="M393 434C408 539 495 645 588 706" stroke-width="3" />
+        <path d="M411 496L471 482 M425 531L499 510 M445 567L526 544 M472 605L550 578 M503 638L568 614 M537 669L584 651" />
+        <path d="M411 496L389 472 M425 531L389 513 M445 567L395 556 M472 605L413 599 M503 638L445 638 M537 669L489 676" />
+        <path d="M405 479L449 471 M416 515L482 495 M434 550L510 526 M458 586L538 560 M487 622L560 597 M520 654L577 633 M554 684L590 672" stroke-width=".7" opacity=".55" />
+      </g>
+      <g fill="none" stroke="#263f29" stroke-width="1.7" clip-path="url(#chloris-right-leaf)">
+        <path d="M814 427C791 513 704 591 621 644" stroke-width="3" />
+        <path d="M794 474L738 463 M772 510L710 491 M742 546L685 521 M708 578L661 554 M673 609L639 587" />
+        <path d="M794 474L817 455 M772 510L811 499 M742 546L793 541 M708 578L763 582 M673 609L719 621" />
+        <path d="M804 449L762 446 M784 491L723 477 M758 529L697 506 M724 563L672 537 M690 594L650 570" stroke-width=".7" opacity=".55" />
+      </g>
+      <path d="M600 435C586 536 602 634 600 759V807" fill="none" stroke="url(#chloris-gold)" stroke-width="5" stroke-linecap="round" />
+      <g fill="none" stroke="url(#chloris-gold)" stroke-linecap="round">
+        <path d="M600 763C578 788 556 804 513 812 M600 780C620 793 647 812 689 815 M600 796C591 822 575 844 552 857 M600 807C612 830 628 848 651 858 M600 807V865" stroke-width="2.3" />
+        <path d="M555 800L544 826 M541 807L521 795 M644 803L659 826 M665 811L683 798 M578 838L562 832 M628 841L642 833" stroke-width="1.1" />
+      </g>
+      <g fill="none" stroke="#c5c99a" stroke-width="1" opacity=".65">
+        <path d="M443 450C446 437 449 427 451 412 M743 414C748 428 751 439 753 452" />
+      </g>
+    </g>
+    <g id="chloris-wordmark" transform="translate(339 990)" fill="none" stroke="#d2d0a7" stroke-width="3.7" stroke-linejoin="miter" stroke-linecap="square">
+      <path d="M53 9C38-5 11-4 3 15C-6 35 0 59 16 69C31 79 46 74 56 64 M53 0V13" />
+      <path d="M85 0V74 M134 0V74 M85 37H134 M78 0H92 M127 0H141 M78 74H92 M127 74H141" />
+      <path d="M167 0V74H214V63 M160 0H178" />
+      <path d="M272 0C236 0 234 74 272 74C309 74 308 0 272 0Z" />
+      <path d="M333 74V0H354C390 0 391 38 354 38H333 M354 38L390 74 M326 0H340 M326 74H340 M384 74H397" />
+      <path d="M427 0V74 M417 0H437 M417 74H437" />
+      <path d="M511 10C498-5 468-3 465 17C462 36 482 34 498 42C524 55 513 79 488 75C475 73 468 69 463 63 M511 0V14 M463 59V74" />
+    </g>
+    <clipPath id="zoe-canvas">
+      <rect width="1200" height="1200" />
+    </clipPath>
+    <g id="zoe-emblem">
+      <path d="M184 184H278" fill="none" stroke="#e7b458" stroke-width="8" />
+      <path d="M920 184H1016 M1016 184V280" fill="none" stroke="#97733d" stroke-width="1.3" />
+      <path d="M184 825V869H228" fill="none" stroke="#97733d" stroke-width="1.3" />
+      <path d="M235 555L371 365L703 286L943 454L855 509L687 405L493 438L366 556Z" fill="#edb655" />
+      <path d="M235 593L454 640L712 568L851 517L763 684L482 784L350 725Z" fill="#c58a37" />
+      <path d="M493 438L687 405L855 509L751 528L647 458L465 489Z" fill="#f5d08a" />
+      <path d="M419 547C497 478 660 466 777 534C665 620 527 626 419 547Z" fill="#edb655" />
+      <path d="M490 548C550 500 641 499 707 535C642 584 563 590 490 548Z" fill="#1a1712" />
+      <circle cx="599" cy="543" r="39" fill="#f4ca7b" />
+      <circle cx="610" cy="532" r="10" fill="#fff0cf" />
+      <path d="M855 509L962 546L864 596L807 560Z" fill="#f4ca7b" />
+      <g fill="#1a1712">
+        <path d="M423 352L373 433L444 347Z" />
+        <path d="M492 337L432 424L514 332Z" />
+        <path d="M563 320L495 409L587 315Z" />
+        <path d="M366 635L416 662L370 741L342 719Z" />
+        <path d="M425 650L474 652L426 767L400 754Z" />
+        <path d="M490 644L531 635L482 789L455 778Z" />
+      </g>
+      <path d="M581 691L734 641L703 697L557 749Z" fill="#e8af50" />
+      <path d="M760 340L862 411L841 426L738 355Z" fill="#f7d893" />
+      <g fill="#c9a66b">
+        <rect x="939" y="679" width="7" height="7" />
+        <rect x="939" y="700" width="7" height="7" />
+        <rect x="939" y="721" width="7" height="7" />
+      </g>
+    </g>
+    <g id="zoe-wordmark" transform="translate(389 944)" fill="#f1c16c">
+      <path d="M0 0H114V23L33 108H114V132H0V109L82 24H0Z" />
+      <path d="M212-1C255-1 277 25 277 66C277 107 255 133 212 133C169 133 147 107 147 66C147 25 169-1 212-1ZM212 24C187 24 175 40 175 66C175 92 187 108 212 108C237 108 249 92 249 66C249 40 237 24 212 24Z" fill-rule="evenodd" />
+      <path d="M314 0H423V24H342V54H410V78H342V108H423V132H314Z" />
+    </g>
+  </defs>
+  <rect width="1800" height="1800" fill="url(#master-ground)" />
+  <g fill="none" stroke="url(#master-rim)">
+    <circle cx="900" cy="900" r="790" stroke-width=".7" opacity=".22" />
+    <circle cx="900" cy="900" r="763" stroke-width="1.1" opacity=".16" />
+    <path d="M355 355A771 771 0 0 1 579 207 M1221 207A771 771 0 0 1 1445 355 M1445 1445A771 771 0 0 1 1221 1593 M579 1593A771 771 0 0 1 355 1445" stroke-width="3" opacity=".7" />
+    <path d="M900 63V91 M1737 900H1709 M900 1737V1709 M63 900H91 M332 332L353 353 M1468 332L1447 353 M1468 1468L1447 1447 M332 1468L353 1447" stroke-width="1.1" opacity=".6" />
+  </g>
+  <use href="#master-petal" fill="url(#master-air)" stroke="#7695ad" stroke-width="1.7" />
+  <use href="#master-petal" transform="rotate(90 900 900)" fill="url(#master-water)" stroke="#679d8b" stroke-width="1.7" />
+  <use href="#master-petal" transform="rotate(180 900 900)" fill="url(#master-plant)" stroke="#a7a672" stroke-width="1.7" />
+  <use href="#master-petal" transform="rotate(270 900 900)" fill="url(#master-life)" stroke="#b08c52" stroke-width="1.7" />
+  <g fill="none" stroke="url(#master-rim)" stroke-width="1.1" opacity=".48">
+    <path d="M669 359C697 471 769 550 875 582 M1127 360C1101 467 1030 547 925 580" />
+    <path d="M669 359C697 471 769 550 875 582 M1127 360C1101 467 1030 547 925 580" transform="rotate(90 900 900)" />
+    <path d="M669 359C697 471 769 550 875 582 M1127 360C1101 467 1030 547 925 580" transform="rotate(180 900 900)" />
+    <path d="M669 359C697 471 769 550 875 582 M1127 360C1101 467 1030 547 925 580" transform="rotate(270 900 900)" />
+  </g>
+  <circle cx="900" cy="900" r="318" fill="url(#master-core)" stroke="url(#master-rim)" stroke-width="2.7" />
+  <circle cx="900" cy="900" r="301" fill="none" stroke="#a9c6a4" stroke-width=".7" opacity=".23" />
+  <g fill="none" stroke="url(#master-rim)" stroke-width="1.4">
+    <path d="M900 586V582 M1218 900H1214 M900 1218V1214 M586 900H582" />
+    <path d="M646 646C607 607 563 577 505 555 M1154 646C1193 607 1237 577 1295 555 M1154 1154C1193 1193 1237 1223 1295 1245 M646 1154C607 1193 563 1223 505 1245" opacity=".25" />
+  </g>
+  <g fill="#a8c4a2">
+    <circle cx="900" cy="582" r="4" />
+    <circle cx="1218" cy="900" r="4" />
+    <circle cx="900" cy="1218" r="4" />
+    <circle cx="582" cy="900" r="4" />
+  </g>
+  <g transform="translate(900 873) scale(0.69) translate(-600 -500)">
+    <use href="#gaia-emblem" />
+  </g>
+  <g transform="translate(900 1160) scale(0.44) translate(-600 -945)">
+    <use href="#gaia-wordmark" />
+  </g>
+  <g transform="translate(900 336) scale(0.43) translate(-600 -520)">
+    <use href="#aura-emblem" />
+  </g>
+  <g transform="translate(900 506) scale(0.34) translate(-600 -960)">
+    <use href="#aura-wordmark" />
+  </g>
+  <g transform="translate(1460 896) scale(0.46) translate(-600 -514)">
+    <use href="#thalassa-emblem" />
+  </g>
+  <g transform="translate(1460 1068) scale(0.32) translate(-600 -973)">
+    <use href="#thalassa-wordmark" />
+  </g>
+  <g transform="translate(900 1440) scale(0.4) translate(-600 -530)">
+    <use href="#chloris-emblem" />
+  </g>
+  <g transform="translate(900 1620) scale(0.32) translate(-600 -990)">
+    <use href="#chloris-wordmark" />
+  </g>
+  <g transform="translate(340 896) scale(0.42) translate(-600 -525)">
+    <use href="#zoe-emblem" />
+  </g>
+  <g transform="translate(340 1051) scale(0.3) translate(-600 -944)">
+    <use href="#zoe-wordmark" />
+  </g>
+</svg>

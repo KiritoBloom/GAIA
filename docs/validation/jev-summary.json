@@ -1,0 +1,31 @@
+{
+  "model": "jev-1.14.0",
+  "evaluation": {
+    "status": "internal_single_rater_microcases",
+    "task": "source-context claim support only",
+    "development": {
+      "n": 10,
+      "accuracy": 0.9,
+      "brier": 0.0771,
+      "errors": [
+        "case_5"
+      ]
+    },
+    "held_out_microcases": {
+      "n": 10,
+      "accuracy": 0.9,
+      "brier": 0.14284,
+      "errors": [
+        "case_12"
+      ]
+    },
+    "threshold_tuning": false,
+    "operational_influence": "shadow_only",
+    "limitation": "Developer-authored synthetic text; not external scientific/domain validation, expert calibration or proof of benefit for routing/protocol ranking."
+  },
+  "usage": {
+    "input_tokens": 3124,
+    "output_tokens": 811
+  },
+  "elapsed_ms": 586
+}

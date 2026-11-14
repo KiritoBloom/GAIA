@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Exploration 02. AURA air-stratum glyph</title>
+  <desc id="desc">An original Horizon-inspired flat hexagonal machine insignia: three broken, isometric air strata in ice blue. Angular silhouettes rather than metal or gradients.</desc>
+  <defs><clipPath id="boundary"><path d="M600 170L903 345V695L600 870L297 695V345Z"/></clipPath></defs>
+  <rect width="1200" height="1200" fill="#080f16"/>
+  <g id="emblem">
+    <path d="M600 170L903 345V695L600 870L297 695V345Z" fill="#11212c" stroke="#8cb8c9" stroke-width="13" stroke-linejoin="miter"/>
+    <g clip-path="url(#boundary)">
+      <path d="M366 427L559 315L805 457V537L559 395L436 467Z" fill="#b8dce8"/>
+      <path d="M559 315L805 457V537L559 395Z" fill="#81adbf"/>
+      <path d="M366 560L559 448L805 590V670L559 528L436 600Z" fill="#b8dce8"/>
+      <path d="M559 448L805 590V670L559 528Z" fill="#81adbf"/>
+      <path d="M366 693L559 581L704 665L634 705L559 661L436 733Z" fill="#b8dce8"/>
+      <path d="M559 581L704 665L634 705L559 661Z" fill="#81adbf"/>
+    </g>
+  </g>
+  <g id="wordmark" transform="translate(450 978)" fill="none" stroke="#d8e3dc" stroke-width="5.8" stroke-linejoin="round" stroke-linecap="square">
+    <path d="M0 72L24 0H36L60 72 M14 49H46"/>
+    <path d="M80 0V46Q80 74 110 74Q140 74 140 46V0"/>
+    <path d="M160 72V0H191Q220 0 220 24Q220 48 191 48H160 M189 48L221 72"/>
+    <path d="M240 72L264 0H276L300 72 M254 49H286"/>
+  </g>
+  <g id="family-seal" transform="translate(600 1113)" fill="none" stroke="#74868b" stroke-width="1.5">
+    <path d="M0-12V12 M-12 0H12"/><circle r="4"/><circle cy="-15" r="2" fill="#b8dce8" stroke="#b8dce8"/><circle cx="15" r="2"/><circle cy="15" r="2"/><circle cx="-15" r="2"/>
+  </g>
+</svg>

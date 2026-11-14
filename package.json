@@ -1,0 +1,39 @@
+{
+  "name": "gaia",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GAIA: Geospatial Analysis & Investigation Assistant",
+  "engines": { "node": ">=24.0.0", "npm": ">=10" },
+  "scripts": {
+    "setup": "node scripts/setup-all.mjs",
+    "setup:rune": "node scripts/setup-rune.mjs",
+    "dev": "node scripts/launch-rune.mjs",
+    "start": "node scripts/launch-rune.mjs",
+    "build": "node scripts/build-rune.mjs",
+    "dev:legacy": "node scripts/launch.mjs --dev",
+    "build:legacy": "tsc --noEmit && vite build",
+    "test": "node scripts/test.mjs",
+    "test:runtime": "node scripts/runtime-proof.mjs",
+    "test:jev": "node scripts/evaluate-jev.mjs",
+    "reproduce": "node scripts/reproduce.mjs"
+  },
+  "dependencies": {
+    "@opencode/client": "2.3.0",
+    "@opencode/plugin": "2.3.0",
+    "@opencode/sdk": "2.3.0",
+    "@phosphor-icons/react": "2.1.10",
+    "@fontsource/geist": "5.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.8"
+  }
+}

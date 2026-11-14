@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Exploration 02. GAIA convergence glyph</title>
+  <desc id="desc">An original Horizon-inspired flat machine glyph: four isometric growth planes converge on a central stem and a hexagonal core inside a circular jade seal.</desc>
+  <defs><clipPath id="boundary"><circle cx="600" cy="520" r="339"/></clipPath></defs>
+  <rect width="1200" height="1200" fill="#080f16"/>
+  <g id="emblem">
+    <circle cx="600" cy="520" r="345" fill="#15262b" stroke="#b8dd8b" stroke-width="13"/>
+    <g clip-path="url(#boundary)">
+      <path d="M289 645L493 763V867L289 749Z M911 645L707 763V867L911 749Z" fill="#a4c77d" opacity=".22"/>
+      <path d="M493 763L600 701L707 763V867L600 929L493 867Z" fill="#a4c77d" opacity=".12"/>
+    </g>
+    <!-- Four domain branches; every edge uses the same 30-degree construction. -->
+    <path d="M580 719V343L600 331L620 343V719Z" fill="#b8dd8b"/>
+    <path d="M510 274L580 314V394L510 354Z" fill="#c8e9a0"/>
+    <path d="M620 314L690 274V354L620 394Z" fill="#8db567"/>
+    <path d="M436 428L546 491V579L436 516Z" fill="#8db567"/>
+    <path d="M654 491L764 428V516L654 579Z" fill="#c8e9a0"/>
+    <path d="M546 491L600 522V610L546 579Z" fill="#b8dd8b"/>
+    <path d="M654 491L600 522V610L654 579Z" fill="#9fc579"/>
+    <path d="M600 685L653 716V778L600 809L547 778V716Z" fill="#b8dd8b"/>
+    <path d="M600 685L653 716V778L600 809Z" fill="#8db567"/>
+    <path d="M588 732L600 725L612 732V757L600 764L588 757Z" fill="#15262b"/>
+  </g>
+  <!-- Original outlined sans-serif lettering, shared across the glyph family. -->
+  <g id="wordmark" transform="translate(458 978)" fill="none" stroke="#d8e3dc" stroke-width="5.8" stroke-linejoin="round" stroke-linecap="square">
+    <path d="M57 11C47-3 20-5 8 12C-5 29-3 50 9 64C23 80 46 76 59 63V40H35"/>
+    <path d="M80 72L104 0H116L140 72 M94 49H126"/>
+    <path d="M176 0V72"/>
+    <path d="M224 72L248 0H260L284 72 M238 49H270"/>
+  </g>
+  <g id="family-seal" transform="translate(600 1113)" fill="none" stroke="#74868b" stroke-width="1.5">
+    <path d="M0-12V12 M-12 0H12"/><circle r="4" fill="#b8dd8b" stroke="#b8dd8b"/><circle cy="-15" r="2"/><circle cx="15" r="2"/><circle cy="15" r="2"/><circle cx="-15" r="2"/>
+  </g>
+</svg>

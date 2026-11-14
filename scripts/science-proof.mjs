@@ -1,0 +1,13 @@
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { isolateEnvironment } from '../app/backend/environment.mjs';
+import { science } from '../app/backend/science.mjs';
+isolateEnvironment();
+const result = await science({ operation: 'power', variable: 'T2M', latitude: 53.91, longitude: -122.75, start: 2001, end: 2025, label: 'British Columbia / grid-supported location' });
+const replay = await science({ operation: 'analyze', acquisition: result.acquisition });
+const fields = ['slope_per_year', 'slope_per_decade', 'p_value', 'n', 'missing'];
+for (const field of fields) if (Math.abs((replay.analysis[field] || 0)-(result.analysis[field] || 0)) > 1e-10) throw new Error(`Clean-process reproduction mismatch: ${field}`);
+if (replay.analysis.inputs_sha256 !== result.analysis.inputs_sha256) throw new Error('Input checksum mismatch.');
+mkdirSync(resolve('.runtime/proofs'), { recursive: true });
+writeFileSync(resolve('.runtime/proofs/nasa-power.json'), JSON.stringify(result, null, 2));
+console.log(JSON.stringify({ provider: result.acquisition.provenance.provider, source: result.acquisition.provenance.url, actual_units: result.acquisition.variable.units, numerical: Object.fromEntries(fields.map(field => [field, result.analysis[field]])), status: result.analysis.status, interval: result.analysis.interval, same_inputs_and_rerun: true, limitations: result.analysis.limitations }, null, 2));

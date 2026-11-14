@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="180 115 840 840" role="img" aria-labelledby="title desc">
+  <title id="title">ZOE. The living witness.</title>
+  <desc id="desc">An orchid animal-observation silhouette and rose wing sit within a six-sided orchid and rose frame on pure black.</desc>
+  <defs>
+    <mask id="gaze-cut" maskUnits="userSpaceOnUse" x="300" y="280" width="550" height="550">
+      <rect x="300" y="280" width="550" height="550" fill="white" />
+      <path d="M514 489C552 453 604 450 648 481C608 519 558 525 514 489Z" fill="black" />
+    </mask>
+  </defs>
+  <g id="emblem">
+    <g id="field" stroke-linecap="round" stroke-linejoin="miter">
+      <path id="surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#9b80ba" stroke-width="9" />
+      <path id="field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#c2a5f2" stroke-width="12" />
+    </g>
+    <g id="symbol">
+      <path d="M353 551C415 438 492 353 574 371C614 379 647 408 666 435L805 458L682 514C664 527 657 568 654 612C651 671 609 714 534 706C565 676 592 639 589 607C513 580 432 606 353 551Z" fill="#cfb7f5" mask="url(#gaze-cut)" />
+      <path d="M367 597C428 641 509 625 563 657C608 684 621 720 659 744C575 753 540 707 493 683C443 657 401 657 367 597Z" fill="#f18db4" />
+      <circle cx="583" cy="485" r="17" fill="#fdedc1" />
+      <path d="M440 484C467 449 495 427 522 426 M458 650C489 649 514 666 535 678" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+    </g>
+  </g>
+</svg>

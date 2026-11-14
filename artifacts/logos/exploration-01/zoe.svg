@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Exploration 01 — ZOE living gaze</title>
+  <desc id="desc">A kinetic amber raptor-eye and wing emblem built from bold geometric cut-paper shapes. A flat modernist wildlife identity with a heavy original ZOE wordmark.</desc>
+  <defs>
+    <clipPath id="canvas"><rect width="1200" height="1200"/></clipPath>
+  </defs>
+  <rect width="1200" height="1200" fill="#1a1712"/>
+  <!-- Flat and graphic on purpose. No gradients, chrome, glow or engraving. -->
+  <g clip-path="url(#canvas)" fill="#d4a04e" opacity=".045">
+    <path d="M-121 861L331 1228H461L11 861Z"/>
+    <path d="M1036-105L1442 225V352L908-82Z"/>
+    <path d="M-170 992L80 1195H160L-90 992Z"/>
+  </g>
+  <g id="emblem">
+  <path d="M184 184H278" fill="none" stroke="#e7b458" stroke-width="8"/>
+  <path d="M920 184H1016 M1016 184V280" fill="none" stroke="#97733d" stroke-width="1.3"/>
+  <path d="M184 825V869H228" fill="none" stroke="#97733d" stroke-width="1.3"/>
+  <!-- A wing resolves into an animal's brow, not a surveillance badge or owl mascot. -->
+  <path d="M235 555L371 365L703 286L943 454L855 509L687 405L493 438L366 556Z" fill="#edb655"/>
+  <path d="M235 593L454 640L712 568L851 517L763 684L482 784L350 725Z" fill="#c58a37"/>
+  <path d="M493 438L687 405L855 509L751 528L647 458L465 489Z" fill="#f5d08a"/>
+  <!-- The central almond is a living gaze; feather-shaped cuts keep it in the wildlife domain. -->
+  <path d="M419 547C497 478 660 466 777 534C665 620 527 626 419 547Z" fill="#edb655"/>
+  <path d="M490 548C550 500 641 499 707 535C642 584 563 590 490 548Z" fill="#1a1712"/>
+  <circle cx="599" cy="543" r="39" fill="#f4ca7b"/>
+  <circle cx="610" cy="532" r="10" fill="#fff0cf"/>
+  <path d="M855 509L962 546L864 596L807 560Z" fill="#f4ca7b"/>
+  <!-- Three decisive cuts give the left sweep a feather / movement rhythm. -->
+  <g fill="#1a1712">
+    <path d="M423 352L373 433L444 347Z"/>
+    <path d="M492 337L432 424L514 332Z"/>
+    <path d="M563 320L495 409L587 315Z"/>
+    <path d="M366 635L416 662L370 741L342 719Z"/>
+    <path d="M425 650L474 652L426 767L400 754Z"/>
+    <path d="M490 644L531 635L482 789L455 778Z"/>
+  </g>
+  <path d="M581 691L734 641L703 697L557 749Z" fill="#e8af50"/>
+  <path d="M760 340L862 411L841 426L738 355Z" fill="#f7d893"/>
+  <g fill="#c9a66b"><rect x="939" y="679" width="7" height="7"/><rect x="939" y="700" width="7" height="7"/><rect x="939" y="721" width="7" height="7"/></g>
+  </g>
+  <!-- Heavy custom modernist letters; the O's counter is genuine negative space. -->
+  <g id="wordmark" transform="translate(389 944)" fill="#f1c16c">
+    <path d="M0 0H114V23L33 108H114V132H0V109L82 24H0Z"/>
+    <path d="M212-1C255-1 277 25 277 66C277 107 255 133 212 133C169 133 147 107 147 66C147 25 169-1 212-1ZM212 24C187 24 175 40 175 66C175 92 187 108 212 108C237 108 249 92 249 66C249 40 237 24 212 24Z" fill-rule="evenodd"/>
+    <path d="M314 0H423V24H342V54H410V78H342V108H423V132H314Z"/>
+  </g>
+  <g id="family-seal" transform="translate(600 1131)" fill="none" stroke="#b6c5b2" stroke-width="1" opacity=".65">
+    <path d="M0-13V13 M-13 0H13"/><circle r="5"/><circle cy="-16" r="2"/><circle cx="16" r="2"/><circle cy="16" r="2"/><circle cx="-16" r="2" fill="#edb655"/>
+  </g>
+</svg>

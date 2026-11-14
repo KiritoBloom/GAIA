@@ -1,0 +1,182 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 1800 1800" role="img" aria-labelledby="master-title master-desc">
+  <title id="master-title">Exploration 02. Five-function machine insignia</title>
+  <desc id="master-desc">Five original Horizon-inspired machine glyphs share a flat isometric system: circular GAIA at the center, hexagonal AURA above, THALASSA right, CHLORIS below and ZOE left.</desc>
+  <defs>
+    <clipPath id="gaia-boundary">
+      <circle cx="600" cy="520" r="339" />
+    </clipPath>
+    <g id="gaia-emblem">
+      <circle cx="600" cy="520" r="345" fill="#15262b" stroke="#b8dd8b" stroke-width="13" />
+      <g clip-path="url(#gaia-boundary)">
+        <path d="M289 645L493 763V867L289 749Z M911 645L707 763V867L911 749Z" fill="#a4c77d" opacity=".22" />
+        <path d="M493 763L600 701L707 763V867L600 929L493 867Z" fill="#a4c77d" opacity=".12" />
+      </g>
+      <path d="M580 719V343L600 331L620 343V719Z" fill="#b8dd8b" />
+      <path d="M510 274L580 314V394L510 354Z" fill="#c8e9a0" />
+      <path d="M620 314L690 274V354L620 394Z" fill="#8db567" />
+      <path d="M436 428L546 491V579L436 516Z" fill="#8db567" />
+      <path d="M654 491L764 428V516L654 579Z" fill="#c8e9a0" />
+      <path d="M546 491L600 522V610L546 579Z" fill="#b8dd8b" />
+      <path d="M654 491L600 522V610L654 579Z" fill="#9fc579" />
+      <path d="M600 685L653 716V778L600 809L547 778V716Z" fill="#b8dd8b" />
+      <path d="M600 685L653 716V778L600 809Z" fill="#8db567" />
+      <path d="M588 732L600 725L612 732V757L600 764L588 757Z" fill="#15262b" />
+    </g>
+    <g id="gaia-wordmark" transform="translate(458 978)" fill="none" stroke="#d8e3dc" stroke-width="5.8" stroke-linejoin="round" stroke-linecap="square">
+      <path d="M57 11C47-3 20-5 8 12C-5 29-3 50 9 64C23 80 46 76 59 63V40H35" />
+      <path d="M80 72L104 0H116L140 72 M94 49H126" />
+      <path d="M176 0V72" />
+      <path d="M224 72L248 0H260L284 72 M238 49H270" />
+    </g>
+    <clipPath id="aura-boundary">
+      <path d="M600 170L903 345V695L600 870L297 695V345Z" />
+    </clipPath>
+    <g id="aura-emblem">
+      <path d="M600 170L903 345V695L600 870L297 695V345Z" fill="#11212c" stroke="#8cb8c9" stroke-width="13" stroke-linejoin="miter" />
+      <g clip-path="url(#aura-boundary)">
+        <path d="M366 427L559 315L805 457V537L559 395L436 467Z" fill="#b8dce8" />
+        <path d="M559 315L805 457V537L559 395Z" fill="#81adbf" />
+        <path d="M366 560L559 448L805 590V670L559 528L436 600Z" fill="#b8dce8" />
+        <path d="M559 448L805 590V670L559 528Z" fill="#81adbf" />
+        <path d="M366 693L559 581L704 665L634 705L559 661L436 733Z" fill="#b8dce8" />
+        <path d="M559 581L704 665L634 705L559 661Z" fill="#81adbf" />
+      </g>
+    </g>
+    <g id="aura-wordmark" transform="translate(450 978)" fill="none" stroke="#d8e3dc" stroke-width="5.8" stroke-linejoin="round" stroke-linecap="square">
+      <path d="M0 72L24 0H36L60 72 M14 49H46" />
+      <path d="M80 0V46Q80 74 110 74Q140 74 140 46V0" />
+      <path d="M160 72V0H191Q220 0 220 24Q220 48 191 48H160 M189 48L221 72" />
+      <path d="M240 72L264 0H276L300 72 M254 49H286" />
+    </g>
+    <clipPath id="thalassa-boundary">
+      <path d="M600 170L903 345V695L600 870L297 695V345Z" />
+    </clipPath>
+    <g id="thalassa-emblem">
+      <path d="M600 170L903 345V695L600 870L297 695V345Z" fill="#112726" stroke="#659f95" stroke-width="13" stroke-linejoin="miter" />
+      <g clip-path="url(#thalassa-boundary)">
+        <path d="M355 661V491L552 377L689 456V541L635 510V487L552 439L428 511V611H656L780 539L845 577L676 675H379Z" fill="#a0d6cb" />
+        <path d="M552 377L689 456V541L635 510V487L552 439Z" fill="#72ada2" />
+        <path d="M656 611L780 539L845 577L676 675H379L355 661V611Z" fill="#83bfb4" />
+        <path d="M394 708H594L733 628L811 673L617 785H394Z" fill="#5c9189" />
+        <path d="M594 708L733 628L811 673L617 785V752L752 674L733 663L613 733H394V708Z" fill="#83bfb4" />
+      </g>
+    </g>
+    <g id="thalassa-wordmark" transform="translate(304 978)" fill="none" stroke="#d8e3dc" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="square">
+      <path d="M0 0H60 M30 0V72" />
+      <path d="M76 0V72 M136 0V72 M76 36H136" />
+      <path d="M152 72L176 0H188L212 72 M166 49H198" />
+      <path d="M228 0V72H288" />
+      <path d="M304 72L328 0H340L364 72 M318 49H350" />
+      <path d="M438 9C426-4 383-5 382 18C381 35 400 34 422 42C452 54 439 78 414 75C400 74 387 68 382 61" />
+      <path d="M514 9C502-4 459-5 458 18C457 35 476 34 498 42C528 54 515 78 490 75C476 74 463 68 458 61" />
+      <path d="M532 72L556 0H568L592 72 M546 49H578" />
+    </g>
+    <clipPath id="chloris-boundary">
+      <path d="M600 170L903 345V695L600 870L297 695V345Z" />
+    </clipPath>
+    <g id="chloris-emblem">
+      <path d="M600 170L903 345V695L600 870L297 695V345Z" fill="#172820" stroke="#7ea574" stroke-width="13" stroke-linejoin="miter" />
+      <g clip-path="url(#chloris-boundary)">
+        <path d="M578 699V419L600 406L622 419V699Z" fill="#a5ce91" />
+        <path d="M576 620L394 515V387L576 492Z" fill="#a5ce91" />
+        <path d="M624 538L806 433V305L624 410Z" fill="#beddaa" />
+        <path d="M576 620L394 515V474L576 579Z" fill="#719565" />
+        <path d="M624 538L806 433V392L624 497Z" fill="#91b780" />
+        <path d="M600 683L658 717V783L600 817L542 783V717Z" fill="#a5ce91" />
+        <path d="M600 683L658 717V783L600 817Z" fill="#719565" />
+        <path d="M588 708V760L572 769V780L600 764L628 780V769L612 760V708Z" fill="#172820" />
+      </g>
+    </g>
+    <g id="chloris-wordmark" transform="translate(344 978)" fill="none" stroke="#d8e3dc" stroke-width="5.8" stroke-linejoin="round" stroke-linecap="square">
+      <path d="M58 10C44-5 15-4 4 16C-5 34-1 56 13 67C28 81 46 75 60 62" />
+      <path d="M80 0V72 M140 0V72 M80 36H140" />
+      <path d="M160 0V72H220" />
+      <path d="M270 0C229 0 229 74 270 74C311 74 311 0 270 0Z" />
+      <path d="M320 72V0H351Q380 0 380 24Q380 48 351 48H320 M349 48L381 72" />
+      <path d="M414 0V72" />
+      <path d="M510 9C498-4 455-5 454 18C453 35 472 34 494 42C524 54 511 78 486 75C472 74 459 68 454 61" />
+    </g>
+    <clipPath id="zoe-boundary">
+      <path d="M600 170L903 345V695L600 870L297 695V345Z" />
+    </clipPath>
+    <g id="zoe-emblem">
+      <path d="M600 170L903 345V695L600 870L297 695V345Z" fill="#28241e" stroke="#b49869" stroke-width="13" stroke-linejoin="miter" />
+      <g clip-path="url(#zoe-boundary)">
+        <path d="M545 459V390L489 358V291L447 315V382L502 414V484Z" fill="#e1c28d" />
+        <path d="M489 355L390 298V355L489 412Z" fill="#e1c28d" />
+        <path d="M655 459V390L711 358V291L753 315V382L698 414V484Z" fill="#b39363" />
+        <path d="M711 355L810 298V355L711 412Z" fill="#b39363" />
+        <path d="M492 506L392 448V505L492 563Z" fill="#e1c28d" />
+        <path d="M708 506L808 448V505L708 563Z" fill="#b39363" />
+        <path d="M600 444L708 506V630L650 682L600 762L550 682L492 630V506Z" fill="#e1c28d" />
+        <path d="M600 444L708 506V630L650 682L600 762Z" fill="#b39363" />
+        <path d="M523 531L556 550V574L523 555Z M677 531L644 550V574L677 555Z" fill="#28241e" />
+        <path d="M577 680L600 693L623 680V714L600 747L577 714Z" fill="#28241e" />
+      </g>
+    </g>
+    <g id="zoe-wordmark" transform="translate(482 978)" fill="none" stroke="#d8e3dc" stroke-width="5.8" stroke-linejoin="round" stroke-linecap="square">
+      <path d="M0 0H60L0 72H60" />
+      <path d="M118 0C77 0 77 74 118 74C159 74 159 0 118 0Z" />
+      <path d="M176 0H236 M176 0V72H236 M176 36H226" />
+    </g>
+  </defs>
+  <rect width="1800" height="1800" fill="#080f16" />
+  <g fill="none" stroke="#62818b" stroke-width="1.5" opacity=".28">
+    <path d="M900 50L1636 475V1325L1111 1628 M689 1628L164 1325V475L900 50" />
+    <path d="M900 88L1603 494V1306L1100 1596 M700 1596L197 1306V494L900 88" opacity=".4" />
+    <path d="M865 30H935 M1671 865V935 M129 865V935" />
+  </g>
+  <g fill="none" stroke="#9cc2b9" stroke-width="2" opacity=".4">
+    <path d="M827 485V548L780 575V638 M973 485V548L1020 575V638" />
+    <path d="M1176 900H1296 M504 900H624" />
+    <path d="M820 1140V1219L853 1238V1288 M980 1140V1219L947 1238V1288" />
+  </g>
+  <g fill="none" stroke-width="11" opacity=".17">
+    <path d="M827 485V548L780 575V638 M973 485V548L1020 575V638" stroke="#b8dce8" />
+    <path d="M1176 900H1296" stroke="#a0d6cb" />
+    <path d="M504 900H624" stroke="#e1c28d" />
+    <path d="M820 1140V1219L853 1238V1288 M980 1140V1219L947 1238V1288" stroke="#beddaa" />
+  </g>
+  <g fill="#a9c8bd">
+    <path d="M780 628L788 633V643L780 648L772 643V633Z M1020 628L1028 633V643L1020 648L1012 643V633Z" />
+    <path d="M1180 891L1188 896V906L1180 911L1172 906V896Z M620 891L628 896V906L620 911L612 906V896Z" />
+    <path d="M820 1130L828 1135V1145L820 1150L812 1145V1135Z M980 1130L988 1135V1145L980 1150L972 1145V1135Z" />
+  </g>
+  <g fill="none" stroke-width="4" opacity=".5">
+    <path d="M859 74L900 50L941 74" stroke="#b8dce8" />
+    <path d="M1636 843V957" stroke="#a0d6cb" />
+    <path d="M164 843V957" stroke="#e1c28d" />
+    <path d="M860 1747L900 1770L940 1747" stroke="#beddaa" />
+  </g>
+  <g transform="translate(900 875) scale(0.8) translate(-600 -520)">
+    <use href="#gaia-emblem" />
+  </g>
+  <g transform="translate(900 1175) scale(0.52) translate(-600 -978)">
+    <use href="#gaia-wordmark" />
+  </g>
+  <g transform="translate(900 330) scale(0.54) translate(-600 -520)">
+    <use href="#aura-emblem" />
+  </g>
+  <g transform="translate(900 546) scale(0.46) translate(-600 -978)">
+    <use href="#aura-wordmark" />
+  </g>
+  <g transform="translate(1460 900) scale(0.54) translate(-600 -520)">
+    <use href="#thalassa-emblem" />
+  </g>
+  <g transform="translate(1460 1120) scale(0.4) translate(-600 -978)">
+    <use href="#thalassa-wordmark" />
+  </g>
+  <g transform="translate(900 1450) scale(0.54) translate(-600 -520)">
+    <use href="#chloris-emblem" />
+  </g>
+  <g transform="translate(900 1680) scale(0.46) translate(-600 -978)">
+    <use href="#chloris-wordmark" />
+  </g>
+  <g transform="translate(340 900) scale(0.54) translate(-600 -520)">
+    <use href="#zoe-emblem" />
+  </g>
+  <g transform="translate(340 1120) scale(0.46) translate(-600 -978)">
+    <use href="#zoe-wordmark" />
+  </g>
+</svg>

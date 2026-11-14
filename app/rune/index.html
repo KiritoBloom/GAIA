@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GAIA | Earth-system analysis</title><link rel="icon" href="/logos/gaia-icon.svg"><style>html,body{margin:0;width:100%;height:100%;background:#101312;color:#e9ede0;font-family:system-ui}#startup{padding:28px}canvas{display:block}</style></head>
+<body><div id="startup" role="status">Loading the Rune investigation workspace…</div>
+<script type="module">
+import {connect} from '/rune/bridge.mjs';
+try{
+  const module=await import('/rune/gaia.js');
+  await module.default();
+  document.getElementById('startup')?.remove();
+  requestAnimationFrame(()=>connect(module.notify));
+}catch(error){document.getElementById('startup').textContent=`Rune could not start: ${error.message}. Check WebGPU/WebGL availability and the local build.`;}
+</script></body></html>

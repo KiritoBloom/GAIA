@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">AURA. The atmospheric sweep.</title>
+  <desc id="desc">Sunrise-peach, coral and ember air ribbons sit within a six-sided frame on pure black.</desc>
+  <defs />
+  <rect width="1200" height="1200" fill="#000000" />
+  <g id="emblem">
+    <g id="field" stroke-linecap="round" stroke-linejoin="miter">
+      <path id="surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#b77a5d" stroke-width="2.5" />
+      <path id="field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#ffad79" stroke-width="6" />
+      <path id="field-echo" d="M929 725L600 915L271 725" fill="none" stroke="#ef665d" stroke-width="2.5" transform="translate(600 535) scale(.964) translate(-600 -535)" />
+    </g>
+    <g id="symbol">
+      <path d="M365 510C370 421 454 343 568 352C675 361 718 428 796 399C759 449 706 483 638 456C581 427 568 398 521 402C453 408 420 471 365 510Z" fill="#ffd5a2" />
+      <path d="M351 589C409 470 522 421 618 467C686 498 730 552 798 535C756 590 702 620 634 588C565 555 550 499 503 506C447 515 402 566 351 589Z" fill="#ff976a" />
+      <path d="M398 668C466 552 536 560 589 604C637 644 695 658 762 638C729 697 668 710 613 679C540 641 488 632 398 668Z" fill="#ef665d" />
+      <path d="M430 421C481 363 542 363 595 387 M423 519C483 462 549 466 595 501 M524 607C570 624 604 663 644 674" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+    </g>
+  </g>
+  <g id="wordmark" fill="#ffe6ce" transform="translate(467.8440 1023) scale(0.04401651 -0.04401651)">
+    <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(0.000 0)" />
+    <path d="M154 526V1454H379V519Q379 370.2 455.1 288.6Q531.2 206.999 670 206.999Q809.8 206.999 886.4 288.6Q963 370.2 963 519V1454H1188V526Q1188 355 1127.25 233.5Q1066.5 112 950.15 48.5Q833.8 -15 670 -15Q506.9 -15 391.05 48.5Q275.2 112 214.6 233.5Q154 355 154 526Z" transform="translate(1551.280 0)" />
+    <path d="M269 821H768Q821.2 821 862.3 846.9Q903.4 872.8 925.8 920.55Q948.2 968.3 948.5 1030.5Q948.5 1092.7 926.1 1140.45Q903.7 1188.201 862.95 1214.101Q822.2 1240.001 768 1240.001H269V1455H769Q893.2 1455 987.35 1402.4Q1081.5 1349.8 1133.25 1253.4Q1185 1157 1185 1030.5Q1185 904 1132.9 807.6Q1080.8 711.2 986.5 658.6Q892.2 606 769 606H269ZM174 1455H399V0H174ZM638.001 651 868 697 1246 0H977.001Z" transform="translate(3118.560 0)" />
+    <path d="M576 1454H750L1292 0H1049.501L663 1119.002L276.499 0H34ZM287 508.2H1052V293.201H287Z" transform="translate(4678.840 0)" />
+  </g>
+</svg>

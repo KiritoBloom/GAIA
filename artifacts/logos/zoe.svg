@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">ZOE. The living witness.</title>
+  <desc id="desc">An orchid animal-observation silhouette and rose wing sit within a six-sided orchid and rose frame on pure black.</desc>
+  <defs>
+    <mask id="gaze-cut" maskUnits="userSpaceOnUse" x="300" y="280" width="550" height="550">
+      <rect x="300" y="280" width="550" height="550" fill="white" />
+      <path d="M514 489C552 453 604 450 648 481C608 519 558 525 514 489Z" fill="black" />
+    </mask>
+  </defs>
+  <rect width="1200" height="1200" fill="#000000" />
+  <g id="emblem">
+    <g id="field" stroke-linecap="round" stroke-linejoin="miter">
+      <path id="surface" d="M600 155L929 345L929 725L600 915L271 725L271 345Z" fill="#000000" stroke="#9b80ba" stroke-width="2.5" />
+      <path id="field-contour" d="M271 345L600 155L929 345" fill="none" stroke="#c2a5f2" stroke-width="6" />
+      <path id="field-echo" d="M929 725L600 915L271 725" fill="none" stroke="#f18db4" stroke-width="2.5" transform="translate(600 535) scale(.964) translate(-600 -535)" />
+    </g>
+    <g id="symbol">
+      <path d="M353 551C415 438 492 353 574 371C614 379 647 408 666 435L805 458L682 514C664 527 657 568 654 612C651 671 609 714 534 706C565 676 592 639 589 607C513 580 432 606 353 551Z" fill="#cfb7f5" mask="url(#gaze-cut)" />
+      <path d="M367 597C428 641 509 625 563 657C608 684 621 720 659 744C575 753 540 707 493 683C443 657 401 657 367 597Z" fill="#f18db4" />
+      <circle cx="583" cy="485" r="17" fill="#fdedc1" />
+      <path d="M440 484C467 449 495 427 522 426 M458 650C489 649 514 666 535 678" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+    </g>
+  </g>
+  <g id="wordmark" fill="#f0e6ff" transform="translate(509.5338 1023) scale(0.04401651 -0.04401651)">
+    <path d="M1010 1257.001 387.499 214.999H1030V0H114V196.999L740.001 1239.001H132V1454H1010Z" transform="translate(0.000 0)" />
+    <path d="M144 521V933Q144 1093 208.25 1214.5Q272.5 1336 389.85 1402.5Q507.2 1469 661 1469Q814.8 1469 932.15 1402.5Q1049.5 1336 1113.75 1214.5Q1178 1093 1178 933V521Q1178 361 1113.75 239.5Q1049.5 118 932.15 51.5Q814.8 -15 661 -15Q507.2 -15 389.85 51.5Q272.5 118 208.25 239.5Q144 361 144 521ZM946.501 514V940Q946.501 1031.4 911.1 1100.95Q875.7 1170.501 810.95 1208.301Q746.2 1246.101 661 1246.101Q575.8 1246.101 511.05 1208.301Q446.3 1170.501 410.9 1100.95Q375.499 1031.4 375.499 940V514Q375.499 422.6 410.9 353.05Q446.3 283.499 511.05 245.699Q575.8 207.899 661 207.899Q746.2 207.899 810.95 245.699Q875.7 283.499 911.1 353.05Q946.501 422.6 946.501 514Z" transform="translate(1339.280 0)" />
+    <path d="M174 1454H399V0H174ZM273 214.999H1120V0H273ZM273 829.5H1010V614.5H273ZM273 1454H1120V1239.001H273Z" transform="translate(2886.560 0)" />
+  </g>
+</svg>

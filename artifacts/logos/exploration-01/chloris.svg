@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Exploration 01 — CHLORIS botanical reliquary</title>
+  <desc id="desc">A five-petaled flower, engraved asymmetrical leaves and branching roots inside a gilded Art Nouveau arch. Sage and antique gold on dark olive, with original serif vector lettering.</desc>
+  <defs>
+    <radialGradient id="ground" cx="50%" cy="43%" r="73%"><stop stop-color="#233226"/><stop offset=".55" stop-color="#142018"/><stop offset="1" stop-color="#0b130e"/></radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2=".85" y2="1"><stop stop-color="#dcca8b"/><stop offset=".45" stop-color="#8e814c"/><stop offset=".72" stop-color="#c5b57c"/><stop offset="1" stop-color="#6e6b40"/></linearGradient>
+    <linearGradient id="sage" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b8cb99"/><stop offset=".55" stop-color="#86a375"/><stop offset="1" stop-color="#435f43"/></linearGradient>
+    <linearGradient id="petal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4d7a5"/><stop offset=".4" stop-color="#acbe8d"/><stop offset="1" stop-color="#56784c"/></linearGradient>
+    <pattern id="grain" width="91" height="89" patternUnits="userSpaceOnUse"><path d="M11 19H35 M49 50H70 M6 77H14 M69 8H80" stroke="#d3cd98" stroke-width=".5" opacity=".045"/></pattern>
+    <g id="petal-shape">
+      <path d="M600 398C547 362 524 305 557 269C581 244 619 242 645 269C679 305 653 363 600 398Z" fill="url(#petal)" stroke="#c7ca96" stroke-width="1"/>
+      <path d="M600 383C582 345 577 303 600 269 M600 352C588 332 575 320 560 312 M601 332C617 315 630 305 645 300" fill="none" stroke="#3c613d" stroke-width="1.4"/>
+      <path d="M576 278C556 304 567 338 582 358" fill="none" stroke="#e5e3b9" stroke-width="1.1" opacity=".6"/>
+    </g>
+    <clipPath id="left-leaf"><path d="M600 717C481 685 371 557 382 415C480 439 552 520 577 621C587 661 597 692 600 717Z"/></clipPath>
+    <clipPath id="right-leaf"><path d="M608 655C696 646 813 545 825 411C724 424 663 476 638 557C625 597 617 630 608 655Z"/></clipPath>
+  </defs>
+  <rect width="1200" height="1200" fill="url(#ground)"/>
+  <rect width="1200" height="1200" fill="url(#grain)"/>
+  <g id="emblem">
+  <!-- A tall botanical arch instead of the other functions' circular / technical frames. -->
+  <g fill="none" stroke="url(#gold)">
+    <path d="M336 730V453C336 290 449 194 600 149C751 194 864 290 864 453V730C864 822 748 889 600 913C452 889 336 822 336 730Z" stroke-width="2.5"/>
+    <path d="M353 729V455C353 302 459 211 600 168C741 211 847 302 847 455V729C847 813 739 872 600 896C461 872 353 813 353 729Z" stroke-width=".8" opacity=".6"/>
+    <path d="M336 608C300 593 300 556 336 541 M864 608C900 593 900 556 864 541" stroke-width="1.4"/>
+    <path d="M600 149V120 M592 134H608 M600 913V935" stroke-width="1.3"/>
+    <path d="M466 231C424 272 407 313 401 352 M734 231C776 272 793 313 799 352" stroke-width="1"/>
+  </g>
+  <g fill="#b9ae71"><path d="M600 125L606 135L600 145L594 135Z"/><circle cx="335" cy="573" r="3"/><circle cx="865" cy="573" r="3"/></g>
+  <!-- The floral crown has five individually engraved petals. -->
+  <use href="#petal-shape"/>
+  <use href="#petal-shape" transform="rotate(72 600 398)"/>
+  <use href="#petal-shape" transform="rotate(144 600 398)"/>
+  <use href="#petal-shape" transform="rotate(216 600 398)"/>
+  <use href="#petal-shape" transform="rotate(288 600 398)"/>
+  <circle cx="600" cy="398" r="37" fill="#172c1c" stroke="url(#gold)" stroke-width="3"/>
+  <circle cx="600" cy="398" r="24" fill="none" stroke="#afbb7e" stroke-width="1"/>
+  <g fill="#cbbf84">
+    <circle cx="600" cy="384" r="2.5"/><circle cx="613" cy="391" r="2.5"/><circle cx="613" cy="406" r="2.5"/><circle cx="600" cy="413" r="2.5"/><circle cx="587" cy="406" r="2.5"/><circle cx="587" cy="391" r="2.5"/><circle cx="600" cy="398" r="3.5"/>
+  </g>
+  <!-- An asymmetrical pair: growth is structured, not a mirrored decorative wreath. -->
+  <path d="M600 717C481 685 371 557 382 415C480 439 552 520 577 621C587 661 597 692 600 717Z" fill="url(#sage)" stroke="#b4bf8b" stroke-width="1.4"/>
+  <path d="M608 655C696 646 813 545 825 411C724 424 663 476 638 557C625 597 617 630 608 655Z" fill="url(#sage)" stroke="#b4bf8b" stroke-width="1.4"/>
+  <g fill="none" stroke="#263f29" stroke-width="1.7" clip-path="url(#left-leaf)">
+    <path d="M393 434C408 539 495 645 588 706" stroke-width="3"/>
+    <path d="M411 496L471 482 M425 531L499 510 M445 567L526 544 M472 605L550 578 M503 638L568 614 M537 669L584 651"/>
+    <path d="M411 496L389 472 M425 531L389 513 M445 567L395 556 M472 605L413 599 M503 638L445 638 M537 669L489 676"/>
+    <path d="M405 479L449 471 M416 515L482 495 M434 550L510 526 M458 586L538 560 M487 622L560 597 M520 654L577 633 M554 684L590 672" stroke-width=".7" opacity=".55"/>
+  </g>
+  <g fill="none" stroke="#263f29" stroke-width="1.7" clip-path="url(#right-leaf)">
+    <path d="M814 427C791 513 704 591 621 644" stroke-width="3"/>
+    <path d="M794 474L738 463 M772 510L710 491 M742 546L685 521 M708 578L661 554 M673 609L639 587"/>
+    <path d="M794 474L817 455 M772 510L811 499 M742 546L793 541 M708 578L763 582 M673 609L719 621"/>
+    <path d="M804 449L762 446 M784 491L723 477 M758 529L697 506 M724 563L672 537 M690 594L650 570" stroke-width=".7" opacity=".55"/>
+  </g>
+  <path d="M600 435C586 536 602 634 600 759V807" fill="none" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+  <g fill="none" stroke="url(#gold)" stroke-linecap="round">
+    <path d="M600 763C578 788 556 804 513 812 M600 780C620 793 647 812 689 815 M600 796C591 822 575 844 552 857 M600 807C612 830 628 848 651 858 M600 807V865" stroke-width="2.3"/>
+    <path d="M555 800L544 826 M541 807L521 795 M644 803L659 826 M665 811L683 798 M578 838L562 832 M628 841L642 833" stroke-width="1.1"/>
+  </g>
+  <g fill="none" stroke="#c5c99a" stroke-width="1" opacity=".65"><path d="M443 450C446 437 449 427 451 412 M743 414C748 428 751 439 753 452"/></g>
+  </g>
+  <!-- Custom high-contrast, flared capitals. -->
+  <g id="wordmark" transform="translate(339 990)" fill="none" stroke="#d2d0a7" stroke-width="3.7" stroke-linejoin="miter" stroke-linecap="square">
+    <path d="M53 9C38-5 11-4 3 15C-6 35 0 59 16 69C31 79 46 74 56 64 M53 0V13"/>
+    <path d="M85 0V74 M134 0V74 M85 37H134 M78 0H92 M127 0H141 M78 74H92 M127 74H141"/>
+    <path d="M167 0V74H214V63 M160 0H178"/>
+    <path d="M272 0C236 0 234 74 272 74C309 74 308 0 272 0Z"/>
+    <path d="M333 74V0H354C390 0 391 38 354 38H333 M354 38L390 74 M326 0H340 M326 74H340 M384 74H397"/>
+    <path d="M427 0V74 M417 0H437 M417 74H437"/>
+    <path d="M511 10C498-5 468-3 465 17C462 36 482 34 498 42C524 55 513 79 488 75C475 73 468 69 463 63 M511 0V14 M463 59V74"/>
+  </g>
+  <g id="family-seal" transform="translate(600 1110)" fill="none" stroke="#b6c5b2" stroke-width="1" opacity=".65">
+    <path d="M0-13V13 M-13 0H13"/><circle r="5"/><circle cy="-16" r="2"/><circle cx="16" r="2"/><circle cy="16" r="2" fill="#c7ca96"/><circle cx="-16" r="2"/>
+  </g>
+</svg>
