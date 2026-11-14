@@ -9,11 +9,12 @@ import { providerStatus, localProvider, discoverModels, configureProvider, prove
 import { coordinate } from './workflow.mjs';
 import { hypotheses, protocols, evaluateSignature } from './protocols.mjs';
 import { semanticStatus } from './jev.mjs';
-import { reserve, getTest, commit, authorize, evaluate, publicTest, cancel } from './integrity.mjs';
+import { reserve, getTest, commit, authorize, evaluate, publicTest, cancel, preparePrediction } from './integrity.mjs';
 import { powerContextRequest } from './scope.mjs';
 import { diagnosticPacket } from './field.mjs';
 import { executionVersions } from './versions.mjs';
 import { domainSkills, referenceCatalog, skillProfile } from './knowledge.mjs';
+import {investigationRecords} from './investigation-records.mjs';
 import {searchLiterature,readPaper,increaseResearchBudget} from './research.mjs';
 import {stopRuntimeSession} from './runtime.mjs';
 
@@ -76,13 +77,14 @@ const server = http.createServer(async (request, response) => {
   try {
     if(request.method==='GET'&&(url.pathname==='/rune'||url.pathname==='/rune/'||url.pathname.startsWith('/rune/'))){
       const name=url.pathname.replace(/^\/rune\/?/,'')||'index.html';
-      const base=name==='index.html'||name==='bridge.mjs'?resolve(ROOT,'app/rune'):resolve(ROOT,'.runtime/rune/gaia');
+      const base=['index.html','bridge.mjs','graph.mjs'].includes(name)?resolve(ROOT,'app/rune'):resolve(ROOT,'.runtime/rune/gaia');
       const file=resolve(base,name),local=relative(base,file);
       if(local.startsWith('..')||isAbsolute(local)||!['.html','.mjs','.js','.wasm'].includes(extname(file))||!existsSync(file))return json(response,{error:'Rune asset unavailable; run the local Rune build.'},404);
       response.writeHead(200,{'Content-Type':extname(file)==='.wasm'?'application/wasm':extname(file)==='.html'?'text/html; charset=utf-8':'text/javascript; charset=utf-8','Cache-Control':'no-store'});
       return createReadStream(file).pipe(response);
     }
     if (request.method === 'GET' && url.pathname === '/api/status') return json(response, { ...providerStatus(), semantic:semanticStatus(), sessions, jobs: [...jobs.values()].map(job => ({ id: job.id, sessionID: job.sessionID, status: job.status, operation: job.operation, error: job.error })), science: { numerical: 'tested', domain_validation: 'not established', methods: 'seasonal OLS / Newey–West HAC' } });
+    if(request.method==='GET'&&url.pathname.startsWith('/api/investigation/'))return json(response,investigationRecords(sessionFor(url.pathname.split('/').at(-1))));
     if (request.method === 'GET' && url.pathname === '/api/catalog') return json(response, await science({ operation: 'catalog' }));
     if (request.method === 'GET' && url.pathname === '/api/sites') return json(response, await science({ operation: 'sites' }));
     if(request.method==='POST' && url.pathname==='/api/stations') { const input=await body(request);sessionFor(input.sessionID);return json(response,await science({operation:'noaa_stations',latitude:input.latitude,longitude:input.longitude,start:input.start,end:input.end})); }
@@ -186,7 +188,8 @@ const server = http.createServer(async (request, response) => {
        exported.domain_diagnostics=session.domainDiagnostics||[];exported.animal_records=session.animalRecords||[];exported.peer_requests=session.peerRequests||[];exported.model_proposals=session.modelProposals||[];exported.research_notes=session.researchNotes||[];
        exported.literature=(session.literature||[]).map(({text,...metadata})=>metadata);exported.literature_disclosure='Raw third-party texts excluded from standard export; review quotations and redistribution rights before publishing.';
       const versions=executionVersions(session.simulations || []);exported.simulations=versions.active;exported.historical_simulations=versions.historical;
-      exported.reproduction_scope='All analyses, comparisons and the latest execution of each frozen model request. Earlier repeated model executions remain in historical_simulations; rerunning them requires their recorded implementation checksum/version.';
+       exported.investigation_record=investigationRecords(session);
+       exported.reproduction_scope='All analyses, comparisons and the latest execution of each frozen model request. Earlier repeated model executions remain in historical_simulations; rerunning them requires their recorded implementation checksum/version.';
       response.writeHead(200, { 'Content-Type': 'application/json', 'Content-Disposition': 'attachment; filename="gaia-investigation.json"', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(exported, null, 2)); return;
     }
     if(request.method==='POST' && url.pathname==='/api/bucket') {
@@ -213,7 +216,7 @@ const server = http.createServer(async (request, response) => {
       if(input.action==='cancel') {session.predictionTest=cancel(record);save();return json(response,session.predictionTest);}
       if(input.action==='commit') {
         const training=await science({operation:'power',variable:record.variable,latitude:record.latitude,longitude:record.longitude,start:2001,end:2024,label:'Metadata-selected historical comparison target'},AbortSignal.timeout(180_000));
-        const prediction=await science({operation:'simulate',model:'seasonal_continuation_v1',acquisition:training.acquisition,horizon:12,members:64,seed:20261114});commit(record,prediction);
+        const prediction=await science({operation:'simulate',model:'seasonal_continuation_v1',acquisition:training.acquisition,horizon:12,members:64,seed:20261114});commit(record,preparePrediction(prediction,training.acquisition));
       } else if(input.action==='prove') {
         try {await science({operation:'power',variable:record.variable,latitude:record.latitude,longitude:record.longitude,start:2025,end:2025,label:'Actual reserved target ordinary-read proof'});record.incident='Denied-read test unexpectedly returned reserved values.';}
         catch(error){if(!String(error.message).includes('Reserved evidence access denied')) throw error;record.denial_proof={actual_target:true,decision:'denied',time:new Date().toISOString()};}

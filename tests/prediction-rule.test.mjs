@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {preparePrediction} from '../app/backend/integrity.mjs';
+const rows=(year,value)=>Array.from({length:12},(_,index)=>({date:`${year}-${String(index+1).padStart(2,'0')}-01`,value}));
+test('prediction acceptance uses a frozen training-only baseline, never evaluation observations',()=>{const training={frequency:'monthly',series:[...rows(2022,1),...rows(2023,3)]};const result=preparePrediction({series:rows(2024,9)},training);assert.ok(result.prediction_evaluation_specification.baseline_series.every(row=>row.value===2));assert.equal(result.series[0].value,9);training.series[0].value=100;assert.equal(result.prediction_evaluation_specification.baseline_series[0].value,2);assert.match(result.prediction_evaluation_specification.rule,/strictly less/);});
+test('missing training values and unsupported prediction windows cannot be disguised as a baseline',()=>{assert.throws(()=>preparePrediction({series:rows(2024,1)},{frequency:'annual',series:rows(2023,1)}));assert.throws(()=>preparePrediction({series:rows(2024,1)},{frequency:'monthly',series:[...rows(2022,null),...rows(2023,1)]}),/Missing/);});
+test('duplicate evaluation dates and train-test overlap are rejected before observing outcomes',()=>{const training={frequency:'monthly',series:[...rows(2022,1),...rows(2023,1)]};assert.throws(()=>preparePrediction({series:Array(12).fill({date:'2024-01-01',value:1})},training),/distinct/);assert.throws(()=>preparePrediction({series:rows(2023,1)},training),/overlap/);});

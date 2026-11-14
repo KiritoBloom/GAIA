@@ -1,0 +1,5 @@
+import test from'node:test';import assert from'node:assert/strict';import{validateReview}from'../app/backend/reviews.mjs';
+const value={summary:'Evidence-grounded assessment. '.repeat(70),evidence_ids:['a','d','s'],gaps:[],protocol:'p',source_evidence:[{source_id:'source',quote:'An exact producer quotation remains independently checked.'}]};
+const session={artifacts:[{id:'a'}],domainDiagnostics:[{id:'d',method:'vpd_context'}],simulations:[{id:'s',model:'seasonal_continuation_v1'}],modelProposals:[{id:'idea'}]};
+test('substantive reviews may cite owned diagnostics and scenarios without turning them into observations',()=>{const result=validateReview(session,value,'p');assert.equal(result.cited_evidence[1].kind,'bounded_diagnostic');assert.equal(result.cited_evidence[2].kind,'conditional_model_not_observation');assert.ok(result.summary.length>1400);});
+test('foreign records, speculative models and protocol substitution remain rejected',()=>{for(const id of['foreign','idea'])assert.throws(()=>validateReview(session,{...value,evidence_ids:[id]},'p'));assert.throws(()=>validateReview(session,value,'different'));});

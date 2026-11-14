@@ -7,10 +7,10 @@ import { sha256, publicError } from './security.mjs';
 import { domainSkills, validateSourceEvidence, competenceStatus } from './knowledge.mjs';
 import {creativeHypothesis,creativeProtocol,resolveHypothesis,resolveProtocol,assessCandidate} from './creative.mjs';
 import {validatePaperEvidence} from './research.mjs';
+import{ownedEvidenceRefs,validateReview}from'./reviews.mjs';
 
 const hypothesisIDs = Object.keys(hypotheses);
 const planSchema = z.object({ owner:z.enum(['aura','thalassa','chloris','zoe']), domains:z.array(z.enum(['aura','thalassa','chloris','zoe'])).max(4), hypotheses:z.array(z.union([z.enum(hypothesisIDs),creativeHypothesis])).min(2).max(6), protocol:z.union([z.enum(Object.keys(protocols)),creativeProtocol]), question:z.string().min(1).max(1200) }).strict();
-const reviewSchema = z.object({ summary:z.string().max(1400), evidence_ids:z.array(z.string()).max(12), gaps:z.array(z.string().max(700)).max(8), protocol:z.string().max(80),source_evidence:z.array(z.object({source_id:z.string().max(100),quote:z.string().min(25).max(1000)}).strict()).min(1).max(4) }).strict();
 const synthesisSchema=z.object({reply:z.string().min(1).max(2500),follow_up:z.string().min(1).max(500)}).strict();
 const validateSourceEvidenceOptional=(role,items)=>items.length?validateSourceEvidence(role,items):[];
 
@@ -33,6 +33,7 @@ export async function coordinate(session, request, emit, signal) {
   const context = await promptRole(session.threads.gaia,'gaia',planningInstructions(session,request),signal);
   const plan = planSchema.parse(assistantObject(context));
   const candidates=plan.hypotheses.map(item=>resolveHypothesis(session,item));
+  if(new Set(candidates.map(item=>item.id)).size!==candidates.length)throw Error('Competing explanations must have distinct identifiers, not duplicate entries.');
   const protocol = resolveProtocol(session,plan.protocol);
   const plannerPeers=(session.peerRequests||[]).filter(item=>item.graphID===graphID&&item.requester==='gaia'&&item.status==='pending');
   const domains = [...new Set([plan.owner,...plan.domains,...plannerPeers.map(item=>item.role)])];
@@ -51,8 +52,11 @@ export async function coordinate(session, request, emit, signal) {
       try {
         const before = toolTrace(session.id).length;
         const result = await promptRole(task.sessionID,role,`Load your exact procedures ${JSON.stringify(domainSkills(role))} using gaia_skill; inspect gaia_catalog and gaia_evidence. Read relevant sources using gaia_reference or gaia_search_literature and gaia_read_paper. You own ${role}. Research freely: seek conflicting evidence, explore mechanisms beyond the catalog, ask gaia_request_peer for a meaningful cross-domain check, execute gaia_simulate if real compatible evidence supports a useful question, and use gaia_propose_model for new equations/observations/validation requirements. Novel models remain proposed, not validated executable solvers. User request: ${JSON.stringify(question)}. Proposed hypotheses: ${JSON.stringify(candidates)}. Protocol: ${JSON.stringify(protocol)}. AURA may acquire real missing weather and diagnose VPD with real matching inputs; CHLORIS may audit EVI QA; THALASSA must not invent concentrations/flow; ZOE must not turn occurrences into population or deaths. Use fixed diagnostics only when appropriate, not as a mandatory theatrical step. Return strict JSON {"summary":"source-linked interpretation","evidence_ids":[],"gaps":[],"protocol":"${protocol.id}","source_evidence":[{"source_id":"owned producer or retrieved paper ID","quote":"exact substring of actual retrieved text"}]}. Summary<=1400; <=8 gaps <=700; <=12 owned artifact IDs; 1-4 quotations 25-1000 characters. No extra keys or numerical/causal fabrication. An unmet method prerequisite is a useful finding, not permission to fake it.`,signal);
-        const parsed = reviewSchema.parse(assistantObject(result));
-        if (parsed.evidence_ids.some(id=>!session.artifacts.some(artifact=>artifact.id === id))) throw new Error('Worker cited an artifact not owned by this investigation.');
+        let parsed;
+        try{parsed=validateReview(session,assistantObject(result),protocol.id);}catch(error){
+          const corrected=await promptRole(task.sessionID,role,`Repair the report structure and citation identifiers using your already completed research; do not repeat that scientific work. Return only JSON {summary,evidence_ids,gaps,protocol,source_evidence}. Summary may be up to 6000 characters, gaps at most eight with 700 characters each, one to four exact source quotations. Protocol must be ${JSON.stringify(protocol.id)}. Scientific evidence IDs must come from this actual owned inventory: ${JSON.stringify(ownedEvidenceRefs(session))}. Diagnostics and scenarios retain their declared evidence classes; speculative models, notebook IDs, unavailable weather variables and fabricated IDs are not observations. Remove an unavailable citation rather than inventing its data. Validation issue: ${publicError(error)}. Retain uncertainty and source quotations from your actual retrieved work.`,signal);
+          parsed=validateReview(session,assistantObject(corrected),protocol.id);
+        }
         const trace = toolTrace(session.id).slice(before).filter(item=>item.role === role);
         if (!trace.some(item=>item.tool === 'catalog') || !trace.some(item=>item.tool === 'evidence')) throw new Error('Worker did not inspect actual scoped catalog and evidence.');
         if(domainSkills(role).some(id=>!trace.some(item=>item.tool==='skill'&&item.output.id===id)))throw Error('Worker did not load its actual approved procedures.');
@@ -62,7 +66,7 @@ export async function coordinate(session, request, emit, signal) {
         if(sources.some(source=>!trace.some(item=>(item.tool==='reference'||item.tool==='read_paper')&&item.output.id===source.source_id)))throw Error('Worker cited a source not retrieved in this review.');
         const competence=competenceStatus(role,providerStatus().model);
         const review = { role,threadID:task.sessionID,...parsed,sources,competence,trace,label:'source-quoted, procedure-executed domain proposal; not independent professional certification',time:new Date().toISOString() };
-        session.roleSummaries[role] = { text:review.summary, source:review.label, threadID:task.sessionID, gaps:parsed.gaps,sources,competence,trace,time:review.time,graphID };
+        session.roleSummaries[role] = { text:review.summary, source:review.label, threadID:task.sessionID, gaps:parsed.gaps,sources,cited_evidence:parsed.cited_evidence,competence,trace,time:review.time,graphID };
         task.status='completed'; emit('worker.completed',{role,threadID:task.sessionID,summary:`${role.toUpperCase()} returned an actual artifact-linked domain review.`});
         return review;
       } catch(error) {

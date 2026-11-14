@@ -16,11 +16,13 @@ thread_local! { static WAKE: RefCell<Option<Waker>> = const { RefCell::new(None)
 pub fn notify() { WAKE.with(|slot| { if let Some(wake) = slot.borrow().as_ref() { wake(); } }); }
 
 #[derive(Clone, Copy, PartialEq)]
-enum Tab { System, Conversation, Evidence, Research, Provider, Sources, Inspector(usize), History }
+enum Tab { System, Conversation, Evidence, Investigation, Research, Provider, Sources, Inspector(usize), History }
 #[derive(Clone, Copy, PartialEq)]
 enum ResearchView { Sources, Notebook, Models }
 #[derive(Clone, Copy, PartialEq)]
 enum EvidencePanel { Summary, Acquire }
+#[derive(Clone, Copy, PartialEq)]
+enum RecordView { Graph, Portfolio, Tests }
 struct State {
     tab: Tab,
     selected: String,
@@ -30,6 +32,7 @@ struct State {
     field_domain: String,
     import_domain: String,
     research_view:ResearchView,
+    record_view:RecordView,
     paper_id:String,
     evidence_panel: EvidencePanel,
     audit_open: bool,
@@ -39,12 +42,14 @@ struct State {
     chart_key: String,
     scenario: Option<Image>,
     scenario_key: String,
+    graph:Option<Image>,
+    graph_key:String,
 }
 impl Default for State {
     fn default() -> Self {
         let initial = ["", "53.91", "-122.75", "2001", "2025", "T2M", "", "", "", "", "", "", "monthly", "", "", "", "", "", "", "", "", "", "", "", ""];
         Self { tab: Tab::System, selected: String::new(), snapshot: json!({}), revision: String::new(),
-            fields: initial.into_iter().map(TextEdit::new).collect(), field_domain:"chloris".to_string(),import_domain:"aura".to_string(),research_view:ResearchView::Sources,paper_id:String::new(),evidence_panel:EvidencePanel::Summary,audit_open:false,cache: None, marks: vec![], chart: None, chart_key: String::new(), scenario:None,scenario_key:String::new() }
+            fields: initial.into_iter().map(TextEdit::new).collect(), field_domain:"chloris".to_string(),import_domain:"aura".to_string(),research_view:ResearchView::Sources,record_view:RecordView::Graph,paper_id:String::new(),evidence_panel:EvidencePanel::Summary,audit_open:false,cache: None, marks: vec![], chart: None, chart_key: String::new(), scenario:None,scenario_key:String::new(),graph:None,graph_key:String::new() }
     }
 }
 fn setup(s: &mut State, wake: Waker) {
@@ -76,6 +81,8 @@ fn poll(s: &mut State, _: f64, _: &mut Tx) -> bool {
     }
     let scenario=string(&s.snapshot["scenarioSvg"]);
     if scenario!=s.scenario_key{s.scenario_key=scenario.clone();s.scenario=s.cache.as_ref().filter(|_|!scenario.is_empty()).map(|cache|cache.load(Arc::<[u8]>::from(scenario.as_bytes())));}
+    let graph=string(&s.snapshot["graphSvg"]);
+    if graph!=s.graph_key{s.graph_key=graph.clone();s.graph=s.cache.as_ref().filter(|_|!graph.is_empty()).map(|cache|cache.load(Arc::<[u8]>::from(graph.as_bytes())));}
     true
 }
 fn string(value: &Value) -> String { value.as_str().unwrap_or("").to_owned() }
@@ -249,7 +256,7 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
         .child(label("Earth-system analysis"))
         .child(button(&k,"New investigation","new",json!({"depth":"plain"})));
     for item in list(&s.snapshot["status"]["sessions"]) { let id=string(&item["id"]);let title=string(&item["title"]);let short:String=title.chars().take(23).collect();sidebar=sidebar.child(Button::new(short).build(&k).on_press(move |s: &mut State| {s.selected=id.clone();s.tab=Tab::Conversation;command("select",json!({"sessionID":id}));})); }
-    for (title,tab) in [("System",Tab::System),("Conversation",Tab::Conversation),("Evidence",Tab::Evidence),("Research",Tab::Research),("Provider settings",Tab::Provider),("Data sources",Tab::Sources)] {
+    for (title,tab) in [("System",Tab::System),("Conversation",Tab::Conversation),("Evidence",Tab::Evidence),("Investigation record",Tab::Investigation),("Research",Tab::Research),("Provider settings",Tab::Provider),("Data sources",Tab::Sources)] {
         sidebar=sidebar.child(Button::new(title).build(&k).on_press(move |s: &mut State| s.tab=tab));
     }
     let compact=s.snapshot["viewportWidth"].as_f64().unwrap_or(1280.)<900.;
@@ -257,6 +264,7 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
         Tab::History=>history(s,&k),
         Tab::Provider=>provider(s,&k),Tab::Conversation=>conversation(s,&k,&current),Tab::Evidence=>investigation(s,&k,&current),
         Tab::Research=>research(s,&k,&current),
+        Tab::Investigation=>record_workspace(s,&k),
         Tab::Sources=>inspect(&k,"Data access and provenance",list(&s.snapshot["catalog"]["resources"])),
         Tab::Inspector(i)=>specialist(s,&k,&current,i),
         Tab::System if compact=>col().w_full().gap(18.).child(heading("Investigation workspace")).child(label("GAIA coordinates questions. Specialist functions are read-only evidence inspectors."))
@@ -274,9 +282,32 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
         let navigation=col().w_full().padding(12.).gap(6.)
             .child(row().gap(6.).child(Button::new("Investigations").build(&k).on_press(|s:&mut State|s.tab=Tab::History)).child(Button::new("System").build(&k).on_press(|s:&mut State|s.tab=Tab::System)).child(Button::new("Providers").build(&k).on_press(|s:&mut State|s.tab=Tab::Provider)))
             .child(row().gap(6.).child(button(&k,"New investigation","new",json!({}))).child(Button::new("Conversation").build(&k).on_press(|s:&mut State|s.tab=Tab::Conversation)))
-            .child(row().gap(6.).child(Button::new("Evidence").build(&k).on_press(|s:&mut State|s.tab=Tab::Evidence)).child(Button::new("Research").build(&k).on_press(|s:&mut State|s.tab=Tab::Research)));
+            .child(row().gap(6.).child(Button::new("Evidence").build(&k).on_press(|s:&mut State|s.tab=Tab::Evidence)).child(Button::new("Research").build(&k).on_press(|s:&mut State|s.tab=Tab::Research)))
+            .child(Button::new("Investigation record").build(&k).on_press(|s:&mut State|s.tab=Tab::Investigation));
         col().w_full().h_full().fill(theme.bg).color(theme.text).child(navigation).child(main).into()
     } else {row().w_full().h_full().fill(theme.bg).color(theme.text).child(sidebar).child(main).into()}
+}
+fn record_workspace(s:&State,k:&Kit)->El {
+    let record=&s.snapshot["investigation"];
+    let mut body=col().w_full().gap(14.).child(heading("Investigation record"))
+        .child(button(k,"Refresh evidence graph and records","investigation-record",selected_action(s)))
+        .child(label("Quantities, proposed pathways and the requested outcome remain distinct. Dashed connections are not certified causal links."))
+        .child(row().gap(8.).child(Button::new("Evidence graph").build(k).on_press(|s:&mut State|s.record_view=RecordView::Graph)).child(Button::new("Scenario portfolio").build(k).on_press(|s:&mut State|s.record_view=RecordView::Portfolio)).child(Button::new("Test records").build(k).on_press(|s:&mut State|s.record_view=RecordView::Tests)));
+    if record.is_null(){return body.child(label("Select an investigation and load its owned record.")).into();}
+    match s.record_view{
+        RecordView::Graph=>{
+            if let Some(graph)=&s.graph{body=body.child(el().w_full().h(360.).pixels(graph.pixels()));}
+            for node in list(&record["mechanism_graph"]["nodes"]){body=body.child(heading(string(&node["label"]))).child(label(string(&node["evidence_class"])));
+                if let Some(id)=node["artifact_id"].as_str(){let id=id.to_string();body=body.child(Button::new("Inspect this numerical record").build(k).on_press(move |s:&mut State|{s.tab=Tab::Evidence;command("artifact-select",json!({"artifactID":id}));}));}
+                for edge in list(&record["mechanism_graph"]["edges"]).iter().filter(|edge|edge["from"]==node["id"]){body=body.child(label(format!("{} · {}",string(&edge["relationship"]),string(&edge["status"]))));}
+            }
+            for group in list(&record["mechanism_graph"]["dependencies"]){body=body.child(label(format!("{}: agreement between functions is not independent confirmation.",string(&group["provider"]))));}
+            for disagreement in list(&record["disagreements"]){body=body.child(line("Unresolved disagreement",disagreement));}
+        },
+        RecordView::Portfolio=>{for item in list(&record["scenario_portfolio"]){body=body.child(heading(string(&item["mechanism"]))).child(label("Mechanism validation is not established by a weather extrapolation."));for required in list(&item["required_observations"]){body=body.child(label(format!("Required observation: {}",string(required))));}for model in list(&item["model_results"]){body=body.child(label(format!("{} · {}",string(&model["model"]),string(&model["readiness"])))).child(line("Held-out evaluation",&model["validation"]));}}},
+        RecordView::Tests=>{for item in list(&record["signature_test_records"]){body=body.child(heading(string(&item["hypothesis_id"]))).child(label(string(&item["expectation"]))).child(label(format!("Contrary expectation: {}",string(&item["contrary_expectation"])))).child(line("Recorded assessments",&item["assessments"]));}body=body.child(line("Independent status dimensions",&record["status_dimensions"])).child(line("Connected investigation checks",&record["backbone"]));}
+    }
+    body.child(label(format!("Record checksum: {}",string(&record["record_hash"])))).into()
 }
 fn specialist(s:&State,k:&Kit,current:&Value,index:usize)->El {
     let ids=["gaia","aura","thalassa","chloris","zoe"];let id=ids[index];

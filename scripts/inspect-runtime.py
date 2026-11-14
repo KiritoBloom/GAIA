@@ -35,5 +35,7 @@ for role,session_id in session.get('threads',{}).items():
         value=json.loads(text)
         print(role,'JSON keys:',list(value),'field types:',{key:type(item).__name__ for key,item in value.items()},'protocol:',value.get('protocol'),'evidence ID count:',len(value.get('evidence_ids',[])))
         print('Schema lengths:',len(value.get('summary','')),[len(item) for item in value.get('gaps',[])],'all artifact IDs owned:',all(item in {artifact['id'] for artifact in session['artifacts']} for item in value.get('evidence_ids',[])))
+        categories={entry['id']:category for category,field in [('artifact','artifacts'),('diagnostic','domainDiagnostics'),('simulation','simulations'),('occurrence','animalRecords'),('paper','literature'),('proposal','modelProposals')] for entry in session.get(field,[]) if 'id' in entry}
+        print('Cited evidence categories:',[categories.get(identifier,'unrecognized_or_foreign') for identifier in value.get('evidence_ids',[])])
     except (ValueError,TypeError):
         print(role,'No valid final JSON; text length:',len(text),'finish:',data.get('finish'),'error type:',type(data.get('error')).__name__)

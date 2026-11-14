@@ -41,6 +41,20 @@ export function commit(record,prediction) {
   return record;
 }
 
+export function preparePrediction(prediction,training){
+ if(training.frequency!=='monthly'||!Array.isArray(prediction.series)||prediction.series.length!==12)throw Error('This prediction comparison requires twelve monthly forecasts and a monthly training record.');
+ const periods=prediction.series.map(row=>{if(!/^\d{4}-(0[1-9]|1[0-2])-01$/.test(row.date)||!Number.isFinite(row.value))throw Error('Prediction periods and values must be explicit monthly observations.');return Number(row.date.slice(0,4))*12+Number(row.date.slice(5,7))-1;});
+ if(periods.some((period,index)=>index>0&&period!==periods[index-1]+1))throw Error('Prediction evaluation requires twelve distinct consecutive monthly periods.');
+ const groups=Array.from({length:12},()=>[]);
+ for(const row of training.series){if(typeof row.value!=='number'||!Number.isFinite(row.value))throw Error('Missing training values cannot silently define the prediction baseline.');groups[Number(row.date.slice(5,7))-1]?.push(row.value);}
+ if(groups.some(values=>values.length<2))throw Error('A complete training calendar is required for the frozen climatology baseline.');
+ const means=groups.map(values=>values.reduce((sum,value)=>sum+value,0)/values.length);
+ const lastTraining=Math.max(...training.series.map(row=>Number(row.date.slice(0,4))*12+Number(row.date.slice(5,7))-1));
+ if(periods[0]!==lastTraining+1)throw Error('Prediction evaluation must follow, not overlap, the frozen training period.');
+ const baseline_series=prediction.series.map(row=>({date:row.date,value:means[Number(row.date.slice(5,7))-1]}));
+ return {...prediction,prediction_evaluation_specification:{version:1,metric:'RMSE',required_periods:12,baseline:'Calendar-month climatology computed solely from the retained training record',baseline_series,training_input_sha256:sha256(training),rule:'Matched only if twelve aligned observed periods exist and prediction RMSE is strictly less than the frozen baseline RMSE; otherwise mismatched. Missing evaluation periods are untestable.',limitations:['Baseline-relative predictive performance is not a causal test, intervention validation or calibrated uncertainty claim.']}};
+}
+
 export function authorize(record) {
   if(record.state!=='committed') throw new Error('Freeze the actual prediction before reveal.');
    record.state='reveal_authorized';record.capability=randomBytes(32).toString('hex');persist();return record.capability;
@@ -51,6 +65,13 @@ export function evaluate(record,artifact) {
   const actual=new Map(artifact.acquisition.series.filter(row=>typeof row.value==='number').map(row=>[row.date,row.value]));
   const pairs=record.prediction.series.filter(row=>actual.has(row.date)).map(row=>({date:row.date,predicted:row.value,observed:actual.get(row.date)}));
   record.evaluation={artifactID:artifact.id,n:pairs.length,rmse:pairs.length?Math.sqrt(pairs.reduce((sum,row)=>sum+(row.predicted-row.observed)**2,0)/pairs.length):null,pairs,outcome:pairs.length===12?'evaluated_numeric_prediction':'untestable_missing_periods',rule:'RMSE on the twelve predeclared monthly predictions; no threshold chosen after reveal',limitation:'Application logs are not independently trusted timestamps; numeric agreement does not identify a cause.'};
+  const spec=record.prediction.prediction_evaluation_specification;
+  if(spec){
+   const baseline=new Map(spec.baseline_series.map(row=>[row.date,row.value]));
+   const complete=pairs.length===spec.required_periods&&pairs.every(row=>Number.isFinite(baseline.get(row.date)));
+   const baseline_rmse=complete?Math.sqrt(pairs.reduce((sum,row)=>sum+(baseline.get(row.date)-row.observed)**2,0)/pairs.length):null;
+   record.evaluation.classification={status:!complete?'untestable':record.evaluation.rmse<baseline_rmse?'matched':'mismatched',baseline_rmse,specification_hash:sha256(spec),rule:spec.rule,limitation:spec.limitations[0]};
+  }else record.evaluation.classification={status:'ungraded_legacy_prediction',reason:'The historical record did not freeze a categorical acceptance rule. Do not invent one after seeing observations.'};
   record.state='evaluated';delete record.capability;
   // The first implementation guards acquisition/import and privately holds the target,
   // but has not proven every equivalent product, cache, export and derivative route.

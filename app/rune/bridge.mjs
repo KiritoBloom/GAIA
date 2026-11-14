@@ -1,4 +1,5 @@
-const state={status:{},catalog:{},competence:{},models:[],sites:[],stations:null,operation:null,error:null,selected:null,selectedArtifact:'',artifact:null,chartSvg:'',scenarioSvg:''};
+import {mechanismGraph} from './graph.mjs';
+const state={status:{},catalog:{},competence:{},models:[],sites:[],stations:null,operation:null,error:null,selected:null,selectedArtifact:'',artifact:null,investigation:null,graphSvg:'',chartSvg:'',scenarioSvg:''};
 let notifier=()=>{},privateConfiguration=false;
 function publish(){const session=state.status.sessions?.find(value=>value.id===state.selected);state.artifact=session?.artifacts?.find(value=>value.id===state.selectedArtifact)||session?.artifacts?.at(-1)||null;state.chartSvg=chart(state.artifact);state.scenarioSvg=scenarioChart(session?.simulations?.at(-1));state.viewportWidth=innerWidth;globalThis.gaiaSnapshot=JSON.stringify(state);notifier();}
 addEventListener('resize',publish);
@@ -40,12 +41,13 @@ async function refresh(){
   publish();
 }
 globalThis.gaiaCommand=async(name,input={})=>{
-  if(name==='select'){state.selected=input.sessionID;await refresh();return;}
+  if(name==='select'){state.selected=input.sessionID;state.investigation=null;state.graphSvg='';await refresh();return;}
   if(name==='artifact-select'){state.selectedArtifact=input.artifactID;publish();return;}
   state.error=null;state.operation=name;publish();
   try{
     switch(name){
       case 'refresh':await refresh();break;
+      case 'investigation-record':state.investigation=await api(`/investigation/${encodeURIComponent(input.sessionID)}`);state.graphSvg=mechanismGraph(state.investigation.mechanism_graph);break;
       case 'new':{const result=await api('/sessions',input);state.selected=result.id;break;}
       case 'provider-discover':{const result=await api('/provider/local-models',{});privateConfiguration=true;state.models=result.models;state.providerCandidate={name:result.name,endpoint:result.endpoint};break;}
       case 'provider-models':{const result=await api('/provider/models',input);privateConfiguration=false;state.models=result.models;break;}
