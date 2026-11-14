@@ -1,14 +1,15 @@
 # GAIA: Geospatial Analysis & Investigation Assistant
 
-A local scientific workspace for NASA-derived Earth-system time series, trend uncertainty and competing explanations. Plain-language and technical views use the same numerical evidence and methods.
+A local planetary-intelligence workspace for NASA-derived Earth-system time series, trend uncertainty and competing explanations. GAIA coordinates; AURA (atmosphere), THALASSA (water), CHLORIS (plants) and ZOE (animals) have distinct, bounded scientific roles. Plain-language and technical views use the same numerical evidence and methods.
 
 Built for NASA Space Apps 2026: [Be An Earth System Trend Detective!](https://www.spaceappschallenge.org/2026/challenges/earth-system-trend-detective/).
 
 ## What works now
 
-- Local **Rune** GPU/browser workspace using Anomaly's `rune-kit` and OpenCode theme, durable investigations, original five-mark constellation and read-only specialist inspectors. The earlier React UI is retained only as a legacy development view.
+- GAIA-first **Mission Control** in the local Rune GPU/browser workspace: live NASA site search, user-frozen mission target, direct conversation, four subordinate-function status cards and actual trend records. Original five-mark constellation and read-only specialist inspectors remain. Earlier React UI is legacy only.
 - User-configured OpenAI-compatible model endpoints and model discovery; masked, session-only credentials. OpenCode **2.3.0** embedded runtime, with actual five-role/tool checks.
-- NASA POWER monthly temperature, precipitation-rate and relative-humidity acquisition, with actual units, coverage, source history and explicit grid support.
+- CHLORIS-only NASA MODIS mission acquisition: the user freezes an exact live-catalog fixed site, calendar and seasonal recipe; the server derives the MOD13Q1.061 request from that immutable scope. Raw QA, actual units, support, dates and collection identity are retained.
+- AURA acquisition of NASA POWER monthly temperature, precipitation-rate and relative-humidity, with actual units, coverage, source history and explicit grid support. Weather at a MODIS site remains grid context, never a claimed footprint mean.
 - Deterministic seasonal linear regression, Newey–West uncertainty, sensitivity diagnostics, charts and downloadable analysis inputs.
 - Licensed CSV imports, separately labeled as user-declared rather than authenticated NASA observations.
 - Independent-process numerical reproduction without model credentials or renewed data downloads.
@@ -59,7 +60,11 @@ Local-first does **not** mean offline: selected providers receive prompts, and N
 
 ## First investigation
 
-Choose **New investigation**, then **Evidence** to set a variable, coordinates and complete retrospective years. British Columbia is an editable example, not a scripted result or fixed region. Acquire and analyze data, then use **Conversation** for the scientific question. Inspect specialist evidence, hypotheses, next-observation protocol and recorded execution events.
+Start on **Mission Control**. Search the live NASA fixed-site catalog by place or identifier, select a real result, choose a complete year range and growing-season months, then freeze the mission. If the selected investigation already contains EVI, **Use this investigation’s measured NASA footprint and period** fills the form from that owned artifact; nothing is frozen until you confirm it. CHLORIS acquires only the frozen site/calendar/product/recipe, then the trend record exposes the numerical series, uncertainty, support, provenance and QA.
+
+Use **Start with the question that matters** to ask GAIA about the measured signal. GAIA coordinates only relevant subordinate functions; each report is limited to its owned tools and evidence. AURA can retrieve POWER weather context; THALASSA supports bounded water methods and compatible user-imported gauges; CHLORIS handles the frozen MODIS vegetation series and QA; ZOE handles licensed occurrence records without converting them into abundance or mortality. Search real literature, compare source-backed expectations, freeze an eligible observation protocol and record an actual acquisition or an honest no-new-evidence update. The app never requires a causal reversal to call an investigation useful.
+
+Open **Evidence** and **Investigation record** for readable hypothesis assessments, protocol history, comparisons, source lineage, task status and export. A monthly weather grid and an annual satellite footprint are different supports: GAIA may report them as context, but must not call them a matched ecological test.
 
 The map is a coordinate-support diagram, not a geographic land-cover map. A POWER point represents its reanalysis grid, **not** a local station or arbitrary watershed mean. Monthly precipitation is a mean daily rate in the provider's reported units, not an accumulated monthly total. MODIS greenness is an optical proxy, not yield, infection, species identity or animal abundance.
 

@@ -33,7 +33,11 @@ export function lifecycleForExport(session){
 }
 
 export function taskGraphForExport(graph){
- if(!graph)return null;
- const {requests=[],...metadata}=graph;
- return{...metadata,requests:requests.map(({sessionID,threadID,...item})=>({...item,runtime_binding_present:!!(sessionID||threadID)}))};
+  if(!graph)return null;
+  const {requests=[],...metadata}=graph;
+  return{...metadata,requests:requests.map(({sessionID,threadID,...item})=>({...item,runtime_binding_present:!!(sessionID||threadID)}))};
+}
+
+export function peerRequestsForExport(requests=[]){
+ return requests.map(({review_thread,...item})=>({...item,runtime_binding_present:!!review_thread}));
 }

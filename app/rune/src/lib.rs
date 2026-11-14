@@ -48,9 +48,13 @@ struct State {
 }
 impl Default for State {
     fn default() -> Self {
-        let initial = ["", "53.91", "-122.75", "2001", "2025", "T2M", "", "", "", "", "", "", "monthly", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""];
+        let initial = ["", "53.91", "-122.75", "2001", "2025", "T2M", "", "", "", "", "", "", "monthly", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "2025", "5,6,7,8,9", "", ""];
+        let mut fields=initial.into_iter().map(TextEdit::new).collect::<Vec<_>>();
+        fields[30]=TextEdit::new("");
+        fields[32]=TextEdit::new("5,6,7,8,9");
+        fields[33]=TextEdit::new("");
         Self { tab: Tab::System, selected: String::new(), snapshot: json!({}), revision: String::new(),
-            fields: initial.into_iter().map(TextEdit::new).collect(),field_domain:"chloris".to_string(),handoff_confirmed:false,import_domain:"aura".to_string(),research_view:ResearchView::Sources,record_view:RecordView::Graph,paper_id:String::new(),evidence_panel:EvidencePanel::Summary,audit_open:false,cache: None, marks: vec![], chart: None, chart_key: String::new(), scenario:None,scenario_key:String::new(),graph:None,graph_key:String::new() }
+            fields,field_domain:"chloris".to_string(),handoff_confirmed:false,import_domain:"aura".to_string(),research_view:ResearchView::Sources,record_view:RecordView::Graph,paper_id:String::new(),evidence_panel:EvidencePanel::Summary,audit_open:false,cache: None, marks: vec![], chart: None, chart_key: String::new(), scenario:None,scenario_key:String::new(),graph:None,graph_key:String::new() }
     }
 }
 fn setup(s: &mut State, wake: Waker) {
@@ -94,6 +98,9 @@ fn line(title: &str, value: &Value) -> El {
     let content = match value { Value::Null => "Not available".to_owned(), Value::String(v) => v.clone(), _ => value.to_string() };
     col().w_full().gap(4.).child(text(title).font(TextStyle::new(12., 600.))).child(label(content)).into()
 }
+fn surface(body:El,background:&str)->El{
+    body.fill(rune::color::hex(background).unwrap_or(rune::Color::BLACK)).radius(14.).padding(20.)
+}
 fn number(value:&Value)->String{
     if let Some(values)=value.as_array(){return values.iter().map(number).collect::<Vec<_>>().join(" to ");}
     let Some(v)=value.as_f64() else{return "Not estimable".into()};
@@ -135,7 +142,25 @@ fn selected_action(s: &State) -> Value { json!({"sessionID":s.selected}) }
 fn inspect(k: &Kit, title: &str, values: &[Value]) -> El {
     let mut body = col().w_full().gap(14.).child(heading(title));
     if values.is_empty() { body = body.child(label("No records.")); }
-    for item in values.iter().rev().take(20) { body = body.child(label(serde_json::to_string_pretty(item).unwrap_or_default())); }
+    for item in values.iter().rev().take(20) {
+        let mut card=col().w_full().gap(8.);
+        if title=="Experimental Jev judgments (shadow only)" {
+            card=card.child(label(format!("{} · {}",string(&item["status"]),string(&item["influence"]))))
+                .child(line("Intent",&item["answers"]["intent"]["choice"]))
+                .child(line("Context-fit score (experimental, not calibrated)",&item["answers"]["fit"]["score"]))
+                .child(line("Evidence judgment",&item["answers"]["support"]["choice"]))
+                .child(line("Limitations",&item["limitation"]));
+        } else if title=="Recorded execution events" {
+            card=card.child(label(format!("{} · {}",string(&item["time"]),string(&item["type"]))))
+                .child(label(string(&item["summary"])));
+            for key in ["role","operation"] {if !item[key].is_null(){card=card.child(line(if key=="role"{"Function"}else{"Operation"},&item[key]));}}
+        } else {
+            for (key,name) in [("model","Model"),("status","Status"),("readiness","Readiness"),("classification","Classification"),("summary","Summary"),("reason","Reason"),("limitation","Limitations"),("horizon","Horizon"),("rmse","RMSE"),("baseline_rmse","Baseline RMSE")] {
+                if !item[key].is_null(){card=card.child(line(name,&item[key]));}
+            }
+        }
+        body=body.child(surface(card,"#111a16"));
+    }
     body.child(button(k,"Refresh records","refresh",json!({}))).into()
 }
 fn provider(s: &State, k: &Kit) -> El {
@@ -161,6 +186,11 @@ fn provider(s: &State, k: &Kit) -> El {
 fn conversation(s: &State, k: &Kit, current: &Value) -> El {
     let mut body=col().w_full().gap(18.).child(heading("Investigation question"));
     if current["chatRunning"].as_bool().unwrap_or(false){body=body.child(button(k,"Stop investigation and retain partial evidence","chat-stop",selected_action(s)));}
+    let last_update=list(&current["evidenceUpdates"]).last().and_then(|item|item["time"].as_str());
+    let last_gaia=list(&current["messages"]).iter().rev().find(|item|string(&item["role"])=="gaia").and_then(|item|item["time"].as_str());
+    if last_update.is_some_and(|updated|last_gaia.is_none_or(|reply|updated>reply)){
+        body=body.child(surface(col().w_full().gap(8.).child(heading("Evidence changed since GAIA’s last reply")).child(label("Conversation history is preserved. For the current trend, uncertainty, support limits and latest protocol update, use the live Mission Control evidence read.")).child(Button::new("Open the current evidence read").build(k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::System)),"#13231d"));
+    }
     for message in list(&current["messages"]).iter().rev().take(12).rev() {
         body=body.child(line(&string(&message["role"]),&message["text"]));
         if !message["label"].is_null() { body=body.child(line("Evidence status",&message["label"])); }
@@ -204,10 +234,23 @@ fn investigation(s: &State, k: &Kit, current: &Value) -> El {
     }
     body=body.child(button(k,"Download investigation export","export",selected_action(s)))
         .child(heading("Competing explanations and additional observations"));
-    for hypothesis in list(&current["hypothesisRecords"]) { body=body.child(line("Hypothesis",hypothesis)); }
-    body=body.child(line("Observation protocol",&current["observationPlan"]))
-        .child(button(k,"Retrieve selected observation and update","observation",selected_action(s)));
-    for update in list(&current["evidenceUpdates"]) { body=body.child(line("Recorded evidence update",update)); }
+    for hypothesis in list(&current["hypothesisRecords"]) {
+        body=body.child(heading(string(&hypothesis["name"]))).child(label(string(&hypothesis["expectation"])));
+        for assessment in list(&hypothesis["evidence"]) {body=body.child(label(format!("{} · {}",string(&assessment["status"]),string(&assessment["reason"]))));}
+    }
+    let plan=if current["observationPlan"]["protocol"].is_object(){&current["observationPlan"]["protocol"]}else{&current["observationPlan"]};
+    if !plan.is_null(){
+        body=body.child(heading(string(&plan["name"]))).child(line("Observation support",&plan["support"]));
+        if !plan["observable"].is_null(){body=body.child(line("What to measure",&plan["observable"]));}
+        for expectation in list(&plan["expectations"]){body=body.child(label(string(expectation)));}
+        if !plan["under_a"].is_null(){body=body.child(line("Expectation A",&plan["under_a"])).child(line("Expectation B",&plan["under_b"])).child(line("Limit",&plan["limitation"]));}
+        let existing=string(&plan["route"])=="existing_data"||string(&plan["availability"])=="inspect_existing_owned_data";
+        if string(&plan["operation"])=="power"||existing{body=body.child(button(k,if existing{"Reassess existing evidence (no new observation)"}else{"Retrieve selected observation and update"},"observation",selected_action(s)));}
+        else{body=body.child(label("This protocol requires real imported observations or qualified field evidence. Use Add another dataset for a lawful CSV import; no automatic retrieval or diagnosis is claimed."));}
+    }
+    body=body.child(heading("Select a registered observation protocol")).child(label("Selecting a protocol freezes the current evidence baseline. Earlier selections and inspected data remain disclosed; selection is not a successful scientific test."));
+    for protocol in list(&s.snapshot["catalog"]["protocols"]) {body=body.child(button(k,&format!("Select: {}",string(&protocol["name"])),"observation-plan",json!({"sessionID":s.selected,"protocolID":protocol["id"]})));}
+    for update in list(&current["evidenceUpdates"]).iter().rev().take(5) {body=body.child(label(format!("Update {} · {} new evidence records. {}",string(&update["time"]),list(&update["added_artifacts"]).len(),string(&update["reason"]))));}
     let artifact=string(&s.snapshot["artifact"]["id"]);
     let frequency=string(&s.snapshot["artifact"]["acquisition"]["frequency"]);
     body=body.child(button(k,"Run seasonal continuation","simulate",json!({"sessionID":s.selected,"artifactID":artifact,"model":"seasonal_continuation_v1","horizon":if frequency=="annual" {2} else {12},"members":64,"seed":20261114})));
@@ -246,13 +289,20 @@ fn investigation(s: &State, k: &Kit, current: &Value) -> El {
     let test=&current["predictionTest"];
     if test.is_null() {body=body.child(button(k,"Reserve metadata-selected target","prediction",json!({"sessionID":s.selected,"action":"reserve"})));}
     else {
-        for (title,action) in [("Commit prediction","commit"),("Test reserved-data access","prove"),("Reveal and evaluate","reveal"),("Cancel target, preserve history","cancel")] {
-            body=body.child(button(k,title,"prediction",json!({"sessionID":s.selected,"action":action,"testID":test["id"]})));
+        let status=string(&test["state"]);
+        body=body.child(label(format!("{} · {}",status,string(&test["mode"]))))
+            .child(label(format!("Metadata-selected grid location: {}, {}. Selection checksum: {}",number(&test["latitude"]),number(&test["longitude"]),string(&test["selection"]["specification_hash"]))));
+        if status=="reserved"{body=body.child(button(k,"Commit prediction","prediction",json!({"sessionID":s.selected,"action":"commit"})));}
+        if status=="committed"{
+            body=body.child(line("Frozen acceptance rule",&test["prediction"]["prediction_evaluation_specification"]["rule"])).child(line("Prediction checksum",&test["prediction_hash"]));
+            body=body.child(button(k,if test["denial_proof"].is_null(){"Test reserved-data access"}else{"Reveal and evaluate"},"prediction",json!({"sessionID":s.selected,"action":if test["denial_proof"].is_null(){"prove"}else{"reveal"}})));
         }
-        body=body.child(line("Prediction and integrity record",test));
-    }
-    for job in list(&s.snapshot["status"]["jobs"]) {
-        if string(&job["sessionID"])==s.selected && string(&job["status"])=="running" {body=body.child(button(k,"Stop numerical job","stop",json!({"sessionID":s.selected,"jobID":job["id"]})));}
+        if status=="evaluated"{
+            body=body.child(line("Frozen-rule result",&test["evaluation"]["classification"]["status"]))
+                .child(row().gap(20.).child(metric("Prediction RMSE",&test["evaluation"]["rmse"])).child(metric("Frozen baseline RMSE",&test["evaluation"]["classification"]["baseline_rmse"])))
+                .child(line("Integrity label",&test["label_decision"]["reason"]))
+                .child(label("This historical comparison is not a causal test or a calibrated forecast. Its committed values, rule, observed pairs and audit remain in the investigation export."));
+        }else if status!="cancelled"{body=body.child(button(k,"Cancel target, preserve history","prediction",json!({"sessionID":s.selected,"action":"cancel"})));}
     }
     body
         .child(inspect(k,"Executed numerical models",list(&current["simulations"])))
@@ -261,12 +311,93 @@ fn investigation(s: &State, k: &Kit, current: &Value) -> El {
         .child(inspect(k,"Experimental Jev judgments (shadow only)",list(&current["semanticReviews"])))
         .child(inspect(k,"Recorded execution events",list(&current["events"]))).into()
 }
+fn mission_control(s:&State,k:&Kit,current:&Value,compact:bool)->El{
+    let current_artifacts=list(&current["artifacts"]);
+    let mut hero=col().w_full().gap(14.)
+        .child(row().gap(16.).child(if let Some(mark)=s.marks.first(){el().size(72.,72.).pixels(mark.pixels())}else{el().size(1.,1.)})
+            .child(col().grow(1.).gap(8.).child(label("PLANETARY INTELLIGENCE  /  NASA SPACE APPS 2026"))
+                .child(text("Read the signal. Test the story.").font(TextStyle::new(32.,650.)).w_full().wrap())
+                .child(label("GAIA leads the investigation. Four scientific functions bring real evidence, bounded tools and explicit uncertainty."))))
+        .child(row().child(Button::new("Start with the question that matters").variant(rune_kit::ButtonVariant::Submit).build(k).w(if compact{300.}else{380.}).min_h(48.).on_press(|s:&mut State|s.tab=Tab::Conversation)));
+    let target=&s.snapshot["missionScope"];
+    if target.is_null(){
+        hero=hero.child(heading("Freeze a real NASA vegetation target"))
+            .child(label("Choose an actual TESViS fixed site, complete period and growing-season months. CHLORIS can acquire only this exact MOD13Q1 Collection 6.1 target."))
+            .child(label("Start from this investigation’s measured footprint, or search NASA’s live site catalog. Nothing is acquired until you freeze the target."));
+        if let Some(existing)=current_artifacts.iter().rev().find(|artifact|string(&artifact["acquisition"]["variable"]["id"])=="EVI"){
+            let artifact=existing.clone();hero=hero.child(Button::new("Use this investigation’s measured NASA footprint and period").variant(rune_kit::ButtonVariant::Outline).build(k).min_h(44.).on_press(move|s:&mut State|{
+                let geometry=&artifact["acquisition"]["geometry"];let analysis=&artifact["analysis"];let months=list(&artifact["acquisition"]["provenance"]["recipe"]["months"]).iter().filter_map(Value::as_u64).map(|month|month.to_string()).collect::<Vec<_>>().join(",");
+                s.fields[30]=TextEdit::new(string(&geometry["siteid"]));s.fields[33]=TextEdit::new(string(&geometry["label"]));s.fields[3]=TextEdit::new(analysis["requested_start"].as_str().unwrap_or("").get(..4).unwrap_or(""));s.fields[4]=TextEdit::new(analysis["requested_end"].as_str().unwrap_or("").get(..4).unwrap_or(""));if !months.is_empty(){s.fields[32]=TextEdit::new(months);}
+            }));
+        }
+        hero=hero.child(label("Search by site, region or NASA identifier; choose an exact catalog result."))
+            .child(field(s,k,33,"Search NASA sites",false))
+            .child(field(s,k,30,"Selected NASA site identifier",false))
+            .child(field(s,k,3,"First year",false)).child(field(s,k,4,"Last year",false))
+            .child(field(s,k,32,"Growing-season months (comma separated)",false));
+        let query=s.fields[33].text.trim().to_lowercase();
+        let matches=list(&s.snapshot["sites"]).iter().filter(|site|query.is_empty()||["siteid","sitename","country"].iter().any(|key|string(&site[*key]).to_lowercase().contains(&query))).collect::<Vec<_>>();
+        if query.chars().count()<2{hero=hero.child(label("Type at least two characters to search the NASA catalog."));}
+        else{hero=hero.child(label(format!("{} live NASA site match(es) · showing up to 8",matches.len())));
+            for site in matches.iter().take(8){let id=string(&site["siteid"]);let selected=id==s.fields[30].text;hero=hero.child(Button::new(format!("{} · {} · {}",id,string(&site["sitename"]),string(&site["latitude"])).as_str()).variant(if selected{rune_kit::ButtonVariant::Contrast}else{rune_kit::ButtonVariant::Outline}).build(k).min_h(44.).on_press(move|s:&mut State|{s.fields[30]=TextEdit::new(&id);s.fields[33]=TextEdit::new(&id);}));}
+        }
+        hero=hero.child(Button::new("Freeze this NASA mission target").variant(rune_kit::ButtonVariant::Submit).build(k).min_h(48.).on_press(|s:&mut State|{
+            let months=s.fields[32].text.split(',').filter_map(|value|value.trim().parse::<u8>().ok()).collect::<Vec<_>>();
+            command("mission-plan",json!({"sessionID":s.selected,"siteid":s.fields[30].text,"start":s.fields[3].text.parse::<u16>().ok(),"end":s.fields[4].text.parse::<u16>().ok(),"months":months}));
+        }));
+    }else{
+        let months=list(&target["months"]).iter().filter_map(Value::as_u64).map(|month|month.to_string()).collect::<Vec<_>>().join(", ");
+        hero=hero.child(label(format!("FROZEN TARGET  ·  {} / {}  ·  {}–{}  ·  months {}  ·  {}",string(&target["site_name"]),string(&target["product"]),number(&target["start"]),number(&target["end"]),months,string(&target["status"]))))
+            .child(button(k,"CHLORIS · acquire this exact NASA series","analyze",json!({"sessionID":s.selected,"operation":"modis","siteid":target["siteid"],"latitude":target["latitude"],"longitude":target["longitude"],"start":target["start"],"end":target["end"],"months":target["months"],"label":target["site_name"]})))
+            .child(button(k,"Release target and select another","mission-clear",selected_action(s)));
+    }
+    let mut card_items=Vec::new();
+    for (name,role,domain,capability) in [("AURA","aura","ATMOSPHERE","NASA POWER temperature · rain · humidity"),("THALASSA","thalassa","WATER","Water-accounting methods · compatible imported gauges"),("CHLORIS","chloris","PLANTS","NASA MODIS EVI · raw QA · seasonal trend"),("ZOE","zoe","ANIMALS","Licensed occurrences · survey-effort boundaries")]{
+        let status=list(&current["taskGraph"]["requests"]).iter().rev().find(|request|string(&request["role"])==role).map(|request|string(&request["status"])).unwrap_or_else(||"capability available · not yet invoked".into());
+        let prompt=match role {
+            "aura"=>"Retrieve monthly NASA POWER temperature, precipitation and humidity for this investigation’s region and period. Assess rainfall-shortage and heat-demand expectations only as meteorological grid context—not as a MODIS-footprint mean, local biology or causal proof. State which comparisons are support-compatible.".to_string(),
+            "thalassa"=>"Assess whether actual, compatible water observations are available to test water redistribution for this investigation. Do not infer streamflow, storage or water quality from rainfall alone; if no eligible measurements exist, explain the specific gauge or chemistry observation needed.".to_string(),
+            "chloris"=>"Evaluate this investigation’s actual NASA vegetation series, product QA and seasonal support. Distinguish optical greenness from species, yield, stress, disease and mortality; identify the most useful independent live/dead cover, host or injury observation and what it could discriminate.".to_string(),
+            _=>"Check whether licensed, taxonomically verified and effort-qualified animal occurrence records can inform this investigation. Do not infer abundance, mortality, health, movement or exposure from unstandardized occurrences; state the minimum suitable survey evidence if records are inadequate.".to_string(),
+        };
+        let ask=Button::new(format!("Ask GAIA to coordinate {name}")).build(k).min_h(44.).on_press(move|s:&mut State|{s.fields[0]=TextEdit::new(prompt.clone());s.tab=Tab::Conversation;command("draft",json!({"sessionID":s.selected,"text":s.fields[0].text}));});
+        card_items.push(col().grow(1.).min_w(0.).child(surface(col().w_full().gap(8.).child(row().gap(10.).child(text(name).font(TextStyle::new(17.,650.))).child(label(domain))).child(label(capability)).child(label(status)).child(ask),"#17201b")));
+    }
+    let cards=if compact{let mut list=col().w_full().gap(12.);for card in card_items{list=list.child(card);}list.into()}else{let mut list=row().w_full().gap(12.);for card in card_items{list=list.child(card);}list.into()};
+    let flow=if compact{col().w_full().gap(4.).child(label("01  SELECT A NASA SIGNAL")).child(label("02  MEASURE THE TREND")).child(label("03  TEST ALTERNATIVES")).child(label("04  UPDATE WITH EVIDENCE"))}else{row().w_full().gap(16.).child(text("01  SELECT A NASA SIGNAL").font(TextStyle::new(13.,550.)).grow(1.).wrap()).child(text("02  MEASURE THE TREND").font(TextStyle::new(13.,550.)).grow(1.).wrap()).child(text("03  TEST ALTERNATIVES").font(TextStyle::new(13.,550.)).grow(1.).wrap()).child(text("04  UPDATE WITH EVIDENCE").font(TextStyle::new(13.,550.)).grow(1.).wrap())};
+    let flow=surface(flow,"#17201b");
+    let mut body=col().w_full().gap(20.).child(surface(hero,"#17201b")).child(flow);
+    if let Some(evi)=current_artifacts.iter().rev().find(|artifact|string(&artifact["acquisition"]["variable"]["id"])=="EVI"){
+        let trend=match string(&evi["analysis"]["status"]).as_str(){"detected"=>"A linear EVI trend was detected under the declared assumptions.","not_detected"=>"A linear EVI trend was not detected at nominal significance; that does not prove the vegetation was unchanged.","descriptive_only"=>"A descriptive EVI slope is available; inferential testing was withheld.",_=>"The EVI record does not support a resolved trend classification."};
+        let analysis=&evi["analysis"];let context_records=list(&current["hypothesisRecords"]).iter().flat_map(|record|list(&record["evidence"])).filter(|item|string(&item["status"])=="context_only").filter_map(|item|item["artifactID"].as_str()).collect::<std::collections::HashSet<_>>().len();
+        let contextual_hypotheses=list(&current["hypothesisRecords"]).iter().filter(|record|list(&record["evidence"]).iter().any(|item|string(&item["status"])=="context_only")).count();
+        let latest=list(&current["evidenceUpdates"]).last();let update_text=latest.map(|item|if list(&item["added_artifacts"]).is_empty(){"Latest protocol update reused the frozen evidence baseline; it added no new observation.".to_string()}else{format!("Latest protocol update added {} artifact(s); this is evidence, not causal proof.",list(&item["added_artifacts"]).len())}).unwrap_or_else(||"No protocol-aware evidence update has been recorded yet.".into());
+        let interval_text=list(&analysis["interval"]).iter().map(|value|value.as_f64().map(|value|format!("{value:.6}")).unwrap_or_else(||"not estimable".into())).collect::<Vec<_>>().join(" to ");
+        let rate=format!("Estimated rate: {} EVI per decade · 95% Newey–West HAC interval: {interval_text} EVI/year · nominal p = {} · n = {} annual observations.",analysis["slope_per_decade"].as_f64().map(|value|format!("{value:.6}")).unwrap_or_else(||"not estimable".into()),analysis["p_value"].as_f64().map(|value|format!("{value:.6}")).unwrap_or_else(||"not estimable".into()),number(&analysis["n"]));
+        let read=col().w_full().gap(10.).child(label("GAIA’S CURRENT EVIDENCE READ")).child(text(trend).font(TextStyle::new(18.,600.)).wrap()).child(label(rate))
+            .child(label(format!("{} registered alternative(s) have only context-level evidence across {} weather record(s).",contextual_hypotheses,context_records)))
+            .child(label("Rainfall and atmospheric-demand context do not directly test annual, fixed-footprint EVI or establish a cause."))
+            .child(label(update_text))
+            .child(label("Best next discriminating observation: dated, same-footprint measurements separating live green cover, standing dead vegetation and litter, paired to consistently screened seasonal EVI pixels."));
+        body=body.child(surface(read,"#13231d"));
+    }
+    body=body.child(heading("Four functions. One evidence standard.")).child(cards)
+        .child(heading("NASA trend record"));
+    if current_artifacts.is_empty(){body=body.child(label("No local mission series yet. Freeze a real site above; the next view will show the acquired values, units, support, uncertainty and source QA."));}
+    else{
+        body=body.child(label(format!("{} actual numerical record(s) attached to this investigation. Select a record to inspect its full trend, uncertainty, support and provenance.",current_artifacts.len())));
+        for artifact in current_artifacts.iter().rev().take(4){let status=string(&artifact["analysis"]["status"]);let message=match status.as_str(){"detected"=>"linear trend detected under the declared assumptions","not_detected"=>"linear trend not detected at nominal significance","descriptive_only"=>"descriptive slope only; inference withheld",_=>"inference inconclusive"};let label_text=format!("{}  /  {}  /  {}  /  {}",string(&artifact["acquisition"]["variable"]["name"]),message,string(&artifact["acquisition"]["variable"]["units"]),string(&artifact["acquisition"]["geometry"]["label"]));body=body.child(button(k,&label_text,"artifact-select",json!({"artifactID":artifact["id"]})));}
+        body=body.child(Button::new("Open trend, confidence interval and QA details").build(k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Evidence));
+    }
+    if current["chatRunning"].as_bool().unwrap_or(false){body=body.child(label("GAIA is coordinating the active investigation. Completed evidence remains available while the functions work."));}
+    body.into()
+}
 fn view(s: &State, _: &mut Cx<State>) -> El {
     let k=rune_theme_opencode::kit(true);let theme=rune::tok::theme(true);let current=session(s);
     let mut sidebar=col().w(240.).h_full().padding(20.).gap(14.).fill(theme.bg).child(heading("GAIA"))
         .child(label("Earth-system analysis"))
         .child(button(&k,"New investigation","new",json!({"depth":"plain"})));
-    for item in list(&s.snapshot["status"]["sessions"]) { let id=string(&item["id"]);let title=string(&item["title"]);let short:String=title.chars().take(23).collect();sidebar=sidebar.child(Button::new(short).build(&k).min_h(44.).on_press(move |_: &mut State| {command("select",json!({"sessionID":id}));})); }
+    for item in list(&s.snapshot["status"]["sessions"]) {let empty=item["messages"].as_array().is_some_and(Vec::is_empty)&&list(&item["artifacts"]).is_empty()&&list(&item["fieldCases"]).is_empty();if empty&&string(&item["id"])!=s.selected{continue;}let id=string(&item["id"]);let title=string(&item["title"]);let short:String=title.chars().take(23).collect();sidebar=sidebar.child(Button::new(short).build(&k).min_h(44.).on_press(move |_: &mut State| {command("select",json!({"sessionID":id}));})); }
     for (title,tab) in [("System",Tab::System),("Conversation",Tab::Conversation),("Evidence",Tab::Evidence),("Investigation record",Tab::Investigation),("Research",Tab::Research),("Provider settings",Tab::Provider),("Data sources",Tab::Sources)] {
         sidebar=sidebar.child(Button::new(title).build(&k).on_press(move |s: &mut State| s.tab=tab));
     }
@@ -278,20 +409,20 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
         Tab::Investigation=>record_workspace(s,&k),
         Tab::Sources=>inspect(&k,"Data access and provenance",list(&s.snapshot["catalog"]["resources"])),
         Tab::Inspector(i)=>specialist(s,&k,&current,i),
-        Tab::System if compact=>col().w_full().gap(18.).child(heading("Investigation workspace")).child(label("GAIA coordinates questions. Specialist functions are read-only evidence inspectors."))
-            .child(function_node(s,&k,0,"GAIA")).child(function_node(s,&k,1,"AURA")).child(function_node(s,&k,2,"THALASSA")).child(function_node(s,&k,3,"CHLORIS")).child(function_node(s,&k,4,"ZOE")).into(),
-        Tab::System=>col().w_full().gap(22.).child(heading("Investigation workspace"))
-            .child(label("Define a question through GAIA. Open a specialist to inspect its recorded evidence, sources and activity."))
-            .child(col().w_full().items_center().child(function_node(s,&k,1,"AURA")))
-            .child(row().w_full().gap(16.).justify_center().child(function_node(s,&k,4,"ZOE")).child(function_node(s,&k,0,"GAIA")).child(function_node(s,&k,2,"THALASSA")))
-            .child(col().w_full().items_center().child(function_node(s,&k,3,"CHLORIS"))).into()
+        Tab::System=>mission_control(s,&k,&current,compact),
     };
-    let main=col().grow(1.).min_w(0.).min_h(0.).padding(if compact {12.} else {28.}).gap(16.).child(label(if s.snapshot["operation"].is_null() {"No active interface request".to_owned()} else {format!("Active request: {}",string(&s.snapshot["operation"]))}))
-             .child(label(string(&s.snapshot["error"])))
-             .child(col().grow(1.).min_h(0.).w_full().scroll(ScrollSpec { stick_bottom: false }).child(content));
+    let running=current["chatRunning"].as_bool().unwrap_or(false);
+    let readiness=if running{"GAIA coordinating · partial evidence is retained".to_owned()}else if s.snapshot["status"]["tested"].as_bool().unwrap_or(false){"GAIA provider and five role tools verified".to_owned()}else if s.snapshot["status"]["local_configuration_available"].as_bool().unwrap_or(false){"NASA analysis available · connect the configured model to enable GAIA conversation".to_owned()}else{"NASA analysis available · configure a model to enable GAIA conversation".to_owned()};
+    let mut main=col().grow(1.).min_w(0.).min_h(0.).padding(if compact {12.} else {28.}).gap(16.).child(label(readiness));
+    if running&&s.tab!=Tab::Conversation{main=main.child(button(&k,"Stop investigation and retain partial evidence","chat-stop",selected_action(s)));}
+    for job in list(&s.snapshot["status"]["jobs"]) {
+        if string(&job["sessionID"])==s.selected&&string(&job["status"])=="running"{main=main.child(label(format!("Running numerical job: {}",string(&job["operation"]))))
+            .child(button(&k,"Stop numerical job","stop",json!({"sessionID":s.selected,"jobID":job["id"]})));}
+    }
+    let main=main.child(label(string(&s.snapshot["error"]))).child(col().grow(1.).min_h(0.).w_full().scroll(ScrollSpec { stick_bottom: false }).child(content));
     if compact {
         let navigation=col().w_full().padding(12.).gap(6.)
-            .child(row().gap(6.).child(Button::new("Investigations").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::History)).child(Button::new("System").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::System)).child(Button::new("Providers").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Provider)))
+            .child(row().gap(6.).child(Button::new("Missions").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::History)).child(Button::new("GAIA").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::System)).child(Button::new("Providers").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Provider)))
             .child(row().gap(6.).child(button(&k,"New investigation","new",json!({}))).child(Button::new("Conversation").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Conversation)))
             .child(row().gap(6.).child(Button::new("Evidence").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Evidence)).child(Button::new("Research").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Research)))
             .child(Button::new("Investigation record").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Investigation));

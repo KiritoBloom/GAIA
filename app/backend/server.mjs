@@ -16,11 +16,11 @@ import{prepareHandoff,referralDirectory}from'./handoff.mjs';
 import { executionVersions } from './versions.mjs';
 import { domainSkills, referenceCatalog, skillProfile } from './knowledge.mjs';
 import {investigationRecords} from './investigation-records.mjs';
-import{observationProtocol}from'./observations.mjs';
-import{assessCandidate}from'./creative.mjs';
+import{observationProtocol,observationSnapshot,selectObservationProtocol,completeObservationUpdate}from'./observations.mjs';
 import {searchLiterature,readPaper,increaseResearchBudget} from './research.mjs';
 import {stopRuntimeSession} from './runtime.mjs';
-import{retireThreads,lifecycleForExport,taskGraphForExport}from'./thread-lifecycle.mjs';
+import{retireThreads,lifecycleForExport,taskGraphForExport,peerRequestsForExport}from'./thread-lifecycle.mjs';
+import{freezeMissionScope,verifyMissionScope,missionAcquisitionRequest,sameMissionArtifact}from'./mission-scope.mjs';
 
 const storePath = resolve(ROOT, '.runtime/data/workspace.json');
 mkdirSync(resolve(ROOT, '.runtime/data'), { recursive: true });
@@ -50,16 +50,27 @@ const scientificAccess={
   async simulate(id,role,input,signal){const session=sessionFor(id),target=session.artifacts.find(item=>item.id===input.artifact_id);if(!target)throw Error('Simulation needs an actual owned target.');const covariates=(input.covariate_ids||[]).map(id=>{const item=session.artifacts.find(item=>item.id===id);if(!item)throw Error('Foreign covariate denied.');return item.acquisition;});const request={operation:'simulate',model:input.model,acquisition:target.acquisition,covariates,horizon:input.horizon,members:input.members,seed:input.seed||20261114,scenario:input.scenario};const result={id:randomUUID(),artifactID:target.id,request,created:new Date().toISOString(),initiated_by:role,...await science(request,signal)};session.simulations ||= [];session.simulations.push(result);event(session,'simulation.completed',{role,model:input.model,summary:`Actual AI-selected scenario executed: ${result.readiness}; omitted uncertainty and baseline tests retained.`});return result;},
   async proposal(id,role,input){const session=sessionFor(id);session.modelProposals ||= [];const result={id:randomUUID(),role,...input,status:'proposed_not_implemented_or_validated',time:new Date().toISOString()};session.modelProposals.push(result);event(session,'model.proposed',{role,summary:'New model idea and validation requirements recorded; equations are not executed or promoted as validated science.'});return result;},
   read:sessionFor,
-  async catalog(role) { const catalog=await science({operation:'catalog'}),methods=await science({operation:'domain_methods'}); return {role,skills:domainSkills(role),references:referenceCatalog(role),methods:Object.entries(methods).filter(([,item])=>item.role===role).map(([id,item])=>({id,...item})),variables:catalog.variables.filter(variable=>role==='gaia' || variable.domain===role),protocols:Object.values(protocols).filter(protocol=>role==='gaia' || protocol.owner===role),resources:catalog.resources.map(resource=>({name:resource.name,mode:resource.mode,note:resource.note}))}; },
+  async catalog(role,id) { const catalog=await science({operation:'catalog'}),methods=await science({operation:'domain_methods'}); const session=sessionFor(id);return {role,skills:domainSkills(role),references:referenceCatalog(role),methods:Object.entries(methods).filter(([,item])=>item.role===role).map(([id,item])=>({id,...item})),variables:catalog.variables.filter(variable=>role==='gaia' || variable.domain===role),protocols:Object.values(protocols).filter(protocol=>role==='gaia' || protocol.owner===role),resources:catalog.resources.map(resource=>({name:resource.name,mode:resource.mode,note:resource.note})),mission_scope:session.missionScope?{...session.missionScope}:null,mission_capability:role==='chloris'?'acquire_vegetation is available only for the exact user-frozen NASA MOD13Q1 target above.':'NASA vegetation acquisition is restricted to CHLORIS.'}; },
   async diagnostic(id,role,input,signal){const session=sessionFor(id),acquisitions=input.artifact_ids.map(id=>{const artifact=session.artifacts.find(item=>item.id===id);if(!artifact)throw Error('Foreign diagnostic artifact denied.');return artifact.acquisition;});const request={operation:'domain_diagnostic',role,method:input.method,acquisitions,records:role==='zoe'?session.animalRecords?.flatMap(item=>item.records)||[]:[]};const result={id:randomUUID(),created:new Date().toISOString(),request,...await science(request,signal)};session.domainDiagnostics ||= [];session.domainDiagnostics.push(result);event(session,'domain.diagnostic.completed',{role,method:input.method,summary:'Fixed domain computation completed; quantity, approximation and limitations retained.'});return result;},
-  async acquire(id,variable,signal) {
+   async acquire(id,variable,signal) {
     const session=sessionFor(id), focal=session.artifacts[0];
     if(!focal) throw new Error('Mark a region and acquire a focal record before automatic context acquisition.');
     const request=powerContextRequest(focal,variable),existing=existingPowerContext(session.artifacts,request);
     if(existing) return existing;
-    const result=await science(request,signal);
-    return retainArtifact(session,result);
-  }
+     const result=await science(request,signal);
+     return retainArtifact(session,result);
+   },
+   async acquireMission(id,signal){
+     const session=sessionFor(id),selection=verifyMissionScope(session.missionScope);
+     const retained=session.artifacts.find(artifact=>sameMissionArtifact(artifact,selection));
+     if(retained)return{artifact:retained,newly_acquired:false,selection_sha256:session.missionScope.selection_sha256};
+     const result=await science({operation:'modis',siteid:selection.siteid,latitude:selection.latitude,longitude:selection.longitude,start:selection.start,end:selection.end,months:selection.months,label:selection.site_name},signal);
+     if(signal?.aborted)throw Error('NASA vegetation acquisition cancelled before the artifact was retained.');
+     const artifact=retainArtifact(session,result);
+     session.title=`NASA vegetation · ${selection.site_name} · ${selection.start}–${selection.end}`.slice(0,85);
+     setEvidence(session.id,artifact);
+     return{artifact,newly_acquired:true,selection_sha256:session.missionScope.selection_sha256};
+   }
 };
 registerScientificAccess(scientificAccess);
 function json(response, data, status = 200) { response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); response.end(JSON.stringify(data)); }
@@ -89,8 +100,24 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === 'GET' && url.pathname === '/api/status') return json(response, { ...providerStatus(), semantic:semanticStatus(), sessions, jobs: [...jobs.values()].map(job => ({ id: job.id, sessionID: job.sessionID, status: job.status, operation: job.operation, error: job.error })), science: { numerical: 'tested', domain_validation: 'not established', methods: 'seasonal OLS / Newey–West HAC' } });
     if(request.method==='GET'&&url.pathname.startsWith('/api/investigation/'))return json(response,investigationRecords(sessionFor(url.pathname.split('/').at(-1))));
-    if (request.method === 'GET' && url.pathname === '/api/catalog') return json(response, await science({ operation: 'catalog' }));
+    if (request.method === 'GET' && url.pathname === '/api/catalog') return json(response, {...await science({ operation: 'catalog' }),protocols:Object.values(protocols)});
     if (request.method === 'GET' && url.pathname === '/api/sites') return json(response, await science({ operation: 'sites' }));
+    if(request.method==='POST'&&url.pathname==='/api/mission/plan'){
+      const input=await body(request),session=sessionFor(input.sessionID);
+      if(session.chatRunning||[...jobs.values()].some(job=>job.sessionID===session.id&&job.status==='running'))throw Error('Finish or stop active investigation work before changing its NASA mission target.');
+      const catalog=await science({operation:'sites'},AbortSignal.timeout(60_000));
+      const plan=freezeMissionScope(catalog.sites,input);
+      session.missionScopes||=[];session.missionScopes.push(structuredClone(plan));session.missionScope=plan;
+      event(session,'mission.target.frozen',{summary:`User froze NASA MODIS Collection 6.1 EVI at ${plan.site_name} for ${plan.start}–${plan.end}; CHLORIS may acquire this exact target.`});
+      return json(response,plan);
+    }
+    if(request.method==='POST'&&url.pathname==='/api/mission/clear'){
+      const input=await body(request),session=sessionFor(input.sessionID);
+      if(session.chatRunning||[...jobs.values()].some(job=>job.sessionID===session.id&&job.status==='running'))throw Error('Finish or stop active investigation work before releasing its NASA mission target.');
+      session.missionScope=null;session.missionScopes||=[];
+      event(session,'mission.target.released',{summary:'The user released the current NASA MODIS target; its retained history and acquired artifacts are unchanged.'});
+      return json(response,{released:true,history:session.missionScopes.length});
+    }
     if(request.method==='POST' && url.pathname==='/api/stations') { const input=await body(request);sessionFor(input.sessionID);return json(response,await science({operation:'noaa_stations',latitude:input.latitude,longitude:input.longitude,start:input.start,end:input.end})); }
     if(request.method==='GET'&&url.pathname==='/api/competence')return json(response,{profiles:skillProfile(providerStatus().model),limitation:'Reviewed procedures and sources are not independent domain certification.'});
     if(request.method==='POST'&&url.pathname==='/api/research/budget'){const input=await body(request),session=sessionFor(input.sessionID),result=increaseResearchBudget(session);event(session,'research.budget.approved',{summary:'User approved additional literature calls; provider costs still apply.'});return json(response,result);}
@@ -132,19 +159,25 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/analyze') {
       const input = await body(request), session = sessionFor(input.sessionID);
+      if(session.chatRunning)throw Error('Finish or stop this investigation before adding a dataset manually.');
+      if([...jobs.values()].some(job=>job.sessionID===session.id&&job.status==='running'))throw Error('Finish or stop this investigation’s active numerical job before adding evidence.');
       for(const [id,job] of jobs) if(jobs.size>=50 && job.status!=='running') jobs.delete(id);
       if ([...jobs.values()].filter(job => job.status === 'running').length >= 2) throw new Error('Two active jobs maximum; wait for completion or stop a job.');
       if (!['power', 'modis', 'import'].includes(input.operation)) throw new Error('Scientific operation not registered.');
-      const controller = new AbortController();
+      // MODIS is a CHLORIS capability bound to the user's immutable, live-catalog mission
+      // selection. Never let a browser payload or model rewrite its coordinates/calendar.
+      const scienceRequest=input.operation==='modis'?missionAcquisitionRequest(session.missionScope):input;
+      const controller = new AbortController(),observationBefore=input.operation==='import'&&session.observationPlan?observationSnapshot(session):null;
       const job = { id: randomUUID(), sessionID: session.id, operation: input.operation, status: 'running', controller }; jobs.set(job.id, job);
       event(session, 'job.started', { jobID: job.id, operation: input.operation, role: input.operation === 'modis' ? 'chloris' : 'aura', summary: 'Acquiring numerical science values and quality metadata.' });
       json(response, { jobID: job.id }, 202);
       try {
-        const result = await science(input, controller.signal);
+         const result = await science(scienceRequest, controller.signal);
         if (controller.signal.aborted) return;
         const artifact = retainArtifact(session,result,job.id); session.title = `${artifact.acquisition.variable.name} / ${artifact.acquisition.geometry.label}`.slice(0, 85);
         session.roleSummaries[artifact.acquisition.variable.domain] = { source: 'deterministic artifact summary; not an executed language-model worker', artifactID: artifact.id, text: `${artifact.acquisition.variable.name}: ${artifact.analysis.n} valid observations. ${artifact.analysis.status.replaceAll('_', ' ')}. ${artifact.acquisition.variable.support}` };
         setEvidence(session.id, artifact);
+        if(observationBefore){completeObservationUpdate(session,observationBefore,artifact.id);event(session,'evidence.updated',{artifactID:artifact.id,summary:'Actual imported observations assessed against the retained protocol; declared provenance and incompatible support remain explicit.'});}
         job.status = 'completed';
         event(session, 'artifact.completed', { jobID: job.id, artifactID: artifact.id, summary: 'Real series, trend diagnostics and reproducibility inputs are ready.' });
       } catch (error) { job.status = controller.signal.aborted ? 'cancelled' : 'failed'; job.error = publicError(error); event(session, 'job.failed', { jobID: job.id, summary: job.error }); }
@@ -153,13 +186,15 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/jobs/stop') {
       const input = await body(request), job = jobs.get(input.jobID);
       if (!job || job.sessionID !== input.sessionID) throw new Error('Foreign job cancellation denied.');
-      job.controller.abort(); job.status = 'cancelled'; return json(response, { status: 'cancelled' });
+      if(job.status!=='running')throw Error('This numerical job is already terminal.');
+      job.controller.abort(); job.status = 'cancelled';event(sessionFor(job.sessionID),'job.cancelled',{jobID:job.id,summary:'User cancelled the actual numerical request; completed evidence is retained.'}); return json(response, { status: 'cancelled' });
     }
     if (request.method === 'POST' && url.pathname === '/api/chat') {
       const input = await body(request), session = sessionFor(input.sessionID);
       if (!providerStatus().tested) throw new Error('Run the provider tool/role connection check before GAIA conversation. Numerical analysis remains available without it.');
       if (typeof input.text !== 'string' || !input.text.trim() || input.text.length > 4000) throw new Error('Use a message of at most 4,000 characters.');
       if (session.chatRunning) throw new Error('GAIA is finishing this session’s current reply.');
+      if([...jobs.values()].some(job=>job.sessionID===session.id&&job.status==='running'))throw Error('Finish or stop this investigation’s numerical job before starting a new evidence assessment.');
       session.chatRunning = true;const controller=new AbortController();chats.set(session.id,controller);
       const user = { id: randomUUID(), role: 'user', text: input.text, time: new Date().toISOString() }; session.messages.push(user);
       event(session, 'gaia.started', { role: 'gaia', summary: 'GAIA is considering the next useful question.' });
@@ -180,22 +215,33 @@ const server = http.createServer(async (request, response) => {
       try { const modelRequest={operation:'simulate',model:input.model,acquisition:artifact.acquisition,covariates,horizon:input.horizon,members:input.members,seed:input.seed,scenario:input.scenario};const result=await science(modelRequest,controller.signal); session.simulations ||= []; session.simulations.push({id:randomUUID(),artifactID:artifact.id,request:modelRequest,created:new Date().toISOString(),...result}); job.status='completed'; event(session,'simulation.completed',{jobID:job.id,summary:`Executed model: ${result.readiness}; conditional ranges are not causal probabilities.`}); }
       catch(error){job.status=controller.signal.aborted?'cancelled':'failed';job.error=publicError(error);event(session,'simulation.failed',{jobID:job.id,summary:job.error});} return;
     }
+    if(request.method==='POST'&&url.pathname==='/api/observation/plan'){
+      const input=await body(request),session=sessionFor(input.sessionID);
+      if([...jobs.values()].some(job=>job.sessionID===session.id&&job.status==='running'))throw Error('Finish or stop the numerical job before changing its observation protocol.');
+      const plan=selectObservationProtocol(session,input.protocolID);event(session,'observation.selected',{summary:'Observation protocol and pre-acquisition evidence baseline retained; earlier plans remain in history.'});return json(response,plan);
+    }
     if(request.method==='POST' && url.pathname==='/api/observation/get') {
       const input=await body(request),session=sessionFor(input.sessionID),protocol=observationProtocol(session);
-      if(!protocol || protocol.operation!=='power') throw new Error('This observation needs a licensed import or qualified field evidence, not an invented adapter.');
-      const before={id:randomUUID(),artifacts:session.artifacts.map(item=>item.id),hypotheses:structuredClone(session.hypothesisRecords),protocol:structuredClone(session.observationPlan),time:new Date().toISOString()};
-      const artifact=await scientificAccess.acquire(session.id,protocol.variable,AbortSignal.timeout(180_000));
-      const after=session.hypothesisRecords.map(record=>({...record,evidence:session.artifacts.map(item=>assessCandidate(record,item,session.artifacts[0]))}));
-      const added=before.artifacts.includes(artifact.id)?[]:[artifact.id];
-      session.hypothesisRecords=after; session.evidenceUpdates ||= []; session.evidenceUpdates.push({id:randomUUID(),before,after,artifactID:artifact.id,added_artifacts:added,mode:'staged_reveal',reason:added.length?'Actual compatible observable acquired or retrieved from the real-data cache; expectations recomputed without causal proof.':'Existing owned evidence reassessed; no new observation or causal proof is claimed.',time:new Date().toISOString()});
-      event(session,'evidence.updated',{artifactID:artifact.id,summary:'Before/after evidence snapshots retained; inconclusive signatures remain inconclusive.'}); return json(response,session.evidenceUpdates.at(-1));
+      if(session.chatRunning)throw Error('Finish or stop the current investigation before requesting a separate observation update.');
+      if([...jobs.values()].some(job=>job.sessionID===session.id&&job.status==='running'))throw Error('Finish or stop the active numerical job before requesting an observation update.');
+      if(!protocol)throw Error('Select an observation protocol first.');
+      const existing=protocol.route==='existing_data'||protocol.availability==='inspect_existing_owned_data';
+      if(protocol.operation!=='power'&&!existing)throw Error('Use Add another dataset to import real observations, or obtain the qualified field evidence in this protocol. No automatic adapter is claimed.');
+      const before=observationSnapshot(session),controller=new AbortController(),job={id:randomUUID(),sessionID:session.id,operation:'observation',status:'running',controller};jobs.set(job.id,job);
+      event(session,'observation.started',{jobID:job.id,summary:'Using the retained protocol; existing evidence will not be relabelled as a new observation.'});json(response,{jobID:job.id},202);
+      try{const artifact=protocol.operation==='power'?await scientificAccess.acquire(session.id,protocol.variable,controller.signal):null;
+        if(controller.signal.aborted)throw Error('Observation acquisition cancelled.');
+        completeObservationUpdate(session,before,artifact?.id);job.status='completed';
+        event(session,'evidence.updated',{jobID:job.id,artifactID:artifact?.id,summary:'Before/after evidence snapshots retained; inconclusive signatures remain inconclusive.'});
+      }catch(error){job.status=controller.signal.aborted?'cancelled':'failed';job.error=publicError(error);event(session,'observation.failed',{jobID:job.id,summary:job.error});}return;
     }
     if (request.method === 'GET' && url.pathname.startsWith('/api/export/')) {
       // Exported predictions retain their original values, selection and disclosure mode.
       const id = url.pathname.split('/').at(-1), session = sessionFor(id);
       const exported = { schema_version: 2, generated: new Date().toISOString(), title: session.title, artifacts: session.artifacts, task_graph:taskGraphForExport(session.taskGraph), thread_lifecycle:lifecycleForExport(session), hypotheses:session.hypothesisRecords, observation_plan:session.observationPlan, evidence_updates:session.evidenceUpdates || [], simulations: session.simulations || [], semantic_reviews: session.semanticReviews || [], tool_trace:toolTrace(session.id).map(({threadID,output,...item})=>({...item,output_sha256:sha256(output)})), limitations: ['Export is an explicit local user action. Review coordinates and source redistribution rights before publishing.', 'Private runtime identifiers and raw tool inputs/outputs are excluded; tool output digests preserve trace integrity without publishing conversation content.', 'Language-model prose is not required to reproduce the numerical result.'], reproduction: 'npm run reproduce -- path/to/export.json' };
-       exported.comparisons=session.comparisons || [];exported.prediction_test=session.predictionTest || null;
-       exported.domain_diagnostics=session.domainDiagnostics||[];exported.animal_records=session.animalRecords||[];exported.peer_requests=session.peerRequests||[];exported.model_proposals=session.modelProposals||[];exported.research_notes=session.researchNotes||[];
+       exported.comparisons=session.comparisons || [];exported.prediction_test=session.predictionTest || null;exported.observation_plan_history=session.observationPlans||[];
+       exported.domain_diagnostics=session.domainDiagnostics||[];exported.animal_records=session.animalRecords||[];exported.peer_requests=peerRequestsForExport(session.peerRequests);exported.model_proposals=session.modelProposals||[];exported.research_notes=session.researchNotes||[];
+        exported.mission_scope=session.missionScope||null;exported.mission_scope_history=session.missionScopes||[];
        exported.literature=(session.literature||[]).map(({text,...metadata})=>metadata);exported.literature_disclosure='Raw third-party texts excluded from standard export; review quotations and redistribution rights before publishing.';
       const versions=executionVersions(session.simulations || []);exported.simulations=versions.active;exported.historical_simulations=versions.historical;
        exported.investigation_record=investigationRecords(session);

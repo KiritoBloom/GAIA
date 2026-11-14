@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {investigationScope,ownedThread,retireThreads,lifecycleForExport,taskGraphForExport} from '../app/backend/thread-lifecycle.mjs';
+import {investigationScope,ownedThread,retireThreads,lifecycleForExport,taskGraphForExport,peerRequestsForExport} from '../app/backend/thread-lifecycle.mjs';
 test('only compatible role, parent, scope and policy continue; new snapshots retain explicit history',async()=>{
  let next=0;const stopped=[],create=async()=>`thread-${++next}`,stop=async id=>stopped.push(id),session={id:'owned',artifacts:[]};
  const context={scope:investigationScope(session),snapshot:'before',request:'Question',graphID:'first'};
@@ -24,4 +24,10 @@ test('public lifecycle and task exports omit private runtime thread identifiers'
  assert.equal(lifecycleForExport(session)[0].runtime_binding_present,true);
  assert.equal(graph.requests[0].runtime_binding_present,true);
  assert.doesNotMatch(JSON.stringify([lifecycleForExport(session),graph]),/ses_private|ses_old/);
+});
+
+test('public peer-review export preserves outcome metadata without exposing runtime thread IDs',()=>{
+ const exported=peerRequestsForExport([{id:'peer-1',role:'aura',status:'completed',review_thread:'ses_private_runtime_12345678901234567890'}]);
+ assert.deepEqual(exported,[{id:'peer-1',role:'aura',status:'completed',runtime_binding_present:true}]);
+ assert.doesNotMatch(JSON.stringify(exported),/ses_[A-Za-z0-9]{20}/);
 });

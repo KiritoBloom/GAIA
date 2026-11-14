@@ -62,20 +62,25 @@ export function authorize(record) {
    record.state='reveal_authorized';record.capability=randomBytes(32).toString('hex');persist();return record.capability;
 }
 
-export function evaluate(record,artifact) {
-  if(record.state!=='reveal_authorized') throw new Error('Evaluation state denied.');
-  if(sha256(record.prediction)!==record.prediction_hash)throw Error('Committed prediction contents changed; evaluation denied.');
+export function predictionEvaluation(prediction,artifact) {
   const rows=artifact.acquisition.series;if(new Set(rows.map(row=>row.date)).size!==rows.length)throw Error('Duplicate observed periods cannot define prediction evaluation.');
   const actual=new Map(rows.filter(row=>Number.isFinite(row.value)).map(row=>[row.date,row.value]));
-  const pairs=record.prediction.series.filter(row=>actual.has(row.date)).map(row=>({date:row.date,predicted:row.value,observed:actual.get(row.date)}));
-  record.evaluation={artifactID:artifact.id,n:pairs.length,rmse:pairs.length?Math.sqrt(pairs.reduce((sum,row)=>sum+(row.predicted-row.observed)**2,0)/pairs.length):null,pairs,outcome:pairs.length===12?'evaluated_numeric_prediction':'untestable_missing_periods',rule:'RMSE on the twelve predeclared monthly predictions; no threshold chosen after reveal',limitation:'Application logs are not independently trusted timestamps; numeric agreement does not identify a cause.'};
-  const spec=record.prediction.prediction_evaluation_specification;
+  const pairs=prediction.series.filter(row=>actual.has(row.date)).map(row=>({date:row.date,predicted:row.value,observed:actual.get(row.date)}));
+  const evaluation={artifactID:artifact.id,n:pairs.length,rmse:pairs.length?Math.sqrt(pairs.reduce((sum,row)=>sum+(row.predicted-row.observed)**2,0)/pairs.length):null,pairs,outcome:pairs.length===12?'evaluated_numeric_prediction':'untestable_missing_periods',rule:'RMSE on the twelve predeclared monthly predictions; no threshold chosen after reveal',limitation:'Application logs are not independently trusted timestamps; numeric agreement does not identify a cause.'};
+  const spec=prediction.prediction_evaluation_specification;
   if(spec){
    const baseline=new Map(spec.baseline_series.map(row=>[row.date,row.value]));
    const complete=pairs.length===spec.required_periods&&pairs.every(row=>Number.isFinite(baseline.get(row.date)));
    const baseline_rmse=complete?Math.sqrt(pairs.reduce((sum,row)=>sum+(baseline.get(row.date)-row.observed)**2,0)/pairs.length):null;
-   record.evaluation.classification={status:!complete?'untestable':record.evaluation.rmse<baseline_rmse?'matched':'mismatched',baseline_rmse,specification_hash:sha256(spec),rule:spec.rule,limitation:spec.limitations[0]};
-  }else record.evaluation.classification={status:'ungraded_legacy_prediction',reason:'The historical record did not freeze a categorical acceptance rule. Do not invent one after seeing observations.'};
+   evaluation.classification={status:!complete?'untestable':evaluation.rmse<baseline_rmse?'matched':'mismatched',baseline_rmse,specification_hash:sha256(spec),rule:spec.rule,limitation:spec.limitations[0]};
+  }else evaluation.classification={status:'ungraded_legacy_prediction',reason:'The historical record did not freeze a categorical acceptance rule. Do not invent one after seeing observations.'};
+  return evaluation;
+}
+
+export function evaluate(record,artifact) {
+  if(record.state!=='reveal_authorized') throw new Error('Evaluation state denied.');
+  if(sha256(record.prediction)!==record.prediction_hash)throw Error('Committed prediction contents changed; evaluation denied.');
+  record.evaluation=predictionEvaluation(record.prediction,artifact);
   record.state='evaluated';delete record.capability;
   // The first implementation guards acquisition/import and privately holds the target,
   // but has not proven every equivalent product, cache, export and derivative route.

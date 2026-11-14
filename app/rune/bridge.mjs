@@ -3,7 +3,7 @@ import {readUiState,writeUiState} from './ui-state.mjs';
 const ui=readUiState(sessionStorage);
 const state={status:{},catalog:{},competence:{},referrals:[],models:[],sites:[],stations:null,operation:null,error:null,selected:null,selectedArtifact:'',artifact:null,investigation:null,graphSvg:'',chartSvg:'',scenarioSvg:''};
 let notifier=()=>{},privateConfiguration=false;
-function publish(){const session=state.status.sessions?.find(value=>value.id===state.selected);state.draft=ui.drafts[state.selected]||'';state.artifact=session?.artifacts?.find(value=>value.id===state.selectedArtifact)||session?.artifacts?.at(-1)||null;state.chartSvg=chart(state.artifact);state.scenarioSvg=scenarioChart(session?.simulations?.at(-1));state.viewportWidth=innerWidth;globalThis.gaiaSnapshot=JSON.stringify(state);notifier();}
+function publish(){const session=state.status.sessions?.find(value=>value.id===state.selected);state.missionScope=session?.missionScope||null;state.draft=ui.drafts[state.selected]||'';state.artifact=session?.artifacts?.find(value=>value.id===state.selectedArtifact)||session?.artifacts?.at(-1)||null;state.chartSvg=chart(state.artifact);state.scenarioSvg=scenarioChart(session?.simulations?.at(-1));state.viewportWidth=innerWidth;globalThis.gaiaSnapshot=JSON.stringify(state);notifier();}
 addEventListener('resize',publish);
 async function api(path,body){
   const response=await fetch(`/api${path}`,body===undefined?{}:{method:'POST',headers:{'content-type':'application/json','x-gaia-client':'1'},body:JSON.stringify(body)});
@@ -74,7 +74,8 @@ globalThis.gaiaCommand=async(name,input={})=>{
         const file=await new Promise(resolve=>{picker.onchange=()=>resolve(picker.files?.[0]);picker.oncancel=()=>resolve(null);picker.click();});
         if(file){if(file.size>2_000_000)throw new Error('CSV exceeds the two-megabyte import limit.');await api('/analyze',{...input,operation:'import',csv:await file.text()});}break;
       }
-      case 'observation':await api('/observation/get',input);break;
+       case 'observation':await api('/observation/get',input);break;
+       case 'observation-plan':await api('/observation/plan',input);break;
       case 'simulate':await api('/simulate',input);break;
       case 'bucket':await api('/bucket',{sessionID:input.sessionID,inputs:JSON.parse(input.inputs_json)});break;
       case 'stations':state.stations=await api('/stations',input);break;
@@ -84,7 +85,9 @@ globalThis.gaiaCommand=async(name,input={})=>{
       case 'references':await api('/references/search',input);break;
       case 'prediction':await api('/prediction',input);break;
       case 'stop':await api('/jobs/stop',input);break;
-      case 'sites':{const result=await api('/sites');state.sites=result.sites||result;break;}
+       case 'sites':{const result=await api('/sites');state.sites=result.sites||result;break;}
+       case 'mission-plan':state.missionScope=await api('/mission/plan',input);break;
+       case 'mission-clear':state.missionScope=null;await api('/mission/clear',input);break;
       case 'export':{const result=await api(`/export/${encodeURIComponent(input.sessionID)}`);const url=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='gaia-investigation.json';link.click();URL.revokeObjectURL(url);break;}
       default:throw new Error('Unregistered UI operation.');
     }
@@ -94,7 +97,7 @@ globalThis.gaiaCommand=async(name,input={})=>{
 };
 export async function connect(notify){
   notifier=notify;publish();
-  try{[state.catalog,state.competence]=await Promise.all([api('/catalog'),api('/competence')]);await refresh();}catch(error){state.error=error.message;publish();}
+  try{[state.catalog,state.competence,state.sites]=await Promise.all([api('/catalog'),api('/competence'),api('/sites').then(result=>result.sites||result)]);await refresh();}catch(error){state.error=error.message;publish();}
   const events=new EventSource('/api/events');
   let refreshing=false;
   events.onmessage=async()=>{if(refreshing)return;refreshing=true;try{await refresh();}catch{state.error='Backend event connection interrupted.';publish();}finally{refreshing=false;}};
