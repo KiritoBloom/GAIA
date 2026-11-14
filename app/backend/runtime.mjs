@@ -167,10 +167,10 @@ export async function proveRuntime(onProgress=()=>{}) {
     }
     if(selected!==configuration)throw Error('Provider changed during verification; repeat the check.');
      configuration.tested=true;configuration.proof.state='passed';publish();
-     const roles=receipts.filter(r=>sessions.includes(r.sessionID)).map(({role,time})=>({role,time}));
+      const roleProofs=receipts.filter(r=>sessions.includes(r.sessionID)).map(({role,time})=>({role,time}));
      await Promise.allSettled(sessions.map(stopRuntimeSession));
      for(let index=receipts.length-1;index>=0;index--)if(sessions.includes(receipts[index].sessionID))receipts.splice(index,1);
-     return {sdk_version:'2.3.0',transport:'application-managed specialist sessions',roles,tested:true,limitation:'Synthetic role/tool proof, not domain or ecological validation.'};
+      return {sdk_version:'2.3.0',transport:'application-managed specialist sessions',roles:roleProofs,tested:true,limitation:'Synthetic role/tool proof, not domain or ecological validation.'};
    }catch(error){configuration.proof.state='failed';configuration.proof.active=[];publish();await Promise.allSettled(sessions.map(stopRuntimeSession));for(let index=receipts.length-1;index>=0;index--)if(sessions.includes(receipts[index].sessionID))receipts.splice(index,1);throw error;}
 }
 
