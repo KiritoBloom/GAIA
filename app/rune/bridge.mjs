@@ -1,4 +1,4 @@
-const state={status:{},catalog:{},models:[],sites:[],stations:null,operation:null,error:null,selected:null,selectedArtifact:'',artifact:null,chartSvg:'',scenarioSvg:''};
+const state={status:{},catalog:{},competence:{},models:[],sites:[],stations:null,operation:null,error:null,selected:null,selectedArtifact:'',artifact:null,chartSvg:'',scenarioSvg:''};
 let notifier=()=>{},privateConfiguration=false;
 function publish(){const session=state.status.sessions?.find(value=>value.id===state.selected);state.artifact=session?.artifacts?.find(value=>value.id===state.selectedArtifact)||session?.artifacts?.at(-1)||null;state.chartSvg=chart(state.artifact);state.scenarioSvg=scenarioChart(session?.simulations?.at(-1));state.viewportWidth=innerWidth;globalThis.gaiaSnapshot=JSON.stringify(state);notifier();}
 addEventListener('resize',publish);
@@ -52,10 +52,15 @@ globalThis.gaiaCommand=async(name,input={})=>{
       case 'provider-connect':{
         const chosen={...input,...(privateConfiguration?{...state.providerCandidate,use_local:true}: {})};
         await api('/provider/connect',chosen);input.apiKey='';delete chosen.apiKey;
-        const proof=await api('/provider/proof',{});state.proof=proof;break;
+        const proof=await api('/provider/proof',{});state.proof=proof;state.competence=await api('/competence');break;
       }
       case 'provider-remove':await api('/provider/remove',{});privateConfiguration=false;break;
       case 'chat':await api('/chat',input);break;
+      case 'chat-stop':await api('/chat/stop',input);break;
+      case 'research-search':await api('/research/search',input);break;
+      case 'research-read':await api('/research/read',input);break;
+      case 'research-budget':await api('/research/budget',input);break;
+      case 'animals':await api('/animals',input);break;
       case 'depth':await api('/sessions/settings',input);break;
       case 'analyze':await api('/analyze',input);break;
       case 'import-file':{
@@ -81,7 +86,7 @@ globalThis.gaiaCommand=async(name,input={})=>{
 };
 export async function connect(notify){
   notifier=notify;publish();
-  try{state.catalog=await api('/catalog');await refresh();}catch(error){state.error=error.message;publish();}
+  try{[state.catalog,state.competence]=await Promise.all([api('/catalog'),api('/competence')]);await refresh();}catch(error){state.error=error.message;publish();}
   const events=new EventSource('/api/events');
   let refreshing=false;
   events.onmessage=async()=>{if(refreshing)return;refreshing=true;try{await refresh();}catch{state.error='Backend event connection interrupted.';publish();}finally{refreshing=false;}};

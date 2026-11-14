@@ -26,9 +26,10 @@ export async function searchLiterature(session,role,input,signal){
  session.researchQueries ||= [];session.researchQueries.push({id:randomUUID(),role,query:input.query,provider,paper_ids:admitted.map(item=>item.id),cost,time:new Date().toISOString()});
  return{provider,papers:admitted,rejected,budget:b,cost,limitation:'Search ranking and publication labels do not establish correctness, relevance or peer-review quality. Read the source, identify study type and challenge assumptions.'};
 }
-export async function readPaper(session,role,id,signal){
+export async function readPaper(session,role,id,signal,options={}){
  checkAcquisition({operation:'import'});
- const paper=session.literature?.find(item=>item.id===id);if(!paper)throw Error('Paper is not owned by this investigation.');
+  const paper=session.literature?.find(item=>item.id===id);if(!paper)throw Error('Paper is not owned by this investigation.');
+  if(paper.text&&!options.refresh&&(paper.access==='retrieved_source_excerpt'||!(process.env.EXA_API_KEY||process.env.EXA_KEY)))return{...paper,reader:role,retrieval_mode:'retained_owned_source',limitation:'Previously retrieved source text, not a new live fetch. Its original hash and retrieval timestamp are retained; source interpretation still requires review.'};
  const b=budget(session);if(b.read_used>=b.read_limit)throw Error('Paper reading budget exhausted; request an approved increase.');b.read_used++;
  const key=process.env.EXA_API_KEY||process.env.EXA_KEY;
  if(key){const data=await jsonFetch('https://api.exa.ai/contents',{method:'POST',headers:{'x-api-key':key,'content-type':'application/json'},body:JSON.stringify({urls:[paper.url],text:{maxCharacters:16000}})},signal);const item=data.results?.find(item=>item.url===paper.url)||data.results?.[0];if(item?.text){paper.text=String(item.text).slice(0,18000);paper.text_sha256=digest(paper.text);paper.access='retrieved_source_excerpt';paper.retrieved_at=new Date().toISOString();}}

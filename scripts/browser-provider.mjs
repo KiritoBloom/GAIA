@@ -1,0 +1,7 @@
+async(page)=>{
+ const position=locator=>locator.evaluate(el=>({x:parseFloat(el.style.left)+parseFloat(el.style.width)/2,y:parseFloat(el.style.top),h:parseFloat(el.style.height)}));
+ async function click(name){const locator=page.getByRole('button',{name,exact:true}),r=await position(locator);if(r.y<80||r.y>await page.evaluate(()=>innerHeight)-80){await page.mouse.move(700,350);await page.mouse.wheel(0,r.y-300);}await page.waitForFunction(({name})=>{const el=[...document.querySelectorAll('[data-rune-a11y] button')].find(x=>x.textContent===name);if(!el)return false;const y=parseFloat(el.style.top),p=window.__gaiaBrowserLayoutProbe;window.__gaiaBrowserLayoutProbe={name,y,n:p?.name===name&&Math.abs(p.y-y)<.1?p.n+1:0};return y>80&&y<innerHeight-80&&window.__gaiaBrowserLayoutProbe.n>8;},{name},{timeout:15000});const q=await position(locator);await page.mouse.click(q.x,q.y+q.h/2);}
+ await page.goto('http://127.0.0.1:4317/rune/');await page.waitForFunction(()=>globalThis.gaiaSnapshot&&JSON.parse(globalThis.gaiaSnapshot).status.sessions?.length);
+ await click('Provider settings');await click('Discover configured provider models');await page.waitForFunction(()=>JSON.parse(globalThis.gaiaSnapshot).models.includes('gpt-6.1-sol'));await click('gpt-6.1-sol');await click('Connect and verify role tools');
+ return page.evaluate(()=>{const s=JSON.parse(globalThis.gaiaSnapshot);return{operation:s.operation,error:s.error,provider:s.status.provider,proof:s.status.proof};});
+}

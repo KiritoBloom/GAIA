@@ -13,12 +13,16 @@ import { reserve, getTest, commit, authorize, evaluate, publicTest, cancel } fro
 import { powerContextRequest } from './scope.mjs';
 import { diagnosticPacket } from './field.mjs';
 import { executionVersions } from './versions.mjs';
+import { domainSkills, referenceCatalog, skillProfile } from './knowledge.mjs';
+import {searchLiterature,readPaper,increaseResearchBudget} from './research.mjs';
+import {stopRuntimeSession} from './runtime.mjs';
 
 const storePath = resolve(ROOT, '.runtime/data/workspace.json');
 mkdirSync(resolve(ROOT, '.runtime/data'), { recursive: true });
 let sessions = existsSync(storePath) ? JSON.parse(readFileSync(storePath, 'utf8')) : [];
-for(const session of sessions) { session.chatRunning=false; session.threads={}; }
+for(const session of sessions) { session.chatRunning=false;session.activeGraphID=null;session.threads={};for(const task of session.taskGraph?.requests||[])if(!task.status||task.status==='running')task.status='interrupted'; }
 const jobs = new Map(), listeners = new Set();
+const chats=new Map();
 const save = () => writeFileSync(storePath, JSON.stringify(sessions));
 function event(session, type, data) {
   const item = { id: randomUUID(), sequence: (session.events.at(-1)?.sequence || 0)+1, time: new Date().toISOString(), type, ...data };
@@ -33,8 +37,16 @@ function retainArtifact(session,result,jobID) {
   return artifact;
 }
 const scientificAccess={
+  async notebook(id,role,input){const session=sessionFor(id);const sources=input.source_ids.map(id=>{const paper=session.literature?.find(item=>item.id===id&&item.text);if(!paper)throw Error('A research note needs actual retrieved source content.');return{id,url:paper.url,sha256:paper.text_sha256};});const result={id:randomUUID(),role,...input,sources,created:new Date().toISOString(),status:'provisional_source_grounded_note; not externally reviewed'};session.researchNotes ||= [];if(session.researchNotes.length>=60)throw Error('Notebook capacity reached; prioritize or export existing research.');session.researchNotes.push(result);event(session,'research.note.created',{role,title:input.title,summary:'A specialist retained a provisional source-linked finding with prerequisites and limitations.'});return result;},
+  async animals(id,role,input,signal){if(role!=='zoe')throw Error('Animal discovery is ZOE-owned.');const session=sessionFor(id),focal=session.artifacts[0];if(!focal)throw Error('Animal discovery needs an approved investigation scope.');const scope=powerContextRequest(focal,'T2M');const result={id:randomUUID(),created:new Date().toISOString(),...await science({...scope,operation:'animal_occurrences',scientific_name:input.scientific_name},signal)};session.animalRecords ||= [];session.animalRecords.push(result);event(session,'animal.occurrences.completed',{role,summary:'Licensed scoped GBIF occurrences acquired; effort and population-inference gaps remain explicit.'});return result;},
+  async research(id,role,input,signal){const session=sessionFor(id),result=await searchLiterature(session,role,input,signal);event(session,'research.search.completed',{role,query:input.query,papers:result.papers.length,summary:'Actual literature discovery completed; sources still require relevance and methods review.'});return result;},
+  async paper(id,role,input,signal){const session=sessionFor(id),result=await readPaper(session,role,input.id,signal);event(session,'research.paper.read',{role,paperID:input.id,summary:'Owned source content retrieved; external text remains evidence, not executable instructions.'});return result;},
+  async peer(id,role,input){const session=sessionFor(id);if(role===input.role)throw Error('A cross-domain peer request needs a different function.');session.peerRequests ||= [];const graphID=session.activeGraphID||session.taskGraph?.id,existing=session.peerRequests.filter(item=>item.graphID===graphID);if(existing.length>=4)throw Error('Prioritize peer questions: this graph already has four requests.');const result={id:randomUUID(),requester:role,role:input.role,question:input.question,reason:input.reason,graphID,status:'pending',time:new Date().toISOString()};session.peerRequests.push(result);event(session,'peer.review.requested',{role,recipient:input.role,summary:'A specialist requested a scoped cross-domain check; not yet an executed peer result.'});return result;},
+  async simulate(id,role,input,signal){const session=sessionFor(id),target=session.artifacts.find(item=>item.id===input.artifact_id);if(!target)throw Error('Simulation needs an actual owned target.');const covariates=(input.covariate_ids||[]).map(id=>{const item=session.artifacts.find(item=>item.id===id);if(!item)throw Error('Foreign covariate denied.');return item.acquisition;});const request={operation:'simulate',model:input.model,acquisition:target.acquisition,covariates,horizon:input.horizon,members:input.members,seed:input.seed||20261114,scenario:input.scenario};const result={id:randomUUID(),artifactID:target.id,request,created:new Date().toISOString(),initiated_by:role,...await science(request,signal)};session.simulations ||= [];session.simulations.push(result);event(session,'simulation.completed',{role,model:input.model,summary:`Actual AI-selected scenario executed: ${result.readiness}; omitted uncertainty and baseline tests retained.`});return result;},
+  async proposal(id,role,input){const session=sessionFor(id);session.modelProposals ||= [];const result={id:randomUUID(),role,...input,status:'proposed_not_implemented_or_validated',time:new Date().toISOString()};session.modelProposals.push(result);event(session,'model.proposed',{role,summary:'New model idea and validation requirements recorded; equations are not executed or promoted as validated science.'});return result;},
   read:sessionFor,
-  async catalog(role) { const catalog=await science({operation:'catalog'}); return {role,variables:catalog.variables.filter(variable=>role==='gaia' || variable.domain===role),protocols:Object.values(protocols).filter(protocol=>role==='gaia' || protocol.owner===role),resources:catalog.resources.map(resource=>({name:resource.name,mode:resource.mode,note:resource.note}))}; },
+  async catalog(role) { const catalog=await science({operation:'catalog'}),methods=await science({operation:'domain_methods'}); return {role,skills:domainSkills(role),references:referenceCatalog(role),methods:Object.entries(methods).filter(([,item])=>item.role===role).map(([id,item])=>({id,...item})),variables:catalog.variables.filter(variable=>role==='gaia' || variable.domain===role),protocols:Object.values(protocols).filter(protocol=>role==='gaia' || protocol.owner===role),resources:catalog.resources.map(resource=>({name:resource.name,mode:resource.mode,note:resource.note}))}; },
+  async diagnostic(id,role,input,signal){const session=sessionFor(id),acquisitions=input.artifact_ids.map(id=>{const artifact=session.artifacts.find(item=>item.id===id);if(!artifact)throw Error('Foreign diagnostic artifact denied.');return artifact.acquisition;});const request={operation:'domain_diagnostic',role,method:input.method,acquisitions,records:role==='zoe'?session.animalRecords?.flatMap(item=>item.records)||[]:[]};const result={id:randomUUID(),created:new Date().toISOString(),request,...await science(request,signal)};session.domainDiagnostics ||= [];session.domainDiagnostics.push(result);event(session,'domain.diagnostic.completed',{role,method:input.method,summary:'Fixed domain computation completed; quantity, approximation and limitations retained.'});return result;},
   async acquire(id,variable,signal) {
     const session=sessionFor(id), focal=session.artifacts.find(item=>item.acquisition.provenance.provider==='NASA POWER') || session.artifacts[0];
     if(!focal) throw new Error('Mark a region and acquire a focal record before automatic context acquisition.');
@@ -74,6 +86,11 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/catalog') return json(response, await science({ operation: 'catalog' }));
     if (request.method === 'GET' && url.pathname === '/api/sites') return json(response, await science({ operation: 'sites' }));
     if(request.method==='POST' && url.pathname==='/api/stations') { const input=await body(request);sessionFor(input.sessionID);return json(response,await science({operation:'noaa_stations',latitude:input.latitude,longitude:input.longitude,start:input.start,end:input.end})); }
+    if(request.method==='GET'&&url.pathname==='/api/competence')return json(response,{profiles:skillProfile(providerStatus().model),limitation:'Reviewed procedures and sources are not independent domain certification.'});
+    if(request.method==='POST'&&url.pathname==='/api/research/budget'){const input=await body(request),session=sessionFor(input.sessionID),result=increaseResearchBudget(session);event(session,'research.budget.approved',{summary:'User approved additional literature calls; provider costs still apply.'});return json(response,result);}
+    if(request.method==='POST'&&url.pathname==='/api/research/search'){const input=await body(request),session=sessionFor(input.sessionID);if(!['gaia','aura','thalassa','chloris','zoe'].includes(input.role))throw Error('Unknown research role.');return json(response,await scientificAccess.research(session.id,input.role,{query:input.query},AbortSignal.timeout(45_000)));}
+    if(request.method==='POST'&&url.pathname==='/api/research/read'){const input=await body(request),session=sessionFor(input.sessionID);return json(response,await scientificAccess.paper(session.id,'gaia',{id:input.id},AbortSignal.timeout(45_000)));}
+    if(request.method==='POST'&&url.pathname==='/api/animals'){const input=await body(request),session=sessionFor(input.sessionID);return json(response,await scientificAccess.animals(session.id,'zoe',{scientific_name:input.scientific_name},AbortSignal.timeout(180_000)));}
     if(request.method==='POST' && url.pathname==='/api/field/intake') {const input=await body(request),session=sessionFor(input.sessionID),packet={id:randomUUID(),created:new Date().toISOString(),...diagnosticPacket(input.case)};session.fieldCases ||= [];session.fieldCases.push(packet);event(session,'field.intake.saved',{summary:'Private reported-context intake saved; no verified diagnosis or professional contact is claimed.'});return json(response,packet);}
     if (request.method === 'GET' && url.pathname === '/api/models') return json(response,await science({operation:'models'}));
     if (request.method === 'GET' && url.pathname === '/api/events') {
@@ -89,12 +106,12 @@ const server = http.createServer(async (request, response) => {
       const input = await body(request);
       return json(response, await configureProvider(input.use_local ? { ...localProvider(), model: input.model } : input));
     }
-    if (request.method === 'POST' && url.pathname === '/api/provider/proof') return json(response, await proveRuntime());
+    if (request.method === 'POST' && url.pathname === '/api/provider/proof') return json(response,await proveRuntime(progress=>{const message=`data: ${JSON.stringify({type:'provider.proof.progress',progress})}\n\n`;for(const listener of listeners)listener.write(message);}));
     if (request.method === 'POST' && url.pathname === '/api/provider/remove') { const result = await removeProvider(); for (const session of sessions) session.threads = {}; save(); return json(response, result); }
     if (request.method === 'POST' && url.pathname === '/api/sessions/settings') {
       const input = await body(request), session = sessionFor(input.sessionID);
-      session.depth = input.depth === 'technical' ? 'technical' : 'plain';
-      event(session, 'settings.updated', { summary: 'Explanation depth changed; numerical methods and evidence are unchanged.' });
+      if(input.depth!==undefined){if(!['technical','plain'].includes(input.depth))throw Error('Unsupported explanation depth.');session.depth=input.depth;}
+      event(session, 'settings.updated', { summary: 'Conversation settings changed; numerical methods, uncertainty and existing evidence are unchanged.' });
       return json(response, session);
     }
     if (request.method === 'POST' && url.pathname === '/api/sessions') {
@@ -132,14 +149,16 @@ const server = http.createServer(async (request, response) => {
       if (!providerStatus().tested) throw new Error('Run the provider tool/role connection check before GAIA conversation. Numerical analysis remains available without it.');
       if (typeof input.text !== 'string' || !input.text.trim() || input.text.length > 4000) throw new Error('Use a message of at most 4,000 characters.');
       if (session.chatRunning) throw new Error('GAIA is finishing this session’s current reply.');
-      session.chatRunning = true;
+      session.chatRunning = true;const controller=new AbortController();chats.set(session.id,controller);
       const user = { id: randomUUID(), role: 'user', text: input.text, time: new Date().toISOString() }; session.messages.push(user);
       event(session, 'gaia.started', { role: 'gaia', summary: 'GAIA is considering the next useful question.' });
       try {
-        const message = await coordinate(session,input.text,(type,data)=>event(session,type,data),AbortSignal.timeout(240_000)); session.messages.push(message);
+        // No overall investigation deadline: only the user's stop signal cancels working agents.
+        const message = await coordinate(session,input.text,(type,data)=>event(session,type,data),controller.signal); session.messages.push(message);
         event(session, 'gaia.completed', { role: 'gaia', summary: 'A bounded follow-up is ready; scientific claims remain in the evidence panel.' }); return json(response, message);
-      } finally { session.chatRunning = false; save(); }
+      } catch(error){const cancelled=controller.signal.aborted;controller.abort();await Promise.allSettled(Object.values(session.threads).map(stopRuntimeSession));for(const task of session.taskGraph?.requests||[])if(!['completed','failed'].includes(task.status))task.status=cancelled?'cancelled':'interrupted';event(session,'gaia.interrupted',{summary:cancelled?'Owned investigation cancelled; completed evidence and source records were retained.':'Investigation interrupted; unfinished specialist sessions were stopped and partial evidence retained.'});throw error;} finally { session.chatRunning = false;session.activeGraphID=null;chats.delete(session.id);save(); }
     }
+    if(request.method==='POST'&&url.pathname==='/api/chat/stop'){const input=await body(request),session=sessionFor(input.sessionID),controller=chats.get(session.id);if(!controller)throw Error('No running owned investigation.');controller.abort();await Promise.allSettled(Object.values(session.threads).map(stopRuntimeSession));event(session,'gaia.cancelled',{summary:'User stopped the owned investigation and its actual specialist sessions; partial evidence remains inspectable.'});return json(response,{status:'cancelled'});}
     if (request.method==='POST' && url.pathname==='/api/simulate') {
       const input=await body(request),session=sessionFor(input.sessionID),artifact=session.artifacts.find(item=>item.id===input.artifactID);
       if(!artifact) throw new Error('Simulation needs an owned acquired artifact.');
@@ -163,7 +182,9 @@ const server = http.createServer(async (request, response) => {
       // Exported predictions retain their original values, selection and disclosure mode.
       const id = url.pathname.split('/').at(-1), session = sessionFor(id);
       const exported = { schema_version: 2, generated: new Date().toISOString(), title: session.title, artifacts: session.artifacts, task_graph:session.taskGraph, hypotheses:session.hypothesisRecords, observation_plan:session.observationPlan, evidence_updates:session.evidenceUpdates || [], simulations:session.simulations || [], semantic_reviews:session.semanticReviews || [], tool_trace:toolTrace(session.id), limitations: ['Export is an explicit local user action. Review coordinates and source redistribution rights before publishing.', 'Language-model prose is not required to reproduce the numerical result.'], reproduction: 'npm run reproduce -- path/to/export.json' };
-      exported.comparisons=session.comparisons || [];exported.prediction_test=session.predictionTest || null;
+       exported.comparisons=session.comparisons || [];exported.prediction_test=session.predictionTest || null;
+       exported.domain_diagnostics=session.domainDiagnostics||[];exported.animal_records=session.animalRecords||[];exported.peer_requests=session.peerRequests||[];exported.model_proposals=session.modelProposals||[];exported.research_notes=session.researchNotes||[];
+       exported.literature=(session.literature||[]).map(({text,...metadata})=>metadata);exported.literature_disclosure='Raw third-party texts excluded from standard export; review quotations and redistribution rights before publishing.';
       const versions=executionVersions(session.simulations || []);exported.simulations=versions.active;exported.historical_simulations=versions.historical;
       exported.reproduction_scope='All analyses, comparisons and the latest execution of each frozen model request. Earlier repeated model executions remain in historical_simulations; rerunning them requires their recorded implementation checksum/version.';
       response.writeHead(200, { 'Content-Type': 'application/json', 'Content-Disposition': 'attachment; filename="gaia-investigation.json"', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(exported, null, 2)); return;

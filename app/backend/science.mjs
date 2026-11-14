@@ -9,9 +9,8 @@ export function science(input, signal, onProgress, capability) {
     const binary = resolve(ROOT, process.platform === 'win32' ? '.venv/Scripts/python.exe' : '.venv/bin/python');
     const child = spawn(binary, ['-m', 'science.worker'], { cwd: ROOT, env: process.env, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
     let output = '', settled = false;
-    const finish = (error, result) => { if (settled) return; settled = true; clearTimeout(timer); signal?.removeEventListener('abort', abort); error ? reject(error) : done(result); };
+    const finish = (error, result) => { if (settled) return; settled = true; signal?.removeEventListener('abort', abort); error ? reject(error) : done(result); };
     const abort = () => { child.kill(); finish(new Error('Scientific job cancelled; incomplete output was not published.')); };
-    const timer = setTimeout(() => { child.kill(); finish(new Error('Scientific job exceeded the declared three-minute budget.')); }, 180_000);
     if (signal?.aborted) return abort();
     signal?.addEventListener('abort', abort, { once: true });
     child.stdout.on('data', chunk => { output += chunk; if (output.length > 16_000_000) { child.kill(); finish(new Error('Scientific output budget exceeded.')); } });

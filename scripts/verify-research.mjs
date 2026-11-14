@@ -1,0 +1,10 @@
+import '../app/backend/runtime.mjs';
+import {searchLiterature,readPaper} from '../app/backend/research.mjs';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const session={id:'local-literature-verification'};
+const result=await searchLiterature(session,'gaia',{query:'scientific review satellite vegetation greenness drought root oxygen limitation competing explanations'},AbortSignal.timeout(45000));
+if(!result.papers.length)throw Error('No actual literature sources returned.');
+const paper=await readPaper(session,'gaia',result.papers[0].id,AbortSignal.timeout(45000));
+const report={provider:result.provider,actual_sources:result.papers.length,title:paper.title,url:paper.url,available_characters:paper.text?.length||0,access:paper.access,text_sha256:paper.text_sha256,limitation:'Provider discovery/extraction verification, not scientific quality, relevance or independent expert validation.'};
+await mkdir(resolve('.runtime/proofs'),{recursive:true});await writeFile(resolve('.runtime/proofs/research-access.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
