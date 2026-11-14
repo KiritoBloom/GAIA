@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { ROOT, isolateEnvironment } from './environment.mjs';
 import { agentConfiguration } from './agents.mjs';
@@ -16,6 +16,10 @@ const artifacts = new Map();
 const traces = [];
 let scientificAccess;
 const providerID = 'gaia-local-provider';
+export function matchedProofReceipt(receipts, { sessionID, role, nonce, sum, assistantText }) {
+  const tokens = assistantText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) || [];
+  return receipts.some(receipt => receipt.sessionID === sessionID && receipt.role === role && receipt.nonce === nonce && receipt.sum === sum && tokens.some(token => receipt.tokenHash === createHash('sha256').update(token).digest('hex')));
+}
 export function registerScientificAccess(access) { scientificAccess = access; }
 export function toolTrace(investigationID) { return traces.filter(item=>item.investigationID === investigationID); }
 function trace(binding, context, tool, output) { traces.push({ id:randomUUID(), investigationID:binding.investigationID, role:binding.role, threadID:context.sessionID, tool, output, time:new Date().toISOString() }); if(traces.length>1000) traces.shift(); }
@@ -70,9 +74,10 @@ export async function ensureRuntime() {
         editor.add({ name: 'proof', description: 'Fixed role-isolation proof: return the exact nonce and sum of bounded integers. Not an Earth science result.', options: { namespace: 'gaia', codemode: false }, input: { type: 'object', properties: { nonce: { type: 'string', maxLength: 80 }, values: { type: 'array', maxItems: 16, items: { type: 'integer', minimum: -1000, maximum: 1000 } } }, required: ['nonce', 'values'], additionalProperties: false }, async execute(input, context) {
           const binding = bindings.get(context.sessionID);
           if (!binding || binding.role !== context.agent || !validRole(context.agent)) throw new Error('Role/session binding denied.');
-          const receipt = { nonce: input.nonce, sum: input.values.reduce((a, b) => a+b, 0), role: context.agent, sessionID: context.sessionID, time: new Date().toISOString() };
+          const receiptToken = randomUUID();
+          const receipt = { nonce: input.nonce, sum: input.values.reduce((a, b) => a+b, 0), tokenHash: createHash('sha256').update(receiptToken).digest('hex'), role: context.agent, sessionID: context.sessionID, time: new Date().toISOString() };
           receipts.push(receipt);
-          return { content: JSON.stringify(receipt) };
+          return { content: JSON.stringify({ receipt_token: receiptToken }) };
         }});
         editor.add({ name: 'evidence', description: 'Read the small approved numerical evidence summary owned by the current investigation. No raw files or secret access.', options: { namespace: 'gaia', codemode: false }, input: { type: 'object', properties: {}, additionalProperties: false }, async execute(_input, context) {
           const binding = bindings.get(context.sessionID);
@@ -153,20 +158,25 @@ export async function proveRuntime(onProgress=()=>{}) {
       const batch=roles.slice(offset,offset+2);configuration.proof.active=batch;publish();
       await Promise.all(batch.map(async role=>{
         const sessionID=await createRoleSession(role,id),nonce=`${role}-${randomUUID()}`;sessions.push(sessionID);
-        await promptRole(sessionID,role,`Synthetic nonce/arithmetic integration check, not a scientific request. Use only gaia_proof with nonce ${JSON.stringify(nonce)} and values [3,5,-2]. Do not load scientific skills, search sources or simulate the tool. Then reply only "complete".`,signal);
-        if(!receipts.some(r=>r.sessionID===sessionID&&r.role===role&&r.nonce===nonce&&r.sum===6))throw Error(`${role.toUpperCase()} did not execute the actual bounded tool check.`);
+         const context=await promptRole(sessionID,role,`Synthetic nonce/arithmetic integration check, not a scientific request. You must call gaia_proof with nonce ${JSON.stringify(nonce)} and values [3,5,-2]. Then reply with the exact unpredictable receipt_token returned by that tool, and nothing else. A guessed or fabricated token will fail verification. Do not load scientific skills, search sources, or simulate the tool.`,signal);
+         const assistantText=context.filter(message=>message.type==='assistant').flatMap(message=>message.content||[]).filter(part=>part.type==='text').map(part=>part.text).join('\n');
+         if(!matchedProofReceipt(receipts,{sessionID,role,nonce,sum:6,assistantText}))throw Error(`${role.toUpperCase()} did not complete the unpredictable bounded tool check.`);
         try{await promptRole(sessionID,role==='aura'?'zoe':'aura','Wrong-role access test',signal);throw Error('Wrong-role test unexpectedly allowed.');}catch(error){if(!error.message.includes('Foreign role/thread'))throw error;}
         configuration.proof.completed.push(role);configuration.proof.active=configuration.proof.active.filter(item=>item!==role);publish();
       }));
     }
     if(selected!==configuration)throw Error('Provider changed during verification; repeat the check.');
-    configuration.tested=true;configuration.proof.state='passed';publish();
-    return {sdk_version:'2.3.0',transport:'application-managed specialist sessions',roles:receipts.filter(r=>sessions.includes(r.sessionID)),tested:true,limitation:'Synthetic role/tool proof, not domain or ecological validation.'};
-  }catch(error){configuration.proof.state='failed';publish();await Promise.allSettled(sessions.map(stopRuntimeSession));throw error;}
+     configuration.tested=true;configuration.proof.state='passed';publish();
+     const roles=receipts.filter(r=>sessions.includes(r.sessionID)).map(({role,time})=>({role,time}));
+     await Promise.allSettled(sessions.map(stopRuntimeSession));
+     for(let index=receipts.length-1;index>=0;index--)if(sessions.includes(receipts[index].sessionID))receipts.splice(index,1);
+     return {sdk_version:'2.3.0',transport:'application-managed specialist sessions',roles,tested:true,limitation:'Synthetic role/tool proof, not domain or ecological validation.'};
+   }catch(error){configuration.proof.state='failed';configuration.proof.active=[];publish();await Promise.allSettled(sessions.map(stopRuntimeSession));for(let index=receipts.length-1;index>=0;index--)if(sessions.includes(receipts[index].sessionID))receipts.splice(index,1);throw error;}
 }
 
 export async function stopRuntimeSession(sessionID) {
   if (host && bindings.has(sessionID)) await host.sessions.interrupt({ sessionID, resume: false });
+  bindings.delete(sessionID);
 }
 export async function closeRuntime() { if (host) await host.close(); host = undefined; creating = undefined; bindings.clear(); }
 export async function removeProvider() { await closeRuntime(); selected = undefined; delete process.env.GAIA_PROVIDER_KEY; return providerStatus(); }

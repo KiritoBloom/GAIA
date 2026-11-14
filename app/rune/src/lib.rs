@@ -70,7 +70,7 @@ fn poll(s: &mut State, _: f64, _: &mut Tx) -> bool {
     let Ok(value) = serde_json::from_str::<Value>(&raw) else { return false; };
     s.revision = raw;
     s.snapshot = value;
-    if let Some(selected)=s.snapshot["selected"].as_str() { s.selected=selected.to_owned(); }
+    if let Some(selected)=s.snapshot["selected"].as_str() { if s.selected!=selected{s.fields[0]=TextEdit::new(&string(&s.snapshot["draft"]));s.tab=Tab::System;s.selected=selected.to_owned();} }
     if let Some(candidate)=s.snapshot["providerCandidate"].as_object() {
         if s.fields[6].text.is_empty() { s.fields[6]=TextEdit::new(candidate.get("name").and_then(Value::as_str).unwrap_or("")); }
         if s.fields[7].text.is_empty() { s.fields[7]=TextEdit::new(candidate.get("endpoint").and_then(Value::as_str).unwrap_or("")); }
@@ -121,12 +121,12 @@ fn evidence_summary(s:&State,k:&Kit)->El{
 }
 fn command(name: &str, body: Value) { gaia_command(name, &body.to_string()); }
 fn button(k: &Kit, title: &str, operation: &'static str, body: Value) -> El {
-    Button::new(title).build(k).on_press(move |_: &mut State| command(operation, body.clone()))
+    Button::new(title).build(k).min_h(44.).on_press(move |_: &mut State| command(operation, body.clone()))
 }
 fn field(s: &State, k: &Kit, index: usize, title: &str, secure: bool) -> El {
     let input = TextInput::new(&s.fields[index]).label(title).on_edit(move |s: &mut State| &mut s.fields[index]);
     let input = if secure { input.secure() } else { input };
-    col().w_full().gap(5.).child(label(title)).child(input.build(k).w_full()).into()
+    col().w_full().gap(5.).child(label(title)).child(input.build(k).w_full().min_h(44.)).into()
 }
 fn session(s: &State) -> Value {
     list(&s.snapshot["status"]["sessions"]).iter().find(|v| string(&v["id"]) == s.selected).cloned().unwrap_or(json!({}))
@@ -165,9 +165,9 @@ fn conversation(s: &State, k: &Kit, current: &Value) -> El {
         body=body.child(line(&string(&message["role"]),&message["text"]));
         if !message["label"].is_null() { body=body.child(line("Evidence status",&message["label"])); }
     }
-    body.child(col().w_full().gap(6.).child(label("Question, region, period and available observations")).child(TextArea::new(&s.fields[0]).label("Investigation question").width(None).auto_grow(3,8).max_height(220.).on_edit(|s:&mut State|&mut s.fields[0]).build(k)))
+    body.child(col().w_full().gap(6.).child(label("Question, region, period and available observations")).child(TextArea::new(&s.fields[0]).label("Investigation question").width(None).auto_grow(3,8).max_height(220.).on_edit(|s:&mut State|&mut s.fields[0]).on_change(|s:&mut State,_|command("draft",json!({"sessionID":s.selected,"text":s.fields[0].text}))).build(k)))
         .child(Button::new("Submit question").build(k).on_press(|s: &mut State| {
-            command("chat",json!({"sessionID":s.selected,"text":s.fields[0].text}));s.fields[0]=TextEdit::new("");
+            command("chat",json!({"sessionID":s.selected,"text":s.fields[0].text}));s.fields[0]=TextEdit::new("");command("draft",json!({"sessionID":s.selected,"text":""}));
         }))
         .child(button(k,"Plain-language explanations","depth",json!({"sessionID":s.selected,"depth":"plain"})))
         .child(button(k,"Technical explanations","depth",json!({"sessionID":s.selected,"depth":"technical"})))
@@ -266,7 +266,7 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
     let mut sidebar=col().w(240.).h_full().padding(20.).gap(14.).fill(theme.bg).child(heading("GAIA"))
         .child(label("Earth-system analysis"))
         .child(button(&k,"New investigation","new",json!({"depth":"plain"})));
-    for item in list(&s.snapshot["status"]["sessions"]) { let id=string(&item["id"]);let title=string(&item["title"]);let short:String=title.chars().take(23).collect();sidebar=sidebar.child(Button::new(short).build(&k).on_press(move |s: &mut State| {s.selected=id.clone();s.tab=Tab::Conversation;command("select",json!({"sessionID":id}));})); }
+    for item in list(&s.snapshot["status"]["sessions"]) { let id=string(&item["id"]);let title=string(&item["title"]);let short:String=title.chars().take(23).collect();sidebar=sidebar.child(Button::new(short).build(&k).min_h(44.).on_press(move |_: &mut State| {command("select",json!({"sessionID":id}));})); }
     for (title,tab) in [("System",Tab::System),("Conversation",Tab::Conversation),("Evidence",Tab::Evidence),("Investigation record",Tab::Investigation),("Research",Tab::Research),("Provider settings",Tab::Provider),("Data sources",Tab::Sources)] {
         sidebar=sidebar.child(Button::new(title).build(&k).on_press(move |s: &mut State| s.tab=tab));
     }
@@ -291,10 +291,10 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
              .child(col().grow(1.).min_h(0.).w_full().scroll(ScrollSpec { stick_bottom: false }).child(content));
     if compact {
         let navigation=col().w_full().padding(12.).gap(6.)
-            .child(row().gap(6.).child(Button::new("Investigations").build(&k).on_press(|s:&mut State|s.tab=Tab::History)).child(Button::new("System").build(&k).on_press(|s:&mut State|s.tab=Tab::System)).child(Button::new("Providers").build(&k).on_press(|s:&mut State|s.tab=Tab::Provider)))
-            .child(row().gap(6.).child(button(&k,"New investigation","new",json!({}))).child(Button::new("Conversation").build(&k).on_press(|s:&mut State|s.tab=Tab::Conversation)))
-            .child(row().gap(6.).child(Button::new("Evidence").build(&k).on_press(|s:&mut State|s.tab=Tab::Evidence)).child(Button::new("Research").build(&k).on_press(|s:&mut State|s.tab=Tab::Research)))
-            .child(Button::new("Investigation record").build(&k).on_press(|s:&mut State|s.tab=Tab::Investigation));
+            .child(row().gap(6.).child(Button::new("Investigations").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::History)).child(Button::new("System").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::System)).child(Button::new("Providers").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Provider)))
+            .child(row().gap(6.).child(button(&k,"New investigation","new",json!({}))).child(Button::new("Conversation").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Conversation)))
+            .child(row().gap(6.).child(Button::new("Evidence").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Evidence)).child(Button::new("Research").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Research)))
+            .child(Button::new("Investigation record").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Investigation));
         col().w_full().h_full().fill(theme.bg).color(theme.text).child(navigation).child(main).into()
     } else {row().w_full().h_full().fill(theme.bg).color(theme.text).child(sidebar).child(main).into()}
 }
@@ -381,7 +381,7 @@ fn research(s:&State,k:&Kit,current:&Value)->El {
 }
 fn history(s:&State,k:&Kit)->El {
     let mut body=col().w_full().gap(12.).child(heading("Saved investigations"));
-    for session in list(&s.snapshot["status"]["sessions"]){let id=string(&session["id"]);body=body.child(Button::new(string(&session["title"])).build(k).on_press(move |s:&mut State|{s.selected=id.clone();command("select",json!({"sessionID":id}));s.tab=Tab::System;}));}
+    for session in list(&s.snapshot["status"]["sessions"]){let id=string(&session["id"]);body=body.child(Button::new(string(&session["title"])).build(k).min_h(44.).on_press(move |_:&mut State|{command("select",json!({"sessionID":id}));}));}
     body.child(Button::new("Data sources").build(k).on_press(|s:&mut State|s.tab=Tab::Sources)).into()
 }
 fn function_node(s:&State,k:&Kit,index:usize,title:&str)->El {

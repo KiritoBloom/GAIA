@@ -10,7 +10,7 @@ import { coordinate } from './workflow.mjs';
 import { hypotheses, protocols, evaluateSignature } from './protocols.mjs';
 import { semanticStatus } from './jev.mjs';
 import { reserve, getTest, commit, authorize, evaluate, publicTest, cancel, preparePrediction } from './integrity.mjs';
-import { powerContextRequest } from './scope.mjs';
+import { powerContextRequest,existingPowerContext } from './scope.mjs';
 import { diagnosticPacket } from './field.mjs';
 import{prepareHandoff,referralDirectory}from'./handoff.mjs';
 import { executionVersions } from './versions.mjs';
@@ -20,11 +20,12 @@ import{observationProtocol}from'./observations.mjs';
 import{assessCandidate}from'./creative.mjs';
 import {searchLiterature,readPaper,increaseResearchBudget} from './research.mjs';
 import {stopRuntimeSession} from './runtime.mjs';
+import{retireThreads,lifecycleForExport,taskGraphForExport}from'./thread-lifecycle.mjs';
 
 const storePath = resolve(ROOT, '.runtime/data/workspace.json');
 mkdirSync(resolve(ROOT, '.runtime/data'), { recursive: true });
 let sessions = existsSync(storePath) ? JSON.parse(readFileSync(storePath, 'utf8')) : [];
-for(const session of sessions) { session.chatRunning=false;session.activeGraphID=null;session.threads={};for(const task of session.taskGraph?.requests||[])if(!task.status||task.status==='running')task.status='interrupted'; }
+for(const session of sessions) { session.chatRunning=false;session.activeGraphID=null;retireThreads(session,'Backend restarted; actual embedded runtime bindings must be recreated.');for(const task of session.taskGraph?.requests||[])if(!task.status||task.status==='running')task.status='interrupted'; }
 const jobs = new Map(), listeners = new Set();
 const chats=new Map();
 const save = () => writeFileSync(storePath, JSON.stringify(sessions));
@@ -52,11 +53,11 @@ const scientificAccess={
   async catalog(role) { const catalog=await science({operation:'catalog'}),methods=await science({operation:'domain_methods'}); return {role,skills:domainSkills(role),references:referenceCatalog(role),methods:Object.entries(methods).filter(([,item])=>item.role===role).map(([id,item])=>({id,...item})),variables:catalog.variables.filter(variable=>role==='gaia' || variable.domain===role),protocols:Object.values(protocols).filter(protocol=>role==='gaia' || protocol.owner===role),resources:catalog.resources.map(resource=>({name:resource.name,mode:resource.mode,note:resource.note}))}; },
   async diagnostic(id,role,input,signal){const session=sessionFor(id),acquisitions=input.artifact_ids.map(id=>{const artifact=session.artifacts.find(item=>item.id===id);if(!artifact)throw Error('Foreign diagnostic artifact denied.');return artifact.acquisition;});const request={operation:'domain_diagnostic',role,method:input.method,acquisitions,records:role==='zoe'?session.animalRecords?.flatMap(item=>item.records)||[]:[]};const result={id:randomUUID(),created:new Date().toISOString(),request,...await science(request,signal)};session.domainDiagnostics ||= [];session.domainDiagnostics.push(result);event(session,'domain.diagnostic.completed',{role,method:input.method,summary:'Fixed domain computation completed; quantity, approximation and limitations retained.'});return result;},
   async acquire(id,variable,signal) {
-    const session=sessionFor(id), focal=session.artifacts.find(item=>item.acquisition.provenance.provider==='NASA POWER') || session.artifacts[0];
+    const session=sessionFor(id), focal=session.artifacts[0];
     if(!focal) throw new Error('Mark a region and acquire a focal record before automatic context acquisition.');
-    const existing=session.artifacts.find(item=>item.acquisition.variable.id===variable && item.acquisition.geometry.latitude===focal.acquisition.geometry.latitude && item.acquisition.geometry.longitude===focal.acquisition.geometry.longitude);
+    const request=powerContextRequest(focal,variable),existing=existingPowerContext(session.artifacts,request);
     if(existing) return existing;
-    const result=await science(powerContextRequest(focal,variable),signal);
+    const result=await science(request,signal);
     return retainArtifact(session,result);
   }
 };
@@ -80,7 +81,7 @@ const server = http.createServer(async (request, response) => {
   try {
     if(request.method==='GET'&&(url.pathname==='/rune'||url.pathname==='/rune/'||url.pathname.startsWith('/rune/'))){
       const name=url.pathname.replace(/^\/rune\/?/,'')||'index.html';
-      const base=['index.html','bridge.mjs','graph.mjs'].includes(name)?resolve(ROOT,'app/rune'):resolve(ROOT,'.runtime/rune/gaia');
+      const base=['index.html','bridge.mjs','graph.mjs','ui-state.mjs'].includes(name)?resolve(ROOT,'app/rune'):resolve(ROOT,'.runtime/rune/gaia');
       const file=resolve(base,name),local=relative(base,file);
       if(local.startsWith('..')||isAbsolute(local)||!['.html','.mjs','.js','.wasm'].includes(extname(file))||!existsSync(file))return json(response,{error:'Rune asset unavailable; run the local Rune build.'},404);
       response.writeHead(200,{'Content-Type':extname(file)==='.wasm'?'application/wasm':extname(file)==='.html'?'text/html; charset=utf-8':'text/javascript; charset=utf-8','Cache-Control':'no-store'});
@@ -112,10 +113,10 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/provider/connect') {
       if(sessions.some(session=>session.chatRunning)||providerStatus().proof?.state==='running')return json(response,{error:'Stop active investigations or finish provider verification before changing the provider.'},409);
       const input = await body(request);
-      const result=await configureProvider(input.use_local ? { ...localProvider(), model: input.model } : input);for(const session of sessions){session.threads={};}save();return json(response,result);
+      const result=await configureProvider(input.use_local ? { ...localProvider(), model: input.model } : input);for(const session of sessions){retireThreads(session,'Provider changed; old runtime bindings cannot continue.');}save();return json(response,result);
     }
     if (request.method === 'POST' && url.pathname === '/api/provider/proof') return json(response,await proveRuntime(progress=>{const message=`data: ${JSON.stringify({type:'provider.proof.progress',progress})}\n\n`;for(const listener of listeners)listener.write(message);}));
-    if (request.method === 'POST' && url.pathname === '/api/provider/remove') { const result = await removeProvider(); for (const session of sessions) session.threads = {}; save(); return json(response, result); }
+    if (request.method === 'POST' && url.pathname === '/api/provider/remove') {if(chats.size||providerStatus().proof?.state==='running')throw Error('Stop the active investigation or finish provider verification before disconnecting.');const result = await removeProvider(); for (const session of sessions) retireThreads(session,'Provider disconnected.'); save(); return json(response, result); }
     if (request.method === 'POST' && url.pathname === '/api/sessions/settings') {
       const input = await body(request), session = sessionFor(input.sessionID);
       if(input.depth!==undefined){if(!['technical','plain'].includes(input.depth))throw Error('Unsupported explanation depth.');session.depth=input.depth;}
@@ -164,9 +165,9 @@ const server = http.createServer(async (request, response) => {
         // No overall investigation deadline: only the user's stop signal cancels working agents.
         const message = await coordinate(session,input.text,(type,data)=>event(session,type,data),controller.signal); session.messages.push(message);
         event(session, 'gaia.completed', { role: 'gaia', summary: 'A bounded follow-up is ready; scientific claims remain in the evidence panel.' }); return json(response, message);
-      } catch(error){const cancelled=controller.signal.aborted;controller.abort();await Promise.allSettled(Object.values(session.threads).map(stopRuntimeSession));for(const task of session.taskGraph?.requests||[])if(!['completed','failed'].includes(task.status))task.status=cancelled?'cancelled':'interrupted';event(session,'gaia.interrupted',{summary:cancelled?'Owned investigation cancelled; completed evidence and source records were retained.':'Investigation interrupted; unfinished specialist sessions were stopped and partial evidence retained.'});throw error;} finally { session.chatRunning = false;session.activeGraphID=null;chats.delete(session.id);save(); }
+      } catch(error){const cancelled=controller.signal.aborted;controller.abort();await Promise.allSettled(Object.values(session.threads).map(stopRuntimeSession));retireThreads(session,cancelled?'User cancelled this owned investigation.':'Investigation was interrupted.');for(const task of session.taskGraph?.requests||[])if(!['completed','failed'].includes(task.status))task.status=cancelled?'cancelled':'interrupted';event(session,'gaia.interrupted',{summary:cancelled?'Owned investigation cancelled; completed evidence and source records were retained.':'Investigation interrupted; unfinished specialist sessions were stopped and partial evidence retained.'});throw error;} finally { session.chatRunning = false;session.activeGraphID=null;chats.delete(session.id);save(); }
     }
-    if(request.method==='POST'&&url.pathname==='/api/chat/stop'){const input=await body(request),session=sessionFor(input.sessionID),controller=chats.get(session.id);if(!controller)throw Error('No running owned investigation.');controller.abort();await Promise.allSettled(Object.values(session.threads).map(stopRuntimeSession));event(session,'gaia.cancelled',{summary:'User stopped the owned investigation and its actual specialist sessions; partial evidence remains inspectable.'});return json(response,{status:'cancelled'});}
+    if(request.method==='POST'&&url.pathname==='/api/chat/stop'){const input=await body(request),session=sessionFor(input.sessionID),controller=chats.get(session.id);if(!controller)throw Error('No running owned investigation.');controller.abort();await Promise.allSettled(Object.values(session.threads).map(stopRuntimeSession));retireThreads(session,'User explicitly cancelled the investigation.');event(session,'gaia.cancelled',{summary:'User stopped the owned investigation and its actual specialist sessions; partial evidence remains inspectable.'});return json(response,{status:'cancelled'});}
     if (request.method==='POST' && url.pathname==='/api/simulate') {
       const input=await body(request),session=sessionFor(input.sessionID),artifact=session.artifacts.find(item=>item.id===input.artifactID);
       if(!artifact) throw new Error('Simulation needs an owned acquired artifact.');
@@ -180,7 +181,7 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='POST' && url.pathname==='/api/observation/get') {
       const input=await body(request),session=sessionFor(input.sessionID),protocol=observationProtocol(session);
       if(!protocol || protocol.operation!=='power') throw new Error('This observation needs a licensed import or qualified field evidence, not an invented adapter.');
-      const before={id:randomUUID(),artifacts:session.artifacts.map(item=>item.id),hypotheses:structuredClone(session.hypothesisRecords),time:new Date().toISOString()};
+      const before={id:randomUUID(),artifacts:session.artifacts.map(item=>item.id),hypotheses:structuredClone(session.hypothesisRecords),protocol:structuredClone(session.observationPlan),time:new Date().toISOString()};
       const artifact=await scientificAccess.acquire(session.id,protocol.variable,AbortSignal.timeout(180_000));
       const after=session.hypothesisRecords.map(record=>({...record,evidence:session.artifacts.map(item=>assessCandidate(record,item,session.artifacts[0]))}));
       const added=before.artifacts.includes(artifact.id)?[]:[artifact.id];
@@ -190,7 +191,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname.startsWith('/api/export/')) {
       // Exported predictions retain their original values, selection and disclosure mode.
       const id = url.pathname.split('/').at(-1), session = sessionFor(id);
-      const exported = { schema_version: 2, generated: new Date().toISOString(), title: session.title, artifacts: session.artifacts, task_graph:session.taskGraph, hypotheses:session.hypothesisRecords, observation_plan:session.observationPlan, evidence_updates:session.evidenceUpdates || [], simulations:session.simulations || [], semantic_reviews:session.semanticReviews || [], tool_trace:toolTrace(session.id), limitations: ['Export is an explicit local user action. Review coordinates and source redistribution rights before publishing.', 'Language-model prose is not required to reproduce the numerical result.'], reproduction: 'npm run reproduce -- path/to/export.json' };
+      const exported = { schema_version: 2, generated: new Date().toISOString(), title: session.title, artifacts: session.artifacts, task_graph:taskGraphForExport(session.taskGraph), thread_lifecycle:lifecycleForExport(session), hypotheses:session.hypothesisRecords, observation_plan:session.observationPlan, evidence_updates:session.evidenceUpdates || [], simulations: session.simulations || [], semantic_reviews: session.semanticReviews || [], tool_trace:toolTrace(session.id).map(({threadID,output,...item})=>({...item,output_sha256:sha256(output)})), limitations: ['Export is an explicit local user action. Review coordinates and source redistribution rights before publishing.', 'Private runtime identifiers and raw tool inputs/outputs are excluded; tool output digests preserve trace integrity without publishing conversation content.', 'Language-model prose is not required to reproduce the numerical result.'], reproduction: 'npm run reproduce -- path/to/export.json' };
        exported.comparisons=session.comparisons || [];exported.prediction_test=session.predictionTest || null;
        exported.domain_diagnostics=session.domainDiagnostics||[];exported.animal_records=session.animalRecords||[];exported.peer_requests=session.peerRequests||[];exported.model_proposals=session.modelProposals||[];exported.research_notes=session.researchNotes||[];
        exported.literature=(session.literature||[]).map(({text,...metadata})=>metadata);exported.literature_disclosure='Raw third-party texts excluded from standard export; review quotations and redistribution rights before publishing.';

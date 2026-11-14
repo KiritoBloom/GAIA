@@ -18,3 +18,9 @@ class DomainMethods(unittest.TestCase):
     def test_occurrences_cannot_become_abundance_or_mortality(self):
         result=diagnose({'method':'animal_observation','role':'zoe','records':[{'key':1,'eventDate':'2001-01-01'},{'key':1,'eventDate':'2001-01-01'}]})
         self.assertEqual(result['duplicate_ids'],1);self.assertEqual(result['permitted_inference'],'occurrence_context_only');self.assertIsNone(result['mortality'])
+    def test_legacy_declared_monthly_cadence_is_still_an_approximation(self):
+        inputs=[series('T2M','C',[20]),series('RH2M','%',[50])]
+        for item in inputs:item.pop('frequency');item['variable']['cadence']='monthly'
+        self.assertEqual(diagnose({'method':'vpd_context','role':'aura','acquisitions':inputs})['aggregation_status'],'period_mean_approximation')
+        for item in inputs:item['variable'].pop('cadence')
+        with self.assertRaises(ValueError):diagnose({'method':'vpd_context','role':'aura','acquisitions':inputs})

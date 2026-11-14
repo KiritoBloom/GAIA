@@ -1,7 +1,9 @@
 import {mechanismGraph} from './graph.mjs';
+import {readUiState,writeUiState} from './ui-state.mjs';
+const ui=readUiState(sessionStorage);
 const state={status:{},catalog:{},competence:{},referrals:[],models:[],sites:[],stations:null,operation:null,error:null,selected:null,selectedArtifact:'',artifact:null,investigation:null,graphSvg:'',chartSvg:'',scenarioSvg:''};
 let notifier=()=>{},privateConfiguration=false;
-function publish(){const session=state.status.sessions?.find(value=>value.id===state.selected);state.artifact=session?.artifacts?.find(value=>value.id===state.selectedArtifact)||session?.artifacts?.at(-1)||null;state.chartSvg=chart(state.artifact);state.scenarioSvg=scenarioChart(session?.simulations?.at(-1));state.viewportWidth=innerWidth;globalThis.gaiaSnapshot=JSON.stringify(state);notifier();}
+function publish(){const session=state.status.sessions?.find(value=>value.id===state.selected);state.draft=ui.drafts[state.selected]||'';state.artifact=session?.artifacts?.find(value=>value.id===state.selectedArtifact)||session?.artifacts?.at(-1)||null;state.chartSvg=chart(state.artifact);state.scenarioSvg=scenarioChart(session?.simulations?.at(-1));state.viewportWidth=innerWidth;globalThis.gaiaSnapshot=JSON.stringify(state);notifier();}
 addEventListener('resize',publish);
 async function api(path,body){
   const response=await fetch(`/api${path}`,body===undefined?{}:{method:'POST',headers:{'content-type':'application/json','x-gaia-client':'1'},body:JSON.stringify(body)});
@@ -37,18 +39,20 @@ function scenarioChart(model){
 }
 async function refresh(){
   state.status=await api('/status');
+  if(!state.status.sessions?.some(value=>value.id===state.selected)){state.selected=state.status.sessions?.some(value=>value.id===ui.selected)?ui.selected:state.status.sessions?.[0]?.id||null;state.selectedArtifact=ui.artifacts[state.selected]||'';}
   const selected=state.status.sessions?.find(v=>v.id===state.selected);
   publish();
 }
 globalThis.gaiaCommand=async(name,input={})=>{
-  if(name==='select'){state.selected=input.sessionID;state.investigation=null;state.graphSvg='';await refresh();return;}
-  if(name==='artifact-select'){state.selectedArtifact=input.artifactID;publish();return;}
+  if(name==='draft'){if(input.sessionID&&typeof input.text==='string'&&input.text.length<=4000){ui.drafts[input.sessionID]=input.text;writeUiState(sessionStorage,ui);}return;}
+  if(name==='select'){state.selected=input.sessionID;ui.selected=state.selected;state.selectedArtifact=ui.artifacts[state.selected]||'';writeUiState(sessionStorage,ui);state.investigation=null;state.graphSvg='';await refresh();return;}
+  if(name==='artifact-select'){state.selectedArtifact=input.artifactID;ui.artifacts[state.selected]=input.artifactID;writeUiState(sessionStorage,ui);publish();return;}
   state.error=null;state.operation=name;publish();
   try{
     switch(name){
       case 'refresh':await refresh();break;
       case 'investigation-record':state.investigation=await api(`/investigation/${encodeURIComponent(input.sessionID)}`);state.graphSvg=mechanismGraph(state.investigation.mechanism_graph);break;
-      case 'new':{const result=await api('/sessions',input);state.selected=result.id;break;}
+      case 'new':{const result=await api('/sessions',input);state.selected=result.id;ui.selected=result.id;state.selectedArtifact='';state.investigation=null;state.graphSvg='';writeUiState(sessionStorage,ui);break;}
       case 'provider-discover':{const result=await api('/provider/local-models',{});privateConfiguration=true;state.models=result.models;state.providerCandidate={name:result.name,endpoint:result.endpoint};break;}
       case 'provider-models':{const result=await api('/provider/models',input);privateConfiguration=false;state.models=result.models;break;}
       case 'provider-connect':{

@@ -10,13 +10,16 @@ METHODS = {
     'animal_observation': {'role':'zoe','inputs':0,'source':'https://www.gbif.org/sampling-event-data','scope':'identity, duplicates, licenses and missing observation effort; no abundance/mortality inference'},
 }
 
+def cadence(item):
+    return item.get('frequency') or item.get('variable',{}).get('cadence')
+
 def same_support(first,second):
     geometry=first.get('geometry',{})
     if geometry.get('type') not in ('grid_supported_location','fixed_site_footprint','model_grid_point'):
         raise ValueError('Unclassified spatial support cannot earn a quantitative join.')
     if any(geometry.get(key)!=second.get('geometry',{}).get(key) for key in ('type','latitude','longitude','siteid')):
         raise ValueError('Incompatible spatial support; retain separate contextual records.')
-    if first.get('frequency')!=second.get('frequency') or [x['date'] for x in first['series']]!=[x['date'] for x in second['series']]:
+    if cadence(first) not in ('monthly','annual','daily','instantaneous') or cadence(first)!=cadence(second) or [x['date'] for x in first['series']]!=[x['date'] for x in second['series']]:
         raise ValueError('A quantitative join requires matching actual periods and cadence.')
 
 def diagnose(request):
@@ -26,7 +29,7 @@ def diagnose(request):
     inputs=request.get('acquisitions',[])
     if len(inputs)!=specification['inputs']:
         raise ValueError('Registered method input count does not match.')
-    result={'method':method,'role':specification['role'],'version':'1.0.0','source':specification['source'],'readiness':'bounded_diagnostic_not_causal_validation','limitations':[]}
+    result={'method':method,'role':specification['role'],'version':'1.0.1','source':specification['source'],'readiness':'bounded_diagnostic_not_causal_validation','limitations':[]}
     if method in ('vpd_context','concentration_load'):
         first,second=inputs;same_support(first,second)
         if method=='vpd_context':
@@ -50,7 +53,7 @@ def diagnose(request):
                     value=x*y/1000
             values.append({'date':a['date'],'value':value})
         valid=[x['value'] for x in values if x['value'] is not None]
-        result.update(series=values,units=units,valid=len(valid),missing=len(values)-len(valid),range=[min(valid),max(valid)] if valid else None,aggregation_status='period_mean_approximation' if first.get('frequency') in ('monthly','annual') else 'paired_observation_product')
+        result.update(series=values,units=units,valid=len(valid),missing=len(values)-len(valid),range=[min(valid),max(valid)] if valid else None,aggregation_status='period_mean_approximation' if cadence(first) in ('monthly','annual') else 'paired_observation_product')
     elif method=='greenness_qa':
         item=inputs[0];variable=item['variable'];provenance=item.get('provenance',{})
         if variable['id']!='EVI' or variable.get('evidence_class')!='mission-derived proxy':raise ValueError('Greenness audit requires the actual mission EVI proxy.')

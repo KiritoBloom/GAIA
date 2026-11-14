@@ -103,7 +103,7 @@ def power(request):
     actual_units = document.get("parameters", {}).get(variable, {}).get("units")
     if actual_units:
         metadata["units"] = actual_units
-    return {"series": entries, "variable": metadata, "geometry": {"type": "grid_supported_location", "latitude": latitude, "longitude": longitude, "label": request.get("label", "Selected location"), "not_polygon_mean": True}, "provenance": {**provenance, "provider": "NASA POWER", "api_version": header.get("api", {}).get("version"), "source_metadata": header.get("sources"), "parameter_metadata": document.get("parameters", {}).get(variable), "fill_value": fill, "temporal_aggregation": "provider monthly means; annual summaries excluded"}, "limitations": [metadata["support"], "Reanalysis-derived values are not independent local ground observations."]}
+    return {"series": entries, "variable": metadata, "frequency": "monthly", "geometry": {"type": "grid_supported_location", "latitude": latitude, "longitude": longitude, "label": request.get("label", "Selected location"), "not_polygon_mean": True}, "provenance": {**provenance, "provider": "NASA POWER", "api_version": header.get("api", {}).get("version"), "source_metadata": header.get("sources"), "parameter_metadata": document.get("parameters", {}).get(variable), "fill_value": fill, "temporal_aggregation": "provider monthly means; annual summaries excluded"}, "limitations": [metadata["support"], "Reanalysis-derived values are not independent local ground observations."]}
 
 
 def sites():

@@ -9,3 +9,8 @@ export function powerContextRequest(artifact,variable){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(start||'')||!/^\d{4}-\d{2}-\d{2}$/.test(end||''))throw new Error('The actual requested calendar is missing; automatic acquisition cannot guess it.');
   return {operation:'power',variable,latitude:g.latitude,longitude:g.longitude,start:Number(start.slice(0,4)),end:Number(end.slice(0,4)),label:mission?`Meteorological grid context centred on ${g.label}; not a MODIS footprint mean`:g.label};
 }
+
+/** Reuse only the same provider, quantity, native support and full requested calendar. */
+export function existingPowerContext(artifacts,request){
+ return artifacts.find(({acquisition:a,analysis})=>a?.provenance?.provider==='NASA POWER'&&a.geometry?.type==='grid_supported_location'&&(a.frequency||'monthly')==='monthly'&&a.variable?.id===request.variable&&a.geometry.latitude===request.latitude&&a.geometry.longitude===request.longitude&&analysis?.requested_start===`${request.start}-01-01`&&analysis?.requested_end===`${request.end}-12-01`);
+}
