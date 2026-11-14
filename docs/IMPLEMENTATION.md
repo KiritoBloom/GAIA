@@ -4,7 +4,7 @@ This register distinguishes implemented code, completed tests and unresolved acc
 
 | Requirement | Implementation | Verification / remaining condition |
 |---|---|---|
-| Latest stable OpenCode V2 | SDK/client/plugin 2.3.0, isolated embedded host | Five actual named-role tool round trips passed before restart; current post-restart proof now requires an unpredictable tool-returned token and is still in progress. Application-managed transport, not native delegation |
+| Latest stable OpenCode V2 | SDK/client/plugin 2.3.0, isolated embedded host | Five actual named-role tool checks passed after restart. The latest proof code additionally verifies the unpredictable receipt token was echoed; that stricter revision still needs a fresh provider check. Application-managed transport, not native delegation |
 | Project-local installation | `.venv`, Node, Cargo/Rustup, WASM/compiler/dependency/cache/runtime directories | Public revision f5b7339 installed and built successfully in a separate checkout under the existing project. This is clean-checkout acceptance on the same Windows host, not independent cross-platform validation |
 | Rune UI/current identity | Rust Rune app, real rune-kit/OpenCode theme, original hexagonal marks | Actual WebGPU render; 390×844 layout showed all five identities without horizontal overflow; four specialists readable in vertical list. Tab focus and Space activation verified; controls target at least 44 points. Broader assistive-technology, contrast and device coverage remains |
 | Provider onboarding | Catalog discovery, compatible endpoints, masked/session-only key, connection check/removal | Actual configured-provider selection/role checks passed; arbitrary native/OAuth protocols not implemented |

@@ -103,7 +103,9 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/models') return json(response,await science({operation:'models'}));
     if (request.method === 'GET' && url.pathname === '/api/events') {
       response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
-      response.write(': connected\n\n'); listeners.add(response); request.on('close', () => listeners.delete(response)); return;
+      response.write(': connected\n\n'); listeners.add(response);
+      const heartbeat=setInterval(()=>{if(!response.destroyed)response.write(': keep-alive\n\n');},15000);heartbeat.unref();
+      request.on('close', () => {clearInterval(heartbeat);listeners.delete(response);}); return;
     }
     if (request.method === 'POST' && url.pathname === '/api/provider/local-models') {
       const input = localProvider(), catalog = await discoverModels(input);
