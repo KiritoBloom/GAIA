@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { resolve } from 'node:path';
 import { ROOT } from '../app/backend/environment.mjs';
 import { science } from '../app/backend/science.mjs';
@@ -7,8 +8,9 @@ import {preparePrediction,predictionEvaluation} from '../app/backend/integrity.m
 import {sha256} from '../app/backend/security.mjs';
 
 const file = process.argv[2];
-if (!file) throw new Error('Usage: npm run reproduce -- path/to/gaia-investigation.json');
-const exported = JSON.parse(readFileSync(resolve(ROOT, file), 'utf8'));
+if (!file) throw new Error('Usage: npm run reproduce -- path/to/gaia-investigation.json[.gz]');
+const input=readFileSync(resolve(ROOT,file));
+const exported = JSON.parse((file.endsWith('.gz')?gunzipSync(input):input).toString('utf8'));
 if (!Array.isArray(exported.artifacts) || !exported.artifacts.length) throw new Error('Export contains no numerical artifacts.');
 const verified = [];
 for (const artifact of exported.artifacts) {

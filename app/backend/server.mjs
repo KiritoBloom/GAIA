@@ -28,11 +28,13 @@ import { setTimeout as delay } from 'node:timers/promises';
 const storePath = resolve(ROOT, '.runtime/data/workspace.json');
 mkdirSync(resolve(ROOT, '.runtime/data'), { recursive: true });
 let sessions = existsSync(storePath) ? JSON.parse(readFileSync(storePath, 'utf8')) : [];
-for(const session of sessions) { session.chatRunning=false;session.activeGraphID=null;retireThreads(session,'Backend restarted; actual embedded runtime bindings must be recreated.');for(const task of session.taskGraph?.requests||[])if(!task.status||task.status==='running')task.status='interrupted'; }
+let clearedStaleExtractionFailures=false;
+for(const session of sessions) { session.chatRunning=false;session.activeGraphID=null;retireThreads(session,'Backend restarted; actual embedded runtime bindings must be recreated.');for(const task of session.taskGraph?.requests||[])if(!task.status||task.status==='running')task.status='interrupted';for(const extraction of session.extractions||[])if(extraction.status==='collected'&&extraction.artifact_id&&extraction.failure){extraction.failure=null;clearedStaleExtractionFailures=true;} }
 const jobs = new Map(), listeners = new Set();
 const extractionRuns=new Map();
 const chats=new Map();
 const save = () => writeFileSync(storePath, JSON.stringify(sessions));
+if(clearedStaleExtractionFailures)save();
 function event(session, type, data) {
   const item = { id: randomUUID(), sequence: (session.events.at(-1)?.sequence || 0)+1, time: new Date().toISOString(), type, ...data };
   session.events.push(item); save();
@@ -98,7 +100,7 @@ const scientificAccess={
        }
        const result=await science({...extraction.request,operation:'appeears_collect',task_id:extraction.task_id},signal);
        signal?.throwIfAborted();
-       const artifact=retainArtifact(session,result);extraction.artifact_id=artifact.id;extraction.status='collected';
+       const artifact=retainArtifact(session,result);extraction.artifact_id=artifact.id;extraction.status='collected';extraction.failure=null;
        session.title=`Regional vegetation · ${regionLabel(result)} · ${extraction.request.start}–${extraction.request.end}`;
        event(session,'extraction.completed',{role,artifactID:artifact.id,taskID:extraction.task_id,summary:'NASA polygon EVI/QA downloaded fresh, checksummed, area-weighted and analyzed; monthly support gaps remain explicit.'});
         const {geojson,...geometry}=result.acquisition.geometry;

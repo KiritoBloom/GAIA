@@ -67,14 +67,14 @@ export async function coordinate(session, request, emit, signal) {
   }
   const candidates=(plan.hypotheses||[]).map(item=>resolveHypothesis(session,item));
   if(new Set(candidates.map(item=>item.id)).size!==candidates.length)throw Error('Competing explanations must have distinct identifiers, not duplicate entries.');
-  const protocol = plan.protocol ? resolveProtocol(session,plan.protocol) : Object.values(protocols).find(item=>item.owner===plan.owner) || Object.values(protocols)[0];
+  const protocol = plan.protocol ? resolveProtocol(session,plan.protocol) : {id:'not_requested',name:'No observation protocol selected',owner:plan.owner,availability:'not_requested',limits:['No distinguishing experiment has been selected; do not invent one from a default domain template.']};
   const plannerPeers=(session.peerRequests||[]).filter(item=>item.graphID===graphID&&item.requester==='gaia'&&item.status==='pending');
   const domains = [...new Set([plan.owner,...plan.domains,...plannerPeers.map(item=>item.role)])];
   session.taskGraph = { id:graphID, snapshot, owner:plan.owner, domains, protocol:protocol.id, created:new Date().toISOString(), transport:'application-managed specialist sessions', requests:[] };
   session.hypothesisRecords = candidates.map(candidate=>({ ...candidate, version:1, status:'unresolved', evidence:session.artifacts.map(artifact=>assessCandidate(candidate,artifact,session.artifacts[0])), label:'source-backed qualitative candidate; not established cause' }));
-  session.observationPlan = { ...protocol, snapshot, hypothesisIDs:candidates.map(item=>item.id), ranking_policy:'GAIA may propose a literature-grounded new protocol; code retains prerequisites and uncertainty; Jev shadow cannot rerank.', availability:protocol.availability||(protocol.operation === 'power' ? 'implemented' : protocol.operation === 'import' ? 'import_supported' : 'field_observation_required') };
+  session.observationPlan = plan.protocol ? { ...protocol, snapshot, hypothesisIDs:candidates.map(item=>item.id), ranking_policy:'GAIA may propose a literature-grounded new protocol; code retains prerequisites and uncertainty; Jev shadow cannot rerank.', availability:protocol.availability||(protocol.operation === 'power' ? 'implemented' : protocol.operation === 'import' ? 'import_supported' : 'field_observation_required') } : null;
   const evidenceBefore={id:randomUUID(),artifacts:session.artifacts.map(item=>item.id),hypotheses:structuredClone(session.hypothesisRecords),protocol:structuredClone(session.observationPlan),time:new Date().toISOString()};
-  emit('hypotheses.created',{role:'gaia',summary:'Competing registered expectations and one observation protocol recorded.'});
+  emit('hypotheses.created',{role:'gaia',summary:`Recorded ${candidates.length} selected candidate explanations; ${plan.protocol?'GAIA selected an observation protocol.':'no observation experiment was requested.'}`});
   const reviews = [];
    // Specialists are chosen by GAIA for this question; run only the selected set.
    async function runReview(role,question=request){
