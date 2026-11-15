@@ -4,6 +4,8 @@ Verified 15 November 2026. This maps the local `plan.md` feature list to the imp
 
 ## Product contract
 
+See [ecosystem-aware investigations](ECOSYSTEM-INVESTIGATIONS.md) for the subsequent all-biome interpretation profiles, EVI/NDVI selection, common-pixel/QA diagnostics, cross-year seasons and explicitly conditional gap sensitivity. These additions do not imply universal biome masks, aquatic/ice adapters or validated ecological attribution.
+
 The user talks only to GAIA. GAIA clarifies material ambiguities, selects relevant specialists, researches and acquires supported data, runs registered numerical methods, follows up internally, and returns an illustrated report. No compulsory agent/product configuration, research-capacity approval, fixed specialist-count limit, report-length ceiling or overall investigation deadline is part of that experience. Network fault containment, scientific eligibility, privacy and explicit user cancellation remain.
 
 ## Feature-by-feature status
@@ -28,6 +30,10 @@ The user talks only to GAIA. GAIA clarifies material ambiguities, selects releva
 | 14: credentials/privacy | Ignored `.env`, server-side provider secrets, ephemeral AppEEARS login tokens, local origin/role checks, sanitized errors and private draft handoffs. | Local single-user workspace, not a hardened public multi-user hosting platform. Recipient consent is required; no automatic handoff transmission. |
 | 15–16: verification/submission | Existing suite: **42 Python + 53 Node tests passed**, without adding new tests. BC's eight numerical artifacts reproduce independently at `1e-10`; Nairobi/Chennai also reproduced. Source-backed seven-slide deck and companion records. | Build/test success is not universal scientific validation. Public release verification and organizer submission must be checked separately. |
 | 17–19: skills, sources and scientific limits | Six versioned skill packs, source register, documented uncertainty/dependence and unavailable capabilities. | A citation/source-family listing is not proof of a live adapter, expert acceptance or a validated solver. |
+
+## Ecosystem-aware follow-up
+
+The additional implementation described in [Ecosystem-aware investigations](ECOSYSTEM-INVESTIGATIONS.md) supports EVI/NDVI selection, ecosystem interpretation profiles, explicit common-pixel and conditional missingness sensitivities, and cross-year seasons. Inadequate evidence can trigger GAIA to select and brief relevant specialists for a defensible source follow-up before synthesis. Decisions and unsuccessful routes remain recorded; repeated inputs do not count as new evidence and a valid null trend is not a reason to hunt for significance. This does not supply universal biome masks or arbitrary aquatic/ice/animal measurement adapters.
 
 ## BC demonstration: what actually completed
 

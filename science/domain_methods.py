@@ -56,9 +56,12 @@ def diagnose(request):
         result.update(series=values,units=units,valid=len(valid),missing=len(values)-len(valid),range=[min(valid),max(valid)] if valid else None,aggregation_status='period_mean_approximation' if cadence(first) in ('monthly','annual') else 'paired_observation_product')
     elif method=='greenness_qa':
         item=inputs[0];variable=item['variable'];provenance=item.get('provenance',{})
-        if variable['id']!='EVI' or variable.get('evidence_class')!='mission-derived proxy':raise ValueError('Greenness audit requires the actual mission EVI proxy.')
+        if variable['id'] not in ('EVI','NDVI') or variable.get('evidence_class')!='mission-derived proxy':raise ValueError('Greenness audit requires an actual mission EVI/NDVI proxy.')
         identity=provenance.get('collection_identity_evidence',{})
         result.update(quantity='optical canopy greenness; not species, biomass, crop yield, infection or mortality',collection=provenance.get('collection_versions'),verified_granules=len(identity.get('matched_granules',[])),excluded_revisions=len(identity.get('excluded_granules',[])),recipe=provenance.get('recipe'),valid=sum(x.get('value') is not None for x in item['series']),missing=sum(x.get('value') is None for x in item['series']),limitations=item.get('limitations',[]))
+        if any('rejected_pixels_by_flag' in row for row in item['series']):
+            result['monthly_support']=[{key:row.get(key) for key in ('date','valid_area_fraction','valid_pixels','footprint_pixels','rejected_pixels_by_flag','common_support_pixels','common_support_area_fraction','common_support_months','common_support_mask_sha256')} for row in item['series']]
+            result['flag_count_interpretation']='Flags overlap; not additive and not proof of ecological causes. Common support is a subset, never a biome mask.'
     else:
         records=request.get('records',[])
         if not isinstance(records,list) or len(records)>500:raise ValueError('Animal observation audit budget exceeded.')

@@ -23,6 +23,7 @@ import{retireThreads,lifecycleForExport,taskGraphForExport,peerRequestsForExport
 import{freezeMissionScope,verifyMissionScope,missionAcquisitionRequest,nearestMissionSite}from'./mission-scope.mjs';
 import { resolvePlace, ownedPlace } from './location.mjs';
 import { resolveRegion, ownedRegion } from './regions.mjs';
+import { recordEcosystem } from './ecosystems.mjs';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const storePath = resolve(ROOT, '.runtime/data/workspace.json');
@@ -48,11 +49,25 @@ function retainArtifact(session,result,jobID) {
   return artifact;
 }
 const scientificAccess={
+   async ecosystem(id,role,input){
+     if(role!=='gaia')throw Error('Ecosystem investigation context is GAIA-owned.');
+     const session=sessionFor(id),result=recordEcosystem(session,input);
+     event(session,'ecosystem.context.recorded',{role,summary:`Recorded ${result.ecosystem} interpretation context; not a verified cover map.`});
+     return result;
+   },
+   async sensitivity(id,role,input,signal){
+     if(!['gaia','aura','chloris','thalassa'].includes(role))throw Error('Evidence sensitivity access denied.');
+     const session=sessionFor(id),artifact=session.artifacts.find(a=>a.id===input.artifact_id);
+     if(!artifact||!input.rationale?.trim()||!['gap_sensitivity','common_support'].includes(input.method))throw Error('Sensitivity needs owned evidence, a registered method and a scientific rationale.');
+     const result=await science({operation:input.method,artifact_id:artifact.id,acquisition:artifact.acquisition,rationale:input.rationale},signal);
+     const derived=retainArtifact(session,result);
+     return {id:derived.id,source_artifact_id:artifact.id,variable:result.acquisition.variable,geometry:{...result.acquisition.geometry,geojson:undefined},analysis:result.analysis,interpretation:'Derived sensitivity, not a replacement primary finding or independent evidence.'};
+   },
    async aggregateSeason(id,role,input,signal){
      if(!['gaia','aura','chloris','thalassa'].includes(role))throw Error('Seasonal analysis access denied.');
      const session=sessionFor(id),artifact=session.artifacts?.find(a=>a.id===input.artifact_id);
      if(!artifact||!input.rationale?.trim())throw Error('Seasonal analysis needs owned monthly evidence and an explicit scientific rationale.');
-     const result=await science({operation:'aggregate_season',artifact_id:artifact.id,acquisition:artifact.acquisition,months:input.months,rationale:input.rationale},signal);
+      const result=await science({operation:'aggregate_season',artifact_id:artifact.id,acquisition:artifact.acquisition,months:input.months,season_year_start_month:input.season_year_start_month,rationale:input.rationale},signal);
      const derived=retainArtifact(session,result);
      return {id:derived.id,variable:result.acquisition.variable,analysis:result.analysis,temporal_aggregation:result.acquisition.provenance.temporal_aggregation,limitations:result.acquisition.limitations};
    },
@@ -65,7 +80,11 @@ const scientificAccess={
    async acquireRegion(id,role,input,signal){
      if(!['gaia','chloris'].includes(role))throw Error('Regional EVI acquisition requires GAIA or CHLORIS.');
      const session=sessionFor(id),region=ownedRegion(session,input.region_id);
-     const request={start:input.start,end:input.end,geometry:region.geometry,label:region.name,boundary_source:region.source,boundary_sha256:region.boundary_sha256,latitude:region.latitude,longitude:region.longitude,min_coverage:0.8};
+      const context=(session.ecosystemContexts||[]).filter(c=>!c.region_id||c.region_id===region.id).at(-1);
+      if(context&&['aquatic','ice'].includes(context.realm))throw Error('Land vegetation indices cannot measure the selected aquatic/ice outcome. Acquire relevant supported context or report the missing specialized numerical adapter.');
+      const months=input.support_months||Array.from({length:12},(_,i)=>i+1);
+      if(input.support_months&&!input.support_rationale?.trim())throw Error('A common-pixel season needs an independent ecological or climatic rationale, not significance selection.');
+      const request={start:input.start,end:input.end,index:input.index||'EVI',support_months:months,support_rationale:input.support_rationale||'All calendar months; no fitted-result-based season selection.',ecosystem_context:context||null,geometry:region.geometry,label:region.name,boundary_source:region.source,boundary_sha256:region.boundary_sha256,latitude:region.latitude,longitude:region.longitude,min_coverage:0.8};
      const submitted=await science({...request,operation:'appeears_submit'},signal);
      const extraction={id:randomUUID(),region_id:region.id,task_id:submitted.task_id,status:submitted.status,created:new Date().toISOString(),request:{...request,submitted_request:submitted.request,metadata:submitted.metadata,metadata_receipt:submitted.metadata_receipt},submission_receipt:submitted.submission_receipt};
      session.extractions||=[];session.extractions.push(extraction);
@@ -91,7 +110,7 @@ const scientificAccess={
        for(;;){
          signal?.throwIfAborted();
          const state=await science({operation:'appeears_status',task_id:extraction.task_id},signal);
-         extraction.status=state.status;extraction.last_receipt=state.receipt;
+          extraction.status=state.status;extraction.provider_status=state.status;extraction.last_receipt=state.receipt;
          if(previous!==state.status){event(session,'extraction.progress',{role,taskID:extraction.task_id,status:state.status,summary:`NASA regional extraction: ${state.status}.`});previous=state.status;}
          if(state.error||state.status==='error')throw Error('NASA AppEEARS extraction failed; no regional trend available.');
          if(state.status==='done')break;
@@ -102,7 +121,7 @@ const scientificAccess={
        signal?.throwIfAborted();
        const artifact=retainArtifact(session,result);extraction.artifact_id=artifact.id;extraction.status='collected';extraction.failure=null;
        session.title=`Regional vegetation · ${regionLabel(result)} · ${extraction.request.start}–${extraction.request.end}`;
-       event(session,'extraction.completed',{role,artifactID:artifact.id,taskID:extraction.task_id,summary:'NASA polygon EVI/QA downloaded fresh, checksummed, area-weighted and analyzed; monthly support gaps remain explicit.'});
+        event(session,'extraction.completed',{role,artifactID:artifact.id,taskID:extraction.task_id,summary:`NASA polygon ${artifact.acquisition.variable.id}/QA downloaded fresh, checksummed, area-weighted and analyzed; monthly support gaps remain explicit.`});
         const {geojson,...geometry}=result.acquisition.geometry;
         const {submitted_request,metadata,...provenance}=result.acquisition.provenance;
         return {id:artifact.id,variable:result.acquisition.variable,geometry,analysis:result.analysis,provenance};
@@ -194,6 +213,8 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname.startsWith('/api/investigation/'))return json(response,investigationRecords(sessionFor(url.pathname.split('/').at(-1))));
     if (request.method === 'GET' && url.pathname === '/api/catalog') return json(response, {...await science({ operation: 'catalog' }),protocols:Object.values(protocols)});
     if (request.method === 'GET' && url.pathname === '/api/sites') return json(response, await science({ operation: 'sites' }));
+    if(request.method==='POST'&&url.pathname==='/api/ecosystem/context'){const input=await body(request);return json(response,await scientificAccess.ecosystem(input.sessionID,'gaia',input));}
+    if(request.method==='POST'&&url.pathname==='/api/evidence/sensitivity'){const input=await body(request);return json(response,await scientificAccess.sensitivity(input.sessionID,'gaia',input));}
     if(request.method==='POST'&&url.pathname==='/api/regions/resolve'){const input=await body(request);return json(response,await scientificAccess.resolveRegion(input.sessionID,'gaia',input));}
     if(request.method==='POST'&&['/api/regions/acquire','/api/regions/resume'].includes(url.pathname)){
       const input=await body(request),session=sessionFor(input.sessionID),controller=new AbortController();
@@ -340,7 +361,7 @@ const server = http.createServer(async (request, response) => {
        exported.comparisons=session.comparisons || [];exported.prediction_test=session.predictionTest || null;exported.observation_plan_history=session.observationPlans||[];
        exported.domain_diagnostics=session.domainDiagnostics||[];exported.animal_records=session.animalRecords||[];exported.peer_requests=peerRequestsForExport(session.peerRequests);exported.model_proposals=session.modelProposals||[];exported.research_notes=session.researchNotes||[];
        exported.mission_scope=session.missionScope||null;exported.mission_scope_history=session.missionScopes||[];exported.mission_selection_context=session.missionSelectionContext||null;
-       exported.regions=session.regions||[];exported.extractions=session.extractions||[];exported.report=session.messages.filter(m=>m.role==='gaia').at(-1)||null;
+       exported.regions=session.regions||[];exported.ecosystem_contexts=session.ecosystemContexts||[];exported.extractions=session.extractions||[];exported.evidence_searches=session.evidenceSearches||[];exported.report=session.messages.filter(m=>m.role==='gaia').at(-1)||null;
        exported.literature=(session.literature||[]).map(({text,...metadata})=>metadata);exported.literature_disclosure='Raw third-party texts excluded from standard export; review quotations and redistribution rights before publishing.';
       const versions=executionVersions(session.simulations || []);exported.simulations=versions.active;exported.historical_simulations=versions.historical;
        exported.investigation_record=investigationRecords(session);

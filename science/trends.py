@@ -31,13 +31,20 @@ def finite(value):
 def analyze(series, *, frequency="monthly", bandwidth=12, min_years=20, alpha=0.05):
     if frequency not in ("monthly", "annual"):
         raise ValueError("Only registered monthly and annual trend recipes are supported.")
-    if not series or len(series) > 6000:
-        raise ValueError("Supply between 1 and 6000 observations.")
+    if not series:
+        raise ValueError("Supply at least one observation.")
     if not 0 < alpha < 1 or not 1 <= bandwidth <= 48 or min_years < 10:
         raise ValueError("Unsupported inference settings.")
     # Canonicalize JSON's single numeric type before hashing. A browser/export
     # may serialize Python 0.0 as 0 without changing the physical value.
     entries = [{**row, "value": float(row["value"]) if finite(row.get("value")) else None} for row in sorted(series, key=lambda row: row["date"])]
+    # New spatial diagnostics also cross JSON's integer/float boundary. Keep
+    # historical recipes unchanged; canonicalize the new support schema only.
+    for row in entries:
+        if "common_support_mask_sha256" in row:
+            for field in ("valid_area_fraction", "applied_scale_factor", "common_support_area_fraction", "common_support_value"):
+                if field in row and finite(row[field]):
+                    row[field] = float(row[field])
     keys = [monthly_index(row["date"]) if frequency == "monthly" else date.fromisoformat(row["date"]).year for row in entries]
     if len(set(keys)) != len(keys):
         raise ValueError("Duplicate periods must be resolved in acquisition, not silently averaged here.")

@@ -21,7 +21,7 @@ export function reserve(investigationID,variable='T2M') {
 export function getTest(id,investigationID) {const record=tests.get(id);if(!record || record.investigationID!==investigationID) throw new Error('Foreign prediction test denied.');return record;}
 export function checkAcquisition(request,capability) {
   if(request.operation==='compare'){for(const item of [request.focal,...(request.candidates || [])]){if(item?.acquisition)checkAcquisition({operation:'analyze',acquisition:item.acquisition},capability);}return;}
-  if(!['power','modis','import','analyze','simulate'].includes(request.operation)) return;
+  if(!['power','modis','import','analyze','simulate','aggregate_season','gap_sensitivity','common_support'].includes(request.operation)) return;
   if(request.acquisition) {const acquisition=request.acquisition;request={...request,operation:acquisition.variable.id==='IMPORTED'?'import':request.operation,variable:acquisition.variable.id,latitude:acquisition.geometry.latitude,longitude:acquisition.geometry.longitude,start:Number(acquisition.series[0]?.date.slice(0,4)),end:Number(acquisition.series.at(-1)?.date.slice(0,4))};}
   for(const record of tests.values()) {
     if(record.state==='evaluated' || record.state==='cancelled') continue;

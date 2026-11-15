@@ -210,7 +210,7 @@ fn conversation(s: &State, k: &Kit, current: &Value) -> El {
         .child(label("Tell GAIA what changed, where, and what you want to understand. She’ll fill in the method, data and specialist work; she’ll ask only if a missing detail would change the investigation."));
     if running{body=body.child(surface(row().w_full().gap(10.).child(label("Investigation in progress · completed evidence is retained as it arrives")).child(button(k,"Stop","chat-stop",selected_action(s))),"#e3eee5"));}
     for extraction in list(&current["extractions"]){
-        let mut progress=col().w_full().gap(8.).child(heading("NASA regional extraction")).child(line("Provider task",&extraction["task_id"])).child(line("Status",&extraction["status"])).child(label("A fresh AppEEARS polygon task is processed by NASA. Its monthly EVI, QA and checksums must be verified before a regional trend is published."));
+        let mut progress=col().w_full().gap(8.).child(heading("NASA regional extraction")).child(line("Provider task",&extraction["task_id"])).child(line("Status",&extraction["status"])).child(label("NASA processes the declared vegetation index and QA for the owned polygon. Values, support and checksums must be verified before a trend is published."));
         if string(&extraction["status"])!="collected" && !running{progress=progress.child(button(k,"Continue this NASA task · no duplicate submission","extraction-resume",json!({"sessionID":s.selected,"extraction_id":extraction["id"]})));}
         if !extraction["failure"].is_null(){progress=progress.child(line("Acquisition issue",&extraction["failure"]));}
         body=body.child(surface(progress,"#e3eee5"));
@@ -221,9 +221,13 @@ fn conversation(s: &State, k: &Kit, current: &Value) -> El {
         body=body.child(surface(col().w_full().gap(8.).child(heading("New evidence is ready")).child(label("Your conversation is preserved. Open the evidence record for the latest measured trend, uncertainty, support and source details.")).child(Button::new("Open evidence record").build(k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Evidence)),"#e3eee5"));
     }
     let messages=list(&current["messages"]);
+    if let Some(context)=list(&current["ecosystemContexts"]).last(){
+        body=body.child(surface(col().w_full().gap(8.).child(heading(format!("Ecosystem context · {}",string(&context["ecosystem"])))).child(line("Evidence basis",&context["rationale"])).child(line("Measurement route",&context["vegetation_route"])).child(label("This interpretation is not a verified biome map or cover mask. Mixed landscapes, locally justified seasons and missing ecosystem-specific observations remain explicit.")),"#eaf0e8"));
+    }
     if !running && !s.snapshot["artifact"].is_null(){
         let artifact=&s.snapshot["artifact"];let analysis=&artifact["analysis"];let variable=&artifact["acquisition"]["variable"];
-        let mut overview=col().w_full().gap(16.).child(label("EVIDENCE AT A GLANCE · LIVE NASA ACQUISITION")).child(heading(format!("{} · {}",string(&variable["name"]),string(&artifact["acquisition"]["geometry"]["label"]))))
+        let derived=!artifact["acquisition"]["analysis_recipe"].is_null()||!artifact["acquisition"]["provenance"]["derived_from_artifact"].is_null()||!artifact["acquisition"]["provenance"]["common_support_sensitivity"].is_null();
+        let mut overview=col().w_full().gap(16.).child(label(if derived{"EVIDENCE AT A GLANCE · DERIVED ANALYSIS, NOT NEW OBSERVATIONS"}else{"EVIDENCE AT A GLANCE · SOURCE-BACKED OBSERVATIONS"})).child(heading(format!("{} · {}",string(&variable["name"]),string(&artifact["acquisition"]["geometry"]["label"]))))
             .child(row().w_full().gap(18.).child(metric("Change per decade",&analysis["slope_per_decade"])).child(metric("Nominal p-value",&analysis["p_value"])).child(metric("Valid observations",&analysis["n"])))
             .child(label(format!("{} to {} · {} · {}",string(&analysis["requested_start"]),string(&analysis["requested_end"]),string(&variable["units"]),string(&analysis["status"]))));
         if let Some(chart)=&s.chart{overview=overview.child(el().w_full().h(270.).pixels(chart.pixels()));}
@@ -254,7 +258,7 @@ fn conversation(s: &State, k: &Kit, current: &Value) -> El {
             .child(label("Each card reports the source-specific estimate and support. Select a dataset in Evidence to inspect its dated observations, QA and complete model specification."));
         for artifact in list(&current["artifacts"]).iter(){
             let analysis=&artifact["analysis"];let acquisition=&artifact["acquisition"];let variable=&acquisition["variable"];
-            let status=match analysis["status"].as_str().unwrap_or(""){"detected"=>"TREND DETECTED UNDER THE STATED MODEL","not_detected"=>"NO TREND DETECTED AT THE NOMINAL THRESHOLD","descriptive_only"=>"DESCRIPTIVE ESTIMATE · INFERENCE WITHHELD",_=>"INCONCLUSIVE · SEE SUPPORT AND LIMITATIONS"};
+            let status=match analysis["status"].as_str().unwrap_or(""){"detected"=>"TREND DETECTED UNDER THE STATED MODEL","not_detected"=>"NO TREND DETECTED AT THE NOMINAL THRESHOLD","descriptive_only"=>"DESCRIPTIVE ESTIMATE · INFERENCE WITHHELD","conditional_sensitivity"=>"CONDITIONAL MISSINGNESS SENSITIVITY · NOT PRIMARY CONFIRMATION",_=>"INCONCLUSIVE · SEE SUPPORT AND LIMITATIONS"};
             let mut card=col().w_full().gap(11.).child(label(status))
                 .child(heading(format!("{} · {}",string(&variable["name"]),string(&variable["units"]))))
                 .child(label(format!("{} to {} · {} valid points · {}",string(&analysis["requested_start"]),string(&analysis["requested_end"]),number(&analysis["n"]),string(&acquisition["geometry"]["label"]))))

@@ -9,6 +9,7 @@ import {creativeHypothesis,creativeProtocol,resolveHypothesis,resolveProtocol,as
 import{ownedEvidenceRefs,validateReview}from'./reviews.mjs';
 import{validateReviewSources}from'./review-sources.mjs';
 import{investigationScope,ownedThread}from'./thread-lifecycle.mjs';
+import {evidenceState,unresolvedEvidence,needsRecovery,recoveryPolicy} from './evidence-recovery.mjs';
 
 const hypothesisIDs = Object.keys(hypotheses);
 const planSchema = z.discriminatedUnion('action',[
@@ -16,6 +17,10 @@ const planSchema = z.discriminatedUnion('action',[
   z.object({action:z.literal('investigate'),owner:z.enum(['aura','thalassa','chloris','zoe']),domains:z.array(z.enum(['aura','thalassa','chloris','zoe'])).default([]),hypotheses:z.array(z.union([z.enum(hypothesisIDs),creativeHypothesis])).default([]),protocol:z.union([z.enum(Object.keys(protocols)),creativeProtocol]).optional(),question:z.string().default('Continue with the most useful evidence and report the result.')}).strict()
 ]);
 const synthesisSchema=z.object({reply:z.string().min(1),follow_up:z.string().min(1)}).strict();
+const recoverySchema=z.discriminatedUnion('action',[
+  z.object({action:z.literal('finish'),reason:z.string().min(1)}).strict(),
+  z.object({action:z.literal('seek'),target:z.string().min(1),approach:z.string().min(1),reason:z.string().min(1),domains:z.array(z.enum(['aura','thalassa','chloris','zoe'])).min(1)}).strict()
+]);
 
 export function evidenceReport(session, request, reviews=[], plan=null, failure=null) {
   const rows=session.artifacts.map((item,index)=>{
@@ -26,6 +31,7 @@ export function evidenceReport(session, request, reviews=[], plan=null, failure=
     return `### ${index+1}. ${v.label||v.name||item.acquisition?.dataset||'Acquired variable'}\n- **Finding:** ${a.status||'not analyzed'}; slope ${value(a.slope_per_decade)} ${v.units||'units'}/decade; ${a.n??'unknown'} valid observations; ${a.missing??'unknown'} missing periods.\n- **Inference:** nominal ${Math.round((a.specification?.confidence_level||0.95)*100)}% interval ${interval}; p=${value(a.p_value,5)}. These inferential quantities are not causal probabilities.\n- **Coverage:** ${period}; ${a.specification?.frequency||item.acquisition?.frequency||'frequency unavailable'}; support ${g.type||'unspecified'}${g.label?` (${g.label})`:''}${g.not_polygon_mean?' Ã¢â‚¬â€ not a regional mean':''}.\n- **Method/provenance:** ${a.specification?.method||'registered trend method'}; input SHA-256 ${a.inputs_sha256||'unavailable'}; fresh provider response SHA-256 ${p.raw_sha256||'unavailable'}; ${p.url||p.provider||'source URL unavailable'}.\n- **Limits:** ${(a.limitations||item.acquisition?.limitations||[]).join(' ')||'See source/support metadata.'}`;
   });
   const completed=reviews.filter(x=>x.status!=='failed');
+  if(session.evidenceSearches?.length)rows.push(`## Follow-up evidence search\n${session.evidenceSearches.map(a=>`- ${a.target||'Evidence review'}: ${a.approach||'No further supported alternative selected'}. ${a.reason} Outcome: ${a.outcome||a.action}.${a.failure?` Unavailable: ${a.failure}.`:''}`).join('\n')}\nRepeated inputs and same-source derivatives are not independent corroboration. Any remaining inconclusive finding stays inconclusive.`);
   const specialist=completed.map(x=>`### ${String(x.role).toUpperCase()} review\n${x.summary||'No narrative returned.'}${x.gaps?.length?`\n\nEvidence gaps: ${x.gaps.join('; ')}`:''}${x.sources?.length?`\n\nSources: ${x.sources.map(s=>s.url||s.title||s.id).join('; ')}`:''}`).join('\n\n');
   const failures=reviews.filter(x=>x.status==='failed').map(x=>String(x.role).toUpperCase());
   return `# GAIA Earth-system investigation\n\n**Question:** ${request}\n\n## Executive finding\nThis evidence-grounded report was assembled from ${session.artifacts.length} retained artifact${session.artifacts.length===1?'':'s'}${failure?`; final model synthesis was unavailable (${failure})`:''}. Findings below are measurements or explicitly identified model/proxy context; they do not by themselves establish cause. A quantity with status Ã¢â‚¬Å“not_detectedÃ¢â‚¬Â or Ã¢â‚¬Å“inconclusiveÃ¢â‚¬Â is not proof that no environmental change occurred.\n\n## Measured or acquired trends\n${rows.length?rows.join('\n\n'):'No numerical artifact was acquired; a measured trend cannot be reported.'}\n\n## Evidence ownership and interpretation\n${specialist||'No specialist review completed; interpretations beyond the acquired numerical quantities remain unreviewed.'}${failures.length?`\n\nUnavailable specialist checks: ${failures.join(', ')}.`:''}\n\n## Overall interpretation\n${plan?.question||'No additional evidence-backed synthesis question was recorded.'} Compare direction and timing only where spatial support, variable definitions, cadence, period and source dependence are compatible. The listed trends are not proof of a mechanism. Shared provider/model lineage is not independent corroboration.\n\n## What could change this assessment\n${completed.flatMap(x=>x.gaps||[]).map(g=>`- ${g}`).join('\n')||'- Obtain an independent, spatially and temporally matched observation that directly measures the reported outcome and its leading alternative explanations.'}\n\n## Reproducibility\nThe retained investigation artifacts contain the fresh-acquisition receipts, raw-response hashes, requested periods, units, missingness, trend specifications, input hashes and limitations. GAIA did not reuse an older local science-cache response for these acquisitions.`;
@@ -112,7 +118,7 @@ export async function coordinate(session, request, emit, signal) {
   }
   const results=await Promise.all(domains.map(role=>{const assigned=plannerPeers.filter(item=>item.role===role);return runReview(role,assigned.length?`${request}\nAssigned cross-domain questions: ${assigned.map(item=>`${item.question} Reason: ${item.reason}`).join('\n')}`:request);}));reviews.push(...results);for(const result of results)for(const peer of plannerPeers.filter(item=>item.role===result.role)){peer.status=result.status==='failed'?'failed':'completed';peer.review_thread=result.threadID;}
    const peerChecks=new Set();
-   while(true){
+   async function drainPeerChecks(){while(true){
       const peer=(session.peerRequests||[]).find(item=>item.graphID===graphID&&item.status==='pending'&&!peerChecks.has(sha256({requester:item.requester,role:item.role,question:item.question})));
       if(!peer)break;
       const key=sha256({requester:peer.requester,role:peer.role,question:peer.question});peerChecks.add(key);peer.status='running';
@@ -122,8 +128,36 @@ export async function coordinate(session, request, emit, signal) {
       catch(error) { result={role:peer.role,status:'failed',reason:'Specialist session could not be started; GAIA will synthesize available evidence.'};emit('worker.failed',{role:peer.role,summary:'Specialist session unavailable; GAIA will continue with retained evidence.',reason:publicError(error)}); }
       reviews.push(result);peer.status=result.status==='failed'?'failed':'completed';peer.review_thread=result.threadID;
    }
-   for(const pending of session.peerRequests||[]){if(pending.graphID===graphID&&pending.status==='pending'){pending.status='duplicate_peer_request';pending.reason='Exact requester, role and question already executed in this investigation.';}}
-  const record = { id:randomUUID(),request,snapshot,plan,reviews,protocol:session.observationPlan,time:new Date().toISOString() };
+    for(const pending of session.peerRequests||[]){if(pending.graphID===graphID&&pending.status==='pending'){pending.status='duplicate_peer_request';pending.reason='Exact requester, role and question already executed in this investigation.';}}}
+   await drainPeerChecks();
+   const recovery=[],strategies=new Set();
+   session.evidenceSearches||=[];
+   while(needsRecovery(unresolvedEvidence(session,reviews))){
+     signal?.throwIfAborted();
+     const before=evidenceState(session),gaps=unresolvedEvidence(session,reviews);
+     emit('gaia.evidence.reconsidering',{role:'gaia',summary:'Checking why evidence is inadequate and whether a defensible alternative source can answer the original question.'});
+     let decision;
+     try{
+       const context=await promptRole(session.threads.gaia,'gaia',`${recoveryPolicy}\nYou coordinate; the selected specialists perform follow-up source research and data acquisition. Inspect gaia_evidence and gaia_catalog; resolve an owned place/polygon if essential coordinator-only setup is missing, but do not acquire or derive data in this planning turn. Decide whether a genuinely different available approach can address a material gap in the user's actual question, not every incidental exploratory artifact. Assign at least one relevant specialist for a seek action, with concrete support/calendar and an actually authorized route. Do not dispatch all roles by default. Return only JSON {"action":"finish","reason":"why no further useful supported acquisition is available or needed"} OR {"action":"seek","target":"specific unresolved outcome","approach":"concrete supported source/tool and support/calendar","reason":"why this addresses the gap, independent of significance","domains":[only useful specialists]}. Original question: ${JSON.stringify(request)}. Actual gaps: ${JSON.stringify(gaps)}. Previous attempts: ${JSON.stringify(recovery)}.`,signal);
+       decision=recoverySchema.parse(assistantObject(context));
+     }catch(error){if(signal?.aborted)throw error;const unavailable={id:randomUUID(),graphID,time:new Date().toISOString(),action:'finish',reason:'Evidence-follow-up planning unavailable; retain and disclose unresolved findings.',failure:publicError(error)};recovery.push(unavailable);session.evidenceSearches.push(unavailable);emit('gaia.evidence.exhausted',{role:'gaia',summary:unavailable.reason});break;}
+     const attempt={...decision,id:randomUUID(),graphID,time:new Date().toISOString(),before};
+     recovery.push(attempt);session.evidenceSearches.push(attempt);
+     if(decision.action==='finish'){emit('gaia.evidence.exhausted',{role:'gaia',summary:decision.reason});break;}
+     const key=sha256({target:decision.target.trim().toLowerCase(),approach:decision.approach.trim().toLowerCase()});
+     if(strategies.has(key)){attempt.outcome='duplicate_strategy';emit('gaia.evidence.exhausted',{role:'gaia',summary:'Equivalent follow-up strategy already attempted; preserving the inconclusive result rather than looping.'});break;}
+     strategies.add(key);
+     emit('gaia.evidence.seeking',{role:'gaia',summary:decision.reason,target:decision.target,approach:decision.approach});
+     try{
+       const extra=await Promise.all([...new Set(decision.domains)].map(role=>runReview(role,`${request}\nGAIA assigned you this evidence follow-up. You perform the relevant source research and authorized acquisition, not the user. Target: ${decision.target}. Approach: ${decision.approach}. Scientific reason: ${decision.reason}. Inspect retained evidence and source/task identity first, then seek an actually appropriate alternative in your domain; preserve attempted sources and failure reasons. Do not acquire other selected domains' data unnecessarily. ${recoveryPolicy}`)));
+       reviews.push(...extra);await drainPeerChecks();
+     }catch(error){if(signal?.aborted)throw error;attempt.failure=publicError(error);}
+     attempt.after=evidenceState(session);
+     attempt.outcome=attempt.after.some(id=>!before.includes(id))?'new_evidence_or_explicit_derivation':'no_new_evidence';
+     emit('gaia.evidence.followup.completed',{role:'gaia',summary:attempt.outcome==='no_new_evidence'?'No materially new usable evidence was obtained; unresolved results will be reported honestly.':'Follow-up evidence retained; checking whether the original gap remains.',outcome:attempt.outcome});
+     if(attempt.outcome==='no_new_evidence')break;
+   }
+   const record = { id:randomUUID(),request,snapshot,plan,reviews,recovery,protocol:session.observationPlan,time:new Date().toISOString() };
   session.investigations ||= []; session.investigations.push(record);
   emit('jev.started',{role:'gaia',summary:'Experimental semantic review of the specified contrast and protocol; shadow-only.'});
   const semantic = await semanticJudgment({ request, hypotheses:candidates, protocol:session.observationPlan, source_context:session.artifacts.map(item=>({definition:item.acquisition.variable.definition,support:item.acquisition.variable.support,limitations:item.analysis.limitations})), claim:'These records measure their named environmental quantities, not a uniquely established ecological cause.' },reviewQuestions(),signal);
@@ -142,7 +176,7 @@ export async function coordinate(session, request, emit, signal) {
        const {geojson,...geometry}=item.acquisition.geometry;
        const {submitted_request,metadata,...provenance}=item.acquisition.provenance;
        const {series,fitted,anomalies,...analysis}=item.analysis;
-       return {id:item.id,variable:item.acquisition.variable,geometry,provenance,analysis,figure:{available:true,description:'The interface and downloadable illustrated report render the retained dated observations and fitted trend; missing periods break the plotted line.'}};
+       return {id:item.id,variable:item.acquisition.variable,geometry,provenance,analysis,ecosystem_context:item.acquisition.ecosystem_context||session.ecosystemContexts?.at(-1)||null,inference_role:item.acquisition.analysis_recipe?'Conditional sensitivity; do not replace the primary analysis or claim a repaired missingness process.':'Primary source analysis or explicitly labeled seasonal/support derivative.',figure:{available:true,description:'The interface and downloadable illustrated report render the retained dated observations and fitted trend; missing periods break the plotted line.'}};
      });
      const final=await promptRole(session.threads.gaia,'gaia',`Read updated gaia_evidence and deliver the complete actual report, not another plan. Return strict JSON {"reply":"complete report","follow_up":"one useful optional next step"}. Explain in ${session.depth==='technical'?'technical':'plain'} language. Include actual computed numbers, units, periods, uncertainty, missingness, method, sources and support. Cover every relevant artifact, executive conclusion, findings table or readable per-variable sections, relevant completed specialist findings, evidence-supported alternatives, dependencies, unavailable evidence, limitations and observations that could change the assessment. Cite owned artifact IDs and retrieved URLs. The application automatically draws each artifact's real monthly/annual time series and fitted trend in the evidence panel and illustrated report export. Refer to these figures by artifact/variable; do not claim plotting is unavailable or substitute fabricated ASCII trajectories. No plotting tool call is required. Intervals in analysis.interval are per-year, unlike slope_per_decade. Distinguish measurements, grid/model context, optical proxies, literature and user reports. Do not equate association with causation, greenness with deaths, occurrences with population abundance, a landscape polygon with forest-only coverage, missing data with a null finding, or a centre-point climate series with a regional mean. Report actual QA/sensitivity only. Failed acquisitions are failed, not pending. Completed reviews: ${JSON.stringify(reviews.filter(r=>r.status!=='failed'))}. Owned findings: ${JSON.stringify(findings)}. Hypothesis assessments: ${JSON.stringify(session.hypothesisRecords)}. Failed roles: ${JSON.stringify(reviews.filter(r=>r.status==='failed'))}.`,signal);
      const result=synthesisSchema.parse(assistantObject(final));

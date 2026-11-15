@@ -21,6 +21,33 @@ BASE = 'https://appeears.earthdatacloud.nasa.gov/api'
 PRODUCT = 'MOD13A3.061'
 EVI = '_1_km_monthly_EVI'
 QA = '_1_km_monthly_VI_Quality'
+INDICES = {'EVI': EVI, 'NDVI': '_1_km_monthly_NDVI'}
+
+
+def index_layer(request):
+    name = request.get('index', 'EVI')
+    if name not in INDICES:
+        raise ValueError('Select a registered terrestrial vegetation index: EVI or NDVI.')
+    return name, INDICES[name]
+
+
+def quality_masks(raw, quality, footprint, packed, fill):
+    quality_valid = np.isfinite(quality) & (quality >= 0) & (quality < 65535) & (quality == np.floor(quality))
+    q = np.where(quality_valid, quality, 65535).astype(np.uint16)
+    reasons = {
+        'invalid_science_or_fill': ~np.isfinite(raw) | (raw == fill) | (raw < (-2000 if packed else -0.2)) | (raw > (10000 if packed else 1.0)),
+        'invalid_qa_or_fill': ~quality_valid,
+        'modland_quality': (q & 3) != 0,
+        'low_usefulness': ((q >> 2) & 15) > 4,
+        'high_aerosol': ((q >> 6) & 3) == 3,
+        'adjacent_cloud': (q & (1 << 8)) != 0,
+        'mixed_cloud': (q & (1 << 10)) != 0,
+        'snow_ice': (q & (1 << 14)) != 0,
+        'shadow': (q & (1 << 15)) != 0}
+    valid = footprint.copy()
+    for rejected in reasons.values():
+        valid &= ~rejected
+    return valid, reasons
 
 
 class SafeRedirect(urllib.request.HTTPRedirectHandler):
@@ -78,6 +105,7 @@ def _task_id(request):
 
 
 def submit(request):
+    _, layer = index_layer(request)
     start, end = request.get('start'), request.get('end')
     if not isinstance(start, int) or not isinstance(end, int) or start < 2001 or end < start or end >= dt.date.today().year:
         raise ValueError('Monthly MOD13A3 analysis requires complete retrospective years from 2001.')
@@ -85,13 +113,13 @@ def submit(request):
     if geometry.get('type') not in ('Polygon', 'MultiPolygon'):
         raise ValueError('AppEEARS area extraction requires an owned polygon.')
     metadata, receipt = _json('/product/' + PRODUCT)
-    for layer in (EVI, QA):
-        if layer not in metadata or metadata[layer].get('Available') is False:
+    for selected_layer in (layer, QA):
+        if selected_layer not in metadata or metadata[selected_layer].get('Available') is False:
             raise ValueError('NASA does not currently expose the registered monthly EVI/QA layers.')
     token = _login()
     payload = {'task_type': 'area', 'task_name': 'GAIA-' + str(uuid.uuid4()), 'params': {
         'dates': [{'startDate': f'01-01-{start}', 'endDate': f'12-31-{end}'}],
-        'layers': [{'product': PRODUCT, 'layer': EVI}, {'product': PRODUCT, 'layer': QA}],
+        'layers': [{'product': PRODUCT, 'layer': layer}, {'product': PRODUCT, 'layer': QA}],
         'geo': {'type': 'FeatureCollection', 'features': [{'type': 'Feature', 'properties': {'name': request.get('label', 'Investigation region')}, 'geometry': geometry}]},
         'output': {'format': {'type': 'netcdf4'}, 'projection': 'geographic'}}}
     document, submitted = _json('/task', token, payload, 'POST')
@@ -148,9 +176,10 @@ def _find(dataset, term):
 
 def _reduce_file(path, request):
     from netCDF4 import Dataset, num2date
+    _, layer = index_layer(request)
     with Dataset(path) as dataset:
         dataset.set_auto_maskandscale(False)
-        evi, qa = _find(dataset, EVI), _find(dataset, QA)
+        evi, qa = _find(dataset, layer), _find(dataset, QA)
         if evi.dimensions != qa.dimensions or evi.shape != qa.shape or len(evi.shape) != 3:
             raise ValueError('EVI and QA grids are not aligned time/latitude/longitude arrays.')
         dims = list(evi.dimensions)
@@ -179,33 +208,53 @@ def _reduce_file(path, request):
         # AppEEARS exposes float32 already-scaled EVI as well as NetCDF-packed
         # integer representations. Never apply the original HDF scale twice.
         packed = 'scale_factor' in evi.ncattrs() or np.issubdtype(evi.dtype, np.integer)
-        scale = float(getattr(evi, 'scale_factor', request['metadata'][EVI]['ScaleFactor'])) if packed else 1.0
+        scale = float(getattr(evi, 'scale_factor', request['metadata'][layer]['ScaleFactor'])) if packed else 1.0
         if (packed and not np.isclose(scale, 0.0001)) or float(getattr(evi, 'add_offset', 0)) != 0:
             raise ValueError('Unexpected EVI scaling; registered raw-integer recipe cannot be applied.')
         fill = float(getattr(evi, '_FillValue', -3000))
         time = dataset[time_dim]
         dates = num2date(time[:], time.units, calendar=getattr(time, 'calendar', 'standard'))
-        rows = []
-        for i, date in enumerate(dates):
+        months = request.get('support_months') or list(range(1, 13))
+        if not isinstance(months, list) or not months or any(type(m) is not int or not 1 <= m <= 12 for m in months) or len(set(months)) != len(months):
+            raise ValueError('Common-support comparison months must be distinct calendar months.')
+        def frame(i):
             selection = [slice(None)] * 3
             selection[dims.index(time_dim)] = i
             raw, quality = np.asarray(evi[tuple(selection)]), np.asarray(qa[tuple(selection)])
             if dims.index(lat_dim) > dims.index(lon_dim):
                 raw, quality = raw.T, quality.T
-            quality_valid = np.isfinite(quality) & (quality >= 0) & (quality < 65535) & (quality == np.floor(quality))
-            q = np.where(quality_valid, quality, 65535).astype(np.uint16)
-            valid = footprint & quality_valid & np.isfinite(raw) & (raw != fill) & (raw >= (-2000 if packed else -0.2)) & (raw <= (10000 if packed else 1.0))
-            valid &= ((q & 3) == 0) & (((q >> 2) & 15) <= 4) & (((q >> 6) & 3) < 3)
-            valid &= ((q & (1 << 8)) == 0) & ((q & (1 << 10)) == 0) & ((q & (1 << 14)) == 0) & ((q & (1 << 15)) == 0)
+            valid, reasons = quality_masks(raw, quality, footprint, packed, fill)
+            return raw, valid, reasons
+        common = footprint.copy()
+        selected_dates = set()
+        for i, when in enumerate(dates):
+            if when.month in months:
+                _, valid, _ = frame(i)
+                common &= valid
+                selected_dates.add((when.year, when.month))
+        expected_dates = {(year, month) for year in range(request['start'], request['end'] + 1) for month in months}
+        if selected_dates != expected_dates:
+            common[:] = False
+        total = float(weights[footprint].sum())
+        common_area = float(weights[common].sum())
+        common_hash = hashlib.sha256(lon.astype('<f8').tobytes() + lat.astype('<f8').tobytes() + np.packbits(common).tobytes()).hexdigest()
+        rows = []
+        for i, date in enumerate(dates):
+            raw, valid, reasons = frame(i)
             total = float(weights[footprint].sum())
             accepted = float(weights[valid].sum())
             coverage = accepted / total
             value = float(np.sum(raw[valid] * scale * weights[valid]) / accepted) if accepted and coverage >= request.get('min_coverage', 0.8) else None
-            rows.append({'date': f'{date.year:04d}-{date.month:02d}-01', 'value': value, 'valid_pixels': int(valid.sum()), 'footprint_pixels': int(footprint.sum()), 'valid_area_fraction': coverage, 'applied_scale_factor': scale, 'quality': 'qa_area_mean' if value is not None else 'insufficient_qa_coverage'})
+            stable_value = float(np.sum(raw[common] * scale * weights[common]) / common_area) if common_area and date.month in months else None
+            rows.append({'date': f'{date.year:04d}-{date.month:02d}-01', 'value': value, 'valid_pixels': int(valid.sum()), 'footprint_pixels': int(footprint.sum()), 'valid_area_fraction': coverage, 'applied_scale_factor': scale, 'quality': 'qa_area_mean' if value is not None else 'insufficient_qa_coverage',
+                'rejected_pixels_by_flag': {name: int((footprint & rejected).sum()) for name, rejected in reasons.items()},
+                'common_support_value': stable_value, 'common_support_pixels': int(common.sum()), 'common_support_area_fraction': common_area / total, 'common_support_mask_sha256': common_hash,
+                'common_support_months': sorted(months)})
     return rows
 
 
 def collect(request):
+    index_name, layer = index_layer(request)
     task_id = _task_id(request)
     token = _login()
     task, _ = _json('/task/' + task_id, token)
@@ -217,7 +266,7 @@ def collect(request):
         if task.get('params', {}).get(key) != expected[key]:
             raise ValueError('NASA task geometry/calendar/product differs from its owned submission.')
     actual_layers = {(item.get('product'), item.get('layer')) for item in task.get('params', {}).get('layers', [])}
-    if not {(PRODUCT, EVI), (PRODUCT, QA)}.issubset(actual_layers) or any(product != PRODUCT for product, _ in actual_layers):
+    if not {(PRODUCT, layer), (PRODUCT, QA)}.issubset(actual_layers) or any(product != PRODUCT for product, _ in actual_layers):
         raise ValueError('NASA task product or required science/QA layers differ from its owned submission.')
     bundle, receipt = _json('/bundle/' + task_id, token)
     files = [f for f in bundle.get('files', []) if f.get('file_name', '').lower().endswith(('.nc', '.nc4'))]
@@ -245,5 +294,6 @@ def collect(request):
     series = [by_date.get(f'{year}-{month:02d}-01', {'date': f'{year}-{month:02d}-01', 'value': None, 'quality': 'missing_provider_month'}) for year in range(request['start'], request['end'] + 1) for month in range(1, 13)]
     from .catalog import VARIABLES
     variable = dict(next(v for v in VARIABLES if v['id'] == 'EVI'))
-    variable.update({'provider': 'NASA AppEEARS / MODIS MOD13A3.061', 'cadence': 'monthly', 'support': 'Spherical cell-area-weighted QA-filtered EVI at pixel centres inside the source polygon; 1-km monthly MOD13A3 Collection 6.1.', 'source': 'https://www.earthdata.nasa.gov/data/catalog/lpcloud-mod13a3-061'})
-    return {'series': series, 'frequency': 'monthly', 'bandwidth': 12, 'variable': variable, 'geometry': {'type': 'polygon_area_mean', 'label': request['label'], 'geojson': request['geometry'], 'boundary_source': request['boundary_source'], 'boundary_sha256': request['boundary_sha256'], 'latitude': request['latitude'], 'longitude': request['longitude'], 'context_point_definition': 'bounding-box centre; not an atmospheric polygon mean'}, 'provenance': {**receipt, 'provider': 'NASA AppEEARS / MODIS', 'product': PRODUCT, 'task_id': task_id, 'submitted_request': request['submitted_request'], 'files': receipts, 'metadata': request['metadata'], 'metadata_receipt': request['metadata_receipt'], 'recipe': {'version': 'appeears_mod13a3_polygon_v1', 'scale': 0.0001, 'spatial_weighting': 'spherical cell-area weights; pixel centres inside polygon, holes excluded', 'minimum_valid_area_fraction': request.get('min_coverage', 0.8), 'qa': 'MODLAND 0; usefulness <=4; aerosol not high; no adjacent/mixed cloud, snow or shadow; valid raw range; fill excluded', 'temporal': 'provider monthly product; every requested month retained, insufficient support becomes missing'}}, 'limitations': ['EVI is canopy optical greenness, not mortality, species identity or biomass.', 'Polygon is not forest-only without a compatible forest mask; landscape change must not be called forest-specific change.', 'Valid-pixel support may vary between months; cloud/aerosol/seasonal and retrieval effects can remain. Missing months are not interpolated.', 'Pixel-centre inclusion approximates polygon-edge areas at 1-km resolution; partial boundary cells are not intersected exactly.', 'Nearby or centre-point POWER series are climate context, not spatially matched regional means or causal attribution.']}
+    variable.update(id=index_name, name=f'Vegetation greenness ({index_name})', definition=f'{index_name} is a terrestrial optical vegetation index, not ecosystem health, species composition, biomass, mortality or aquatic chlorophyll.')
+    variable.update({'provider': 'NASA AppEEARS / MODIS MOD13A3.061', 'cadence': 'monthly', 'support': f'Spherical cell-area-weighted QA-filtered {index_name} at pixel centres inside the source polygon; 1-km monthly MOD13A3 Collection 6.1.', 'source': 'https://www.earthdata.nasa.gov/data/catalog/lpcloud-mod13a3-061'})
+    return {'series': series, 'frequency': 'monthly', 'bandwidth': 12, 'variable': variable, 'ecosystem_context': request.get('ecosystem_context'), 'geometry': {'type': 'polygon_area_mean', 'label': request['label'], 'geojson': request['geometry'], 'boundary_source': request['boundary_source'], 'boundary_sha256': request['boundary_sha256'], 'latitude': request['latitude'], 'longitude': request['longitude'], 'context_point_definition': 'bounding-box centre; not an atmospheric polygon mean'}, 'provenance': {**receipt, 'provider': 'NASA AppEEARS / MODIS', 'product': PRODUCT, 'task_id': task_id, 'submitted_request': request['submitted_request'], 'files': receipts, 'metadata': request['metadata'], 'metadata_receipt': request['metadata_receipt'], 'recipe': {'version': 'appeears_mod13a3_polygon_v2', 'index': index_name, 'original_packed_scale': 0.0001, 'applied_scale_factors': sorted({row['applied_scale_factor'] for row in rows}), 'spatial_weighting': 'spherical cell-area weights; pixel centres inside polygon, holes excluded', 'minimum_valid_area_fraction': request.get('min_coverage', 0.8), 'qa': 'MODLAND 0; usefulness <=4; aerosol not high; no adjacent/mixed cloud, snow or shadow; valid raw range; fill excluded', 'rejection_counts': 'Per-flag counts overlap; do not add them to estimate total rejected pixels or ecological causes.', 'common_support': 'Intersection of QA-valid pixels across every requested date in declared support_months; sensitivity only, not a biome mask or the full polygon mean. No complete intersection means unavailable.', 'temporal': 'provider monthly product; every requested month retained, insufficient support becomes missing'}}, 'limitations': [f'{index_name} is terrestrial canopy optical greenness, not mortality, species identity, biomass, ocean chlorophyll or ice condition.', 'Polygon is not ecosystem-specific without a compatible dated cover mask; landscape change must not be called forest-, grassland-, wetland- or other biome-specific change.', 'Valid-pixel support may vary between months; cloud/aerosol/seasonal and retrieval effects can remain. Missing months are not interpolated.', 'QA flag counts overlap and indicate retrieval flags, not verified causes of ecological change.', 'Common-pixel support is a potentially unrepresentative subset, not independent confirmation or a biome classification.', 'Pixel-centre inclusion approximates polygon-edge areas at 1-km resolution; partial boundary cells are not intersected exactly.', 'Nearby or centre-point POWER series are climate context, not spatially matched regional means or causal attribution.']}

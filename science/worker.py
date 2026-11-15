@@ -42,12 +42,22 @@ def execute(request):
     elif operation == 'aggregate_season':
         from .aggregation import seasonal
         acquisition = seasonal(request)
+    elif operation == 'gap_sensitivity':
+        from .gap_trends import sensitivity
+        acquisition = sensitivity(request)
+    elif operation == 'common_support':
+        from .support import common_support
+        acquisition = common_support(request)
     elif operation in ("power", "modis", "import"):
         acquisition = {"power": power, "modis": modis, "import": import_csv}[operation](request)
     else:
         raise ValueError("Unknown registered scientific operation.")
     recipe = acquisition.get("frequency", "monthly")
-    result = analyze(acquisition["series"], frequency=recipe, bandwidth=acquisition.get("bandwidth", 12), min_years=20)
+    if acquisition.get('analysis_recipe', {}).get('method') == 'calendar_distance_ols_hac_sensitivity_v1':
+        from .gap_trends import analyze_gaps
+        result = analyze_gaps(acquisition, acquisition['analysis_recipe']['rationale'])
+    else:
+        result = analyze(acquisition["series"], frequency=recipe, bandwidth=acquisition.get("bandwidth", 12), min_years=20)
     result["limitations"].extend(acquisition.get("limitations", []))
     import numpy, scipy, pandas, statsmodels
     return {"acquisition": acquisition, "analysis": result, "environment": {"python": platform.python_version(), "numpy": numpy.__version__, "scipy": scipy.__version__, "pandas": pandas.__version__, "statsmodels": statsmodels.__version__}}

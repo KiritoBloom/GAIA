@@ -11,6 +11,7 @@ function coordinates(geometry) {
       if(!Array.isArray(ring)||ring.length<4)throw Error('Polygon rings must be closed and contain at least four vertices.');
       for(const point of ring){if(!Array.isArray(point)||!Number.isFinite(point[0])||!Number.isFinite(point[1])||Math.abs(point[0])>180||Math.abs(point[1])>90)throw Error('Boundary coordinates must be geographic longitude/latitude.');points.push(point);}
       if(ring[0][0]!==ring.at(-1)[0]||ring[0][1]!==ring.at(-1)[1])throw Error('Polygon ring is not closed.');
+      if(ring.some((point,index)=>index>0&&Math.abs(point[0]-ring[index-1][0])>180))throw Error('A dateline-crossing boundary needs a source-provided antimeridian-split MultiPolygon; planar pixel inclusion cannot silently reinterpret it.');
     }
   }
   return points;
