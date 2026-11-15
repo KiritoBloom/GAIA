@@ -17,6 +17,9 @@ def execute(request):
         return {"variables": VARIABLES, "resources": RESOURCES}
     if operation == "sites":
         return sites()
+    if operation in ('appeears_submit', 'appeears_status'):
+        from .appeears import submit, status
+        return {'appeears_submit': submit, 'appeears_status': status}[operation](request)
     if operation == "noaa_stations":
         return noaa_stations(request)
     if operation == 'animal_occurrences':
@@ -33,6 +36,12 @@ def execute(request):
         return compare(request)
     if operation == "analyze":
         acquisition = request["acquisition"]
+    elif operation == 'appeears_collect':
+        from .appeears import collect
+        acquisition = collect(request)
+    elif operation == 'aggregate_season':
+        from .aggregation import seasonal
+        acquisition = seasonal(request)
     elif operation in ("power", "modis", "import"):
         acquisition = {"power": power, "modis": modis, "import": import_csv}[operation](request)
     else:
@@ -46,9 +55,9 @@ def execute(request):
 
 if __name__ == "__main__":
     try:
-        content = sys.stdin.read(2_500_001)
-        if len(content) > 2_500_000:
-            raise ValueError("Scientific request size exceeded.")
+        # This is an internal owned-artifact pipe, not the public HTTP body.
+        # Real government polygon boundaries can legitimately exceed 2.5 MB.
+        content = sys.stdin.read()
         result = execute(json.loads(content))
         print(json.dumps({"ok": True, "result": result}, allow_nan=False))
     except (ValueError, KeyError, TypeError) as exc:

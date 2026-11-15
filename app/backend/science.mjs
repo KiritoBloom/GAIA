@@ -15,6 +15,7 @@ export function science(input, signal, onProgress, capability) {
     signal?.addEventListener('abort', abort, { once: true });
     child.stdout.on('data', chunk => { output += chunk; if (output.length > 16_000_000) { child.kill(); finish(new Error('Scientific output budget exceeded.')); } });
     child.stderr.on('data', () => {}); // Never send internal traces/paths/credentials to the browser.
+    child.stdin.on('error', () => { /* Close handler reports structured worker failure; a closed pipe must not crash the server. */ });
     child.on('error', () => finish(new Error('Project-local Python worker unavailable. Run npm run setup.')));
     child.on('close', code => {
       if (settled) return;

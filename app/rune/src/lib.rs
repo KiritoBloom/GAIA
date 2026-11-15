@@ -56,7 +56,7 @@ impl Default for State {
         fields[30]=TextEdit::new("");
         fields[32]=TextEdit::new("5,6,7,8,9");
         fields[33]=TextEdit::new("");
-        Self { tab: Tab::System, selected: String::new(), snapshot: json!({}), revision: String::new(),
+        Self { tab: Tab::Conversation, selected: String::new(), snapshot: json!({}), revision: String::new(),
             fields,field_domain:"chloris".to_string(),handoff_confirmed:false,import_domain:"aura".to_string(),research_view:ResearchView::Sources,record_view:RecordView::Graph,paper_id:String::new(),evidence_panel:EvidencePanel::Summary,evidence_view:EvidenceView::Findings,audit_open:false,cache: None, marks: vec![], chart: None, chart_key: String::new(), scenario:None,scenario_key:String::new(),graph:None,graph_key:String::new() }
     }
 }
@@ -77,7 +77,9 @@ fn poll(s: &mut State, _: f64, _: &mut Tx) -> bool {
     let Ok(value) = serde_json::from_str::<Value>(&raw) else { return false; };
     s.revision = raw;
     s.snapshot = value;
-    if let Some(selected)=s.snapshot["selected"].as_str() { if s.selected!=selected{s.fields[0]=TextEdit::new(&string(&s.snapshot["draft"]));s.tab=Tab::System;s.selected=selected.to_owned();} }
+    if let Some(selected)=s.snapshot["selected"].as_str() { if s.selected!=selected{s.fields[0]=TextEdit::new(&string(&s.snapshot["draft"]));s.tab=Tab::Conversation;s.selected=selected.to_owned();} }
+    let draft=string(&s.snapshot["draft"]);
+    if s.fields[0].text!=draft{s.fields[0]=TextEdit::new(&draft);}
     if let Some(candidate)=s.snapshot["providerCandidate"].as_object() {
         if s.fields[6].text.is_empty() { s.fields[6]=TextEdit::new(candidate.get("name").and_then(Value::as_str).unwrap_or("")); }
         if s.fields[7].text.is_empty() { s.fields[7]=TextEdit::new(candidate.get("endpoint").and_then(Value::as_str).unwrap_or("")); }
@@ -93,13 +95,27 @@ fn poll(s: &mut State, _: f64, _: &mut Tx) -> bool {
     if graph!=s.graph_key{s.graph_key=graph.clone();s.graph=s.cache.as_ref().filter(|_|!graph.is_empty()).map(|cache|cache.load(Arc::<[u8]>::from(graph.as_bytes())));}
     true
 }
-fn string(value: &Value) -> String { value.as_str().unwrap_or("").to_owned() }
+fn string(value: &Value) -> String { value.as_str().unwrap_or("").replace("Â·", "·") }
 fn list(value: &Value) -> &[Value] { value.as_array().map(Vec::as_slice).unwrap_or(&[]) }
-fn label(value: impl Into<String>) -> El { text(value.into()).font(TextStyle::new(14., 400.)).w_full().wrap_anywhere() }
-fn heading(value: impl Into<String>) -> El { text(value.into()).font(TextStyle::new(24., 600.)).w_full().wrap() }
+fn label(value: impl Into<String>) -> El { text(value.into()).font(TextStyle::new(14., 400.)).color(rune::color::hex("#24352b").unwrap_or(rune::Color::BLACK)).w_full().wrap_anywhere() }
+fn heading(value: impl Into<String>) -> El { text(value.into()).font(TextStyle::new(24., 600.)).color(rune::color::hex("#24352b").unwrap_or(rune::Color::BLACK)).w_full().wrap() }
+fn report_text(value:&str)->El{
+    let mut body=col().w_full().gap(7.);
+    for source in value.lines(){
+        let item=source.trim();if item.is_empty(){continue;}
+        if let Some(title)=item.strip_prefix("### "){body=body.child(text(title).font(TextStyle::new(16.,650.)).color(rune::color::hex("#24352b").unwrap_or(rune::Color::BLACK)).w_full().wrap());}
+        else if let Some(title)=item.strip_prefix("## "){body=body.child(text(title).font(TextStyle::new(20.,650.)).color(rune::color::hex("#24352b").unwrap_or(rune::Color::BLACK)).w_full().wrap());}
+        else if let Some(title)=item.strip_prefix("# "){body=body.child(text(title).font(TextStyle::new(24.,650.)).color(rune::color::hex("#24352b").unwrap_or(rune::Color::BLACK)).w_full().wrap());}
+        else if ["Executive conclusion","Evidence and findings","Rates are not accumulated rainfall","Method and interpretation","Sensitivity and QA","Specialist review and source dependence","Spatial support and alternative interpretations","Provenance and sources","Remaining limitations"].contains(&item) || (item.chars().any(char::is_alphabetic) && item==item.to_uppercase() && item.chars().count()<100){body=body.child(heading(item));}
+        else if let Some(point)=item.strip_prefix("- ").or_else(||item.strip_prefix("* ")){body=body.child(label(format!("• {point}")));}
+        else if item.starts_with("| "){body=body.child(label(item));}
+        else if !item.starts_with("```") {body=body.child(label(item));}
+    }
+    body.into()
+}
 fn line(title: &str, value: &Value) -> El {
     let content = match value { Value::Null => "Not available".to_owned(), Value::String(v) => v.clone(), _ => value.to_string() };
-    col().w_full().gap(4.).child(text(title).font(TextStyle::new(12., 600.))).child(label(content)).into()
+    col().w_full().gap(4.).child(text(title).font(TextStyle::new(12., 600.)).color(rune::color::hex("#24352b").unwrap_or(rune::Color::BLACK))).child(label(content)).into()
 }
 fn surface(body:El,background:&str)->El{
     body.fill(rune::color::hex(background).unwrap_or(rune::Color::BLACK)).radius(14.).padding(20.)
@@ -111,7 +127,7 @@ fn number(value:&Value)->String{
     if v!=0.&&v.abs()<0.0001{format!("{v:.3e}")}else{format!("{v:.4}")}
 }
 fn metric(title:&str,value:&Value)->El{
-    col().grow(1.).min_w(0.).gap(5.).child(text(title).font(TextStyle::new(12.,500.))).child(text(number(value)).font(TextStyle::new(23.,500.)).w_full().wrap()).into()
+    col().grow(1.).min_w(0.).gap(5.).child(text(title).font(TextStyle::new(12.,500.)).color(rune::color::hex("#24352b").unwrap_or(rune::Color::BLACK))).child(text(number(value)).font(TextStyle::new(23.,500.)).color(rune::color::hex("#24352b").unwrap_or(rune::Color::BLACK)).w_full().wrap()).into()
 }
 fn evidence_summary(s:&State,k:&Kit)->El{
     let artifact=&s.snapshot["artifact"];let variable=&artifact["acquisition"]["variable"];let analysis=&artifact["analysis"];
@@ -162,7 +178,7 @@ fn inspect(k: &Kit, title: &str, values: &[Value]) -> El {
                 if !item[key].is_null(){card=card.child(line(name,&item[key]));}
             }
         }
-        body=body.child(surface(card,"#111a16"));
+        body=body.child(surface(card,"#f3f2ec"));
     }
     body.child(button(k,"Refresh records","refresh",json!({}))).into()
 }
@@ -172,39 +188,94 @@ fn provider(s: &State, k: &Kit) -> El {
         .child(button(k,"Discover configured provider models","provider-discover",json!({})))
         .child(field(s,k,6,"Provider name",false)).child(field(s,k,7,"Compatible API base URL",false))
         .child(field(s,k,8,"API key (session only)",true)).child(field(s,k,9,"Model identifier",false));
-    for model in list(&s.snapshot["models"]).iter().take(30) {
+    for model in list(&s.snapshot["models"]).iter() {
         let name=string(model); let picked=name.clone();
         body=body.child(Button::new(name).build(k).on_press(move |s: &mut State| s.fields[9]=TextEdit::new(&picked)));
     }
     body=body.child(Button::new("Discover endpoint models").build(k).on_press(|s: &mut State| {
         command("provider-models",json!({"endpoint":s.fields[7].text,"apiKey":s.fields[8].text}));
-    })).child(Button::new("Connect and verify role tools").build(k).on_press(|s: &mut State| {
+    })).child(Button::new("Connect provider and start with GAIA").variant(rune_kit::ButtonVariant::Submit).build(k).on_press(|s: &mut State| {
         command("provider-connect",json!({"name":s.fields[6].text,"endpoint":s.fields[7].text,"apiKey":s.fields[8].text,"model":s.fields[9].text}));
         s.fields[8]=TextEdit::new("");
     })).child(button(k,"Disconnect and clear provider key","provider-remove",json!({})))
-        .child(line("Connection verified",&s.snapshot["status"]["tested"]));
+        .child(line("Connected",&s.snapshot["status"]["configured"]))
+        .child(label("The optional role/tool check is synthetic routing evidence, not scientific validation. You can chat as soon as a provider is connected; real source failures are reported within the investigation."))
+        .child(button(k,"Run optional synthetic role/tool check","provider-proof",json!({})));
     if !s.snapshot["status"]["proof"].is_null(){body=body.child(line("Actual role checks completed",&s.snapshot["status"]["proof"]["completed"])).child(line("Role checks in progress",&s.snapshot["status"]["proof"]["active"]));}
     body.into()
 }
 fn conversation(s: &State, k: &Kit, current: &Value) -> El {
-    let mut body=col().w_full().gap(18.).child(heading("Investigation question"));
-    if current["chatRunning"].as_bool().unwrap_or(false){body=body.child(button(k,"Stop investigation and retain partial evidence","chat-stop",selected_action(s)));}
+    let running=current["chatRunning"].as_bool().unwrap_or(false);
+    let mut body=col().w_full().max_w(980.).gap(18.).child(heading("Talk to GAIA"))
+        .child(label("Tell GAIA what changed, where, and what you want to understand. She’ll fill in the method, data and specialist work; she’ll ask only if a missing detail would change the investigation."));
+    if running{body=body.child(surface(row().w_full().gap(10.).child(label("Investigation in progress · completed evidence is retained as it arrives")).child(button(k,"Stop","chat-stop",selected_action(s))),"#e3eee5"));}
+    for extraction in list(&current["extractions"]){
+        let mut progress=col().w_full().gap(8.).child(heading("NASA regional extraction")).child(line("Provider task",&extraction["task_id"])).child(line("Status",&extraction["status"])).child(label("A fresh AppEEARS polygon task is processed by NASA. Its monthly EVI, QA and checksums must be verified before a regional trend is published."));
+        if string(&extraction["status"])!="collected" && !running{progress=progress.child(button(k,"Continue this NASA task · no duplicate submission","extraction-resume",json!({"sessionID":s.selected,"extraction_id":extraction["id"]})));}
+        if !extraction["failure"].is_null(){progress=progress.child(line("Acquisition issue",&extraction["failure"]));}
+        body=body.child(surface(progress,"#e3eee5"));
+    }
     let last_update=list(&current["evidenceUpdates"]).last().and_then(|item|item["time"].as_str());
     let last_gaia=list(&current["messages"]).iter().rev().find(|item|string(&item["role"])=="gaia").and_then(|item|item["time"].as_str());
     if last_update.is_some_and(|updated|last_gaia.is_none_or(|reply|updated>reply)){
-        body=body.child(surface(col().w_full().gap(8.).child(heading("Evidence changed since GAIA’s last reply")).child(label("Conversation history is preserved. For the current trend, uncertainty, support limits and latest protocol update, use the live Mission Control evidence read.")).child(Button::new("Open the current evidence read").build(k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::System)),"#13231d"));
+        body=body.child(surface(col().w_full().gap(8.).child(heading("New evidence is ready")).child(label("Your conversation is preserved. Open the evidence record for the latest measured trend, uncertainty, support and source details.")).child(Button::new("Open evidence record").build(k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Evidence)),"#e3eee5"));
     }
-    for message in list(&current["messages"]).iter().rev().take(12).rev() {
-        body=body.child(line(&string(&message["role"]),&message["text"]));
+    let messages=list(&current["messages"]);
+    if !running && !s.snapshot["artifact"].is_null(){
+        let artifact=&s.snapshot["artifact"];let analysis=&artifact["analysis"];let variable=&artifact["acquisition"]["variable"];
+        let mut overview=col().w_full().gap(16.).child(label("EVIDENCE AT A GLANCE · LIVE NASA ACQUISITION")).child(heading(format!("{} · {}",string(&variable["name"]),string(&artifact["acquisition"]["geometry"]["label"]))))
+            .child(row().w_full().gap(18.).child(metric("Change per decade",&analysis["slope_per_decade"])).child(metric("Nominal p-value",&analysis["p_value"])).child(metric("Valid observations",&analysis["n"])))
+            .child(label(format!("{} to {} · {} · {}",string(&analysis["requested_start"]),string(&analysis["requested_end"]),string(&variable["units"]),string(&analysis["status"]))));
+        if let Some(chart)=&s.chart{overview=overview.child(el().w_full().h(270.).pixels(chart.pixels()));}
+        overview=overview.child(label("Green: observed source values. Gold: fitted seasonal trend. Horizontal axis: year; vertical axis: the units above. Gaps are not interpolated. Source-specific uncertainty and limitations follow."))
+            .child(button(k,"Download illustrated report","report-export",selected_action(s)));
+        body=body.child(surface(overview,"#e3eee5"));
+    }
+    if messages.is_empty(){
+        body=body.child(surface(col().w_full().gap(10.).child(label("A good first question can be simple:")).child(heading("“Has vegetation greenness changed near Manaus, and what might be related?”")).child(label("GAIA will resolve the place, choose a useful retrospective period, gather live evidence and explain what the data can—and cannot—say.")),"#eaf0e8"));
+        for prompt in ["Amazon rainforest greenness trend","Heat or rainfall around the Great Barrier Reef","A change in my local environment"]{
+            let selected=prompt.to_string();body=body.child(Button::new(prompt).variant(rune_kit::ButtonVariant::Outline).build(k).min_h(44.).on_press(move|s:&mut State|{s.fields[0]=TextEdit::new(&selected);command("draft",json!({"sessionID":s.selected,"text":s.fields[0].text}));}));
+        }
+    }
+    for message in messages.iter() {
+        let role=string(&message["role"]);
+        let mine=role=="user";
+        let title=if mine{"YOU"}else{"GAIA · INVESTIGATION REPORT"};
+        let content=if mine{label(string(&message["text"]))}else{report_text(&string(&message["text"]))};
+        let card=col().w_full().gap(10.).child(label(title))
+            .child(content);
+        body=body.child(surface(card,if mine{"#e2ebe1"}else{"#f0f3ed"}));
         if !message["label"].is_null() { body=body.child(line("Evidence status",&message["label"])); }
     }
-    body.child(col().w_full().gap(6.).child(label("Question, region, period and available observations")).child(TextArea::new(&s.fields[0]).label("Investigation question").width(None).auto_grow(3,8).max_height(220.).on_edit(|s:&mut State|&mut s.fields[0]).on_change(|s:&mut State,_|command("draft",json!({"sessionID":s.selected,"text":s.fields[0].text}))).build(k)))
-        .child(Button::new("Submit question").build(k).on_press(|s: &mut State| {
-            command("chat",json!({"sessionID":s.selected,"text":s.fields[0].text}));s.fields[0]=TextEdit::new("");command("draft",json!({"sessionID":s.selected,"text":""}));
-        }))
-        .child(button(k,"Plain-language explanations","depth",json!({"sessionID":s.selected,"depth":"plain"})))
-        .child(button(k,"Technical explanations","depth",json!({"sessionID":s.selected,"depth":"technical"})))
-        .child(label("Investigations continue until completed or stopped. Provider costs and source-request approvals remain visible; stalled individual requests are handled separately.")).into()
+    if !current["chatRunning"].as_bool().unwrap_or(false) && !list(&current["artifacts"]).is_empty(){
+        let selected_artifact=string(&s.snapshot["artifact"]["id"]);
+        let mut report=col().w_full().gap(16.).child(label("LIVE EVIDENCE · REPRODUCIBLE TREND ANALYSIS"))
+            .child(heading("What the data show"))
+            .child(label("Each card reports the source-specific estimate and support. Select a dataset in Evidence to inspect its dated observations, QA and complete model specification."));
+        for artifact in list(&current["artifacts"]).iter(){
+            let analysis=&artifact["analysis"];let acquisition=&artifact["acquisition"];let variable=&acquisition["variable"];
+            let status=match analysis["status"].as_str().unwrap_or(""){"detected"=>"TREND DETECTED UNDER THE STATED MODEL","not_detected"=>"NO TREND DETECTED AT THE NOMINAL THRESHOLD","descriptive_only"=>"DESCRIPTIVE ESTIMATE · INFERENCE WITHHELD",_=>"INCONCLUSIVE · SEE SUPPORT AND LIMITATIONS"};
+            let mut card=col().w_full().gap(11.).child(label(status))
+                .child(heading(format!("{} · {}",string(&variable["name"]),string(&variable["units"]))))
+                .child(label(format!("{} to {} · {} valid points · {}",string(&analysis["requested_start"]),string(&analysis["requested_end"]),number(&analysis["n"]),string(&acquisition["geometry"]["label"]))))
+                .child(row().w_full().gap(18.).child(metric("Slope per decade",&analysis["slope_per_decade"])).child(metric(&format!("{:.0}% interval · per year",100.*(1.-analysis["specification"]["alpha"].as_f64().unwrap_or(0.05))),&analysis["interval"])).child(metric("Nominal p-value",&analysis["p_value"])))
+                .child(line("Spatial and temporal support",&variable["support"]))
+                .child(line("Live source",&acquisition["provenance"]["provider"]));
+            if string(&artifact["id"])==selected_artifact{if let Some(chart)=&s.chart{card=card.child(el().w_full().h(270.).pixels(chart.pixels())).child(label("Dated observations and fitted trend are shown separately; missing periods remain gaps."));}}
+            card=card.child(button(k,"Show this dataset’s chart","artifact-select",json!({"artifactID":artifact["id"]})));
+            report=report.child(surface(card,"#f0f3ed"));
+        }
+        report=report.child(label("Interpretation boundary: statistical trend detection is not proof of a cause. Grid and satellite products retain their stated footprint and cannot establish local weather, regional mean conditions, species identity or deaths without matching observations."))
+            .child(Button::new("Inspect data, QA, model specifications and limitations").build(k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Evidence));
+        body=body.child(surface(report,"#f0f3ed")).child(button(k,"Download illustrated report · HTML / print to PDF","report-export",selected_action(s))).child(button(k,"Download reproducible investigation · JSON","export",selected_action(s)));
+    }
+    let composer=col().w_full().gap(8.).child(TextArea::new(&s.fields[0]).label("Describe your Earth question…").width(None).auto_grow(3,8).max_height(220.).on_edit(|s:&mut State|&mut s.fields[0]).on_change(|s:&mut State,_|command("draft",json!({"sessionID":s.selected,"text":s.fields[0].text}))).build(k))
+        .child(row().w_full().gap(8.).child(Button::new(if running{"GAIA is working…"}else{"Investigate with GAIA"}).variant(rune_kit::ButtonVariant::Submit).build(k).min_h(48.).on_press(|s: &mut State| {
+            if list(&s.snapshot["status"]["sessions"]).iter().any(|session|string(&session["id"])==s.selected && session["chatRunning"].as_bool().unwrap_or(false)){return;}
+            command("chat",json!({"sessionID":s.selected,"text":s.fields[0].text}));
+        })))
+        .child(label("GAIA chooses a clear, accessible explanation by default. Ask for a detailed or technical report whenever you like."));
+    body.child(surface(composer,"#f3f2ec")).into()
 }
 fn investigation(s: &State, k: &Kit, current: &Value, compact:bool) -> El {
     let mut body=col().w_full().gap(16.).child(heading("Evidence records"))
@@ -252,7 +323,7 @@ fn investigation(s: &State, k: &Kit, current: &Value, compact:bool) -> El {
         let evidence=list(&hypothesis["evidence"]);
         let statuses=["supported_signatures","contradicted_signatures","context_only","untestable","unresolved"];
         let counts=statuses.iter().filter_map(|status|{let count=evidence.iter().filter(|item|string(&item["status"])==*status).count();(count>0).then(||format!("{status}: {count}"))}).collect::<Vec<_>>().join(" · ");
-        body=body.child(surface(col().w_full().gap(8.).child(heading(string(&hypothesis["name"]))).child(label(string(&hypothesis["expectation"]))).child(label(format!("{} assessment(s) · {}",evidence.len(),if counts.is_empty(){"no assessments".to_string()}else{counts}))),"#14221e"));
+        body=body.child(surface(col().w_full().gap(8.).child(heading(string(&hypothesis["name"]))).child(label(string(&hypothesis["expectation"]))).child(label(format!("{} assessment(s) · {}",evidence.len(),if counts.is_empty(){"no assessments".to_string()}else{counts}))),"#edf1e8"));
     }
     let plan=if current["observationPlan"]["protocol"].is_object(){&current["observationPlan"]["protocol"]}else{&current["observationPlan"]};
     if !plan.is_null(){
@@ -419,13 +490,24 @@ fn mission_control(s:&State,k:&Kit,current:&Value,compact:bool)->El{
     body.into()
 }
 fn view(s: &State, _: &mut Cx<State>) -> El {
-    let k=rune_theme_opencode::kit(true);let theme=rune::tok::theme(true);let current=session(s);
-    let mut sidebar=col().w(240.).h_full().padding(20.).gap(14.).fill(theme.bg).child(heading("GAIA"))
-        .child(label("Earth-system analysis"))
+    let k=rune_theme_opencode::kit(false);let theme=rune::tok::theme(false);let current=session(s);
+    let mut sidebar=col().w(250.).h_full().padding(20.).gap(12.).fill(theme.bg).child(heading("GAIA"))
+        .child(label("EARTH SYSTEMS · FIELD DESK"))
+        .child(label("One investigator. Evidence you can inspect."))
         .child(button(&k,"New investigation","new",json!({"depth":"plain"})));
-    for item in list(&s.snapshot["status"]["sessions"]) {let empty=item["messages"].as_array().is_some_and(Vec::is_empty)&&list(&item["artifacts"]).is_empty()&&list(&item["fieldCases"]).is_empty();if empty&&string(&item["id"])!=s.selected{continue;}let id=string(&item["id"]);let title=string(&item["title"]);let short:String=title.chars().take(23).collect();sidebar=sidebar.child(Button::new(short).build(&k).min_h(44.).on_press(move |_: &mut State| {command("select",json!({"sessionID":id}));})); }
-    for (title,tab) in [("System",Tab::System),("Conversation",Tab::Conversation),("Evidence",Tab::Evidence),("Investigation record",Tab::Investigation),("Research",Tab::Research),("Provider settings",Tab::Provider),("Data sources",Tab::Sources)] {
-        sidebar=sidebar.child(Button::new(title).build(&k).on_press(move |s: &mut State| s.tab=tab));
+    sidebar=sidebar.child(label("YOUR INVESTIGATIONS"));
+    for item in list(&s.snapshot["status"]["sessions"]).iter().filter(|item|{
+        let empty=item["messages"].as_array().is_some_and(Vec::is_empty)&&list(&item["artifacts"]).is_empty()&&list(&item["fieldCases"]).is_empty();
+        !empty||string(&item["id"])==s.selected
+    }).take(6) {
+        let id=string(&item["id"]);let title=string(&item["title"]);
+        let display=if title.is_empty()||title=="Untitled investigation" {
+            format!("Investigation · {}",string(&item["created"]).get(..10).unwrap_or("Today"))
+        } else {title.strip_prefix("Earth-system investigation · ").unwrap_or(&title).to_owned()};
+        sidebar=sidebar.child(Button::new(display).variant(if id==s.selected{rune_kit::ButtonVariant::Contrast}else{rune_kit::ButtonVariant::Outline}).build(&k).min_h(46.).on_press(move |_: &mut State| {command("select",json!({"sessionID":id}));}));
+    }
+    for (title,tab) in [("Talk to GAIA",Tab::Conversation),("Evidence & report",Tab::Evidence),("Investigation map",Tab::Investigation),("Research notes",Tab::Research),("Data providers",Tab::Provider),("Sources & methods",Tab::Sources)] {
+        sidebar=sidebar.child(Button::new(title).variant(if s.tab==tab{rune_kit::ButtonVariant::Contrast}else{rune_kit::ButtonVariant::Outline}).build(&k).min_h(44.).on_press(move |s: &mut State| s.tab=tab));
     }
     let compact=s.snapshot["viewportWidth"].as_f64().unwrap_or(1280.)<900.;
     let content=match s.tab {
@@ -438,8 +520,8 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
         Tab::System=>mission_control(s,&k,&current,compact),
     };
     let running=current["chatRunning"].as_bool().unwrap_or(false);
-    let readiness=if running{"GAIA coordinating · partial evidence is retained".to_owned()}else if s.snapshot["status"]["tested"].as_bool().unwrap_or(false){"GAIA provider and five role tools verified".to_owned()}else if s.snapshot["status"]["local_configuration_available"].as_bool().unwrap_or(false){"NASA analysis available · connect the configured model to enable GAIA conversation".to_owned()}else{"NASA analysis available · configure a model to enable GAIA conversation".to_owned()};
-    let mut main=col().grow(1.).min_w(0.).min_h(0.).padding(if compact {12.} else {28.}).gap(16.).child(label(readiness));
+    let readiness=if running{"INVESTIGATION ACTIVE · EVIDENCE RETAINED AS IT ARRIVES".to_owned()}else if s.snapshot["status"]["configured"].as_bool().unwrap_or(false){"READY · DESCRIBE AN EARTH-SYSTEM QUESTION".to_owned()}else if s.snapshot["status"]["local_configuration_available"].as_bool().unwrap_or(false){"ONE-TIME SETUP · CONNECT THE CONFIGURED MODEL TO START".to_owned()}else{"NASA DATA IS PUBLIC · CONNECT A COMPATIBLE MODEL TO TALK WITH GAIA".to_owned()};
+    let mut main=col().grow(1.).min_w(0.).min_h(0.).padding(if compact {12.} else {30.}).gap(16.).child(label(readiness));
     if running&&s.tab!=Tab::Conversation{main=main.child(button(&k,"Stop investigation and retain partial evidence","chat-stop",selected_action(s)));}
     for job in list(&s.snapshot["status"]["jobs"]) {
         if string(&job["sessionID"])==s.selected&&string(&job["status"])=="running"{main=main.child(label(format!("Running numerical job: {}",string(&job["operation"]))))
@@ -447,13 +529,13 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
     }
     let main=main.child(label(string(&s.snapshot["error"]))).child(col().grow(1.).min_h(0.).w_full().scroll(ScrollSpec { stick_bottom: false }).child(content));
     if compact {
-        let navigation=col().w_full().padding(12.).gap(6.)
-            .child(row().gap(6.).child(Button::new("Missions").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::History)).child(Button::new("GAIA").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::System)).child(Button::new("Providers").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Provider)))
-            .child(row().gap(6.).child(button(&k,"New investigation","new",json!({}))).child(Button::new("Conversation").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Conversation)))
-            .child(row().gap(6.).child(Button::new("Evidence").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Evidence)).child(Button::new("Research").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Research)))
-            .child(Button::new("Investigation record").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Investigation));
-        col().w_full().h_full().fill(theme.bg).color(theme.text).child(navigation).child(main).into()
-    } else {row().w_full().h_full().fill(theme.bg).color(theme.text).child(sidebar).child(main).into()}
+        let navigation=col().w_full().padding(10.).gap(5.)
+            .child(row().gap(6.).child(button(&k,"New question","new",json!({}))).child(Button::new("History").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::History)))
+            .child(row().gap(6.).child(Button::new("Talk to GAIA").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Conversation)).child(Button::new("Evidence").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Evidence)))
+            .child(row().gap(6.).child(Button::new("Research").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Research)).child(Button::new("Data providers").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Provider)))
+            .child(Button::new("Investigation map").build(&k).min_h(44.).on_press(|s:&mut State|s.tab=Tab::Investigation));
+        col().w_full().h_full().fill(theme.bg).color(rune::color::hex("#24352b").unwrap_or(theme.text)).child(navigation).child(main).into()
+    } else {row().w_full().h_full().fill(theme.bg).color(rune::color::hex("#24352b").unwrap_or(theme.text)).child(sidebar).child(main).into()}
 }
 fn record_workspace(s:&State,k:&Kit)->El {
     let record=&s.snapshot["investigation"];
@@ -513,7 +595,6 @@ fn research(s:&State,k:&Kit,current:&Value)->El {
             .child(Button::new("Open original source").build(k).on_press(move |_:&mut State|{let _=rune::web::open_url(&url);}));
           if paper["id"].as_str()==Some(s.paper_id.as_str()){body=body.child(label(string(&paper["text"]))).child(label("Extracted source content, not application instructions. Review study methods, support and limitations."));}
         }
-        body=body.child(button(k,"Approve additional research capacity","research-budget",selected_action(s))).child(label("Explicit approval adds bounded search/read capacity; it does not make a source authoritative."));
       },
       ResearchView::Notebook=>{
         if list(&current["researchNotes"]).is_empty(){body=body.child(label("No source-grounded research notes yet. Specialists can retain useful findings, prerequisites and contradictions during investigation."));}

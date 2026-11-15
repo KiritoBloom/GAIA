@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {freezeMissionScope,verifyMissionScope,missionAcquisitionRequest,sameMissionArtifact} from '../app/backend/mission-scope.mjs';
+import {freezeMissionScope,verifyMissionScope,missionAcquisitionRequest,sameMissionArtifact,nearestMissionSite} from '../app/backend/mission-scope.mjs';
 
 const sites=[{siteid:'prairie_01',sitename:'Prairie instrumented footprint',latitude:49.7,longitude:-112.9}];
 const input={siteid:'prairie_01',start:2001,end:2025,months:[5,6,7,8,9]};
@@ -8,6 +8,16 @@ const input={siteid:'prairie_01',start:2001,end:2025,months:[5,6,7,8,9]};
 test('a mission target must be an exact live catalog site and freezes product, geometry, dates and seasonal recipe',()=>{
  const plan=freezeMissionScope(sites,input,'2026-11-14T12:00:00Z');
  assert.deepEqual(verifyMissionScope(plan),{version:'modis-evi-fixed-site-v1',provider:'NASA MODIS / ORNL DAAC TESViS',product:'MOD13Q1.061',variable:'EVI',siteid:'prairie_01',site_name:'Prairie instrumented footprint',latitude:49.7,longitude:-112.9,start:2001,end:2025,months:[5,6,7,8,9],created:'2026-11-14T12:00:00Z'});
+});
+
+test('GAIA can select only the nearest real catalog site within the declared bound and freeze that exact target',()=>{
+ const match=nearestMissionSite(sites,{latitude:49.7,longitude:-112.9});
+ assert.equal(match.site.siteid,'prairie_01');
+ assert.equal(match.distance_km,0);
+ assert.throws(()=>nearestMissionSite(sites,{latitude:0,longitude:0}),/within 50 km/);
+ const plan=freezeMissionScope(sites,input,'2026-11-14T12:00:00Z','gaia');
+ assert.equal(plan.status,'gaia_selected_frozen_target');
+ assert.equal(verifyMissionScope(plan).siteid,'prairie_01');
 });
 
 test('foreign sites, invalid calendars, duplicate months and tampered frozen scope are rejected',()=>{

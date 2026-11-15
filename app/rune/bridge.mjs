@@ -1,5 +1,6 @@
 import {mechanismGraph} from './graph.mjs';
 import {readUiState,writeUiState} from './ui-state.mjs';
+import {reportDocument} from './report.mjs';
 const ui=readUiState(sessionStorage);
 const state={status:{},catalog:{},competence:{},referrals:[],models:[],sites:[],stations:null,operation:null,error:null,selected:null,selectedArtifact:'',artifact:null,investigation:null,graphSvg:'',chartSvg:'',scenarioSvg:''};
 let notifier=()=>{},privateConfiguration=false;
@@ -26,8 +27,16 @@ function chart(artifact){
   }).join(' ');};
   const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
   const font='font-family="sans-serif" font-size="11" fill="#d9dfdc"';
-  const grid=Array.from({length:5},(_,i)=>{const value=min+(max-min)*i/4,py=y(value);return `<path d="M70 ${py}H790" stroke="#2a322e"/><text x="62" y="${py+4}" text-anchor="end" ${font}>${Number(value.toPrecision(3))}</text>`;}).join('');
-  const ticks=Array.from({length:5},(_,i)=>`<text x="${70+720*i/4}" y="265" text-anchor="middle" ${font}>${new Date(first+(last-first)*i/4).getUTCFullYear()}</text>`).join('');
+  // Rune's SVG renderer does not resolve text fonts. Numeric axis paths render
+  // identically in the application and standalone reports without a font service.
+  const axis=(value,px,py,anchor='middle')=>{
+    const valueText=String(value),segments={a:'M1 0H5',b:'M6 1V4',c:'M6 6V9',d:'M1 10H5',e:'M0 6V9',f:'M0 1V4',g:'M1 5H5'};
+    const digits={'0':'abcdef','1':'bc','2':'abged','3':'abgcd','4':'fgbc','5':'afgcd','6':'afgecd','7':'abc','8':'abcdefg','9':'abfgcd','-':'g','e':'afged','E':'afged'};
+    const width=valueText.length*8,origin=anchor==='end'?px-width:anchor==='middle'?px-width/2:px;
+    return `<g transform="translate(${origin},${py-10})" stroke="#d9dfdc" stroke-width="1" fill="none"><title>${escape(valueText)}</title>${[...valueText].map((c,i)=>c==='.'?`<circle cx="${i*8+3}" cy="10" r=".8" fill="#d9dfdc"/>`:c==='+'?`<path d="M${i*8} 5h6m-3 -3v6"/>`:`<path transform="translate(${i*8},0)" d="${[...(digits[c]||'')].map(s=>segments[s]).join(' ')}"/>`).join('')}</g>`;
+  };
+  const grid=Array.from({length:5},(_,i)=>{const value=min+(max-min)*i/4,py=y(value);return `<path d="M70 ${py}H790" stroke="#2a322e"/>${axis(Number(value.toPrecision(3)),62,py+4,'end')}`;}).join('');
+  const ticks=Array.from({length:5},(_,i)=>axis(new Date(first+(last-first)*i/4).getUTCFullYear(),70+720*i/4,265)).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="840" height="290" viewBox="0 0 840 290"><rect width="840" height="290" fill="#111514"/><text x="70" y="20" ${font}>${escape(artifact.acquisition.variable.units)} · source values: green · fitted seasonal trend: gold</text>${grid}<path d="M70 50V245H790" fill="none" stroke="#747e78"/><path d="${path(series)}" fill="none" stroke="#7de3bc" stroke-width="1.5"/><path d="${path(fitted)}" fill="none" stroke="#edd496" stroke-width="2"/>${ticks}</svg>`;
 }
 function scenarioChart(model){
@@ -39,12 +48,13 @@ function scenarioChart(model){
 }
 async function refresh(){
   state.status=await api('/status');
+  if(!state.status.sessions?.length){const created=await api('/sessions',{depth:'plain'});state.status.sessions=[created];}
   if(!state.status.sessions?.some(value=>value.id===state.selected)){state.selected=state.status.sessions?.some(value=>value.id===ui.selected)?ui.selected:state.status.sessions?.[0]?.id||null;state.selectedArtifact=ui.artifacts[state.selected]||'';}
   const selected=state.status.sessions?.find(v=>v.id===state.selected);
   publish();
 }
 globalThis.gaiaCommand=async(name,input={})=>{
-  if(name==='draft'){if(input.sessionID&&typeof input.text==='string'&&input.text.length<=4000){ui.drafts[input.sessionID]=input.text;writeUiState(sessionStorage,ui);}return;}
+  if(name==='draft'){if(input.sessionID&&typeof input.text==='string'){ui.drafts[input.sessionID]=input.text;writeUiState(sessionStorage,ui);}return;}
   if(name==='select'){state.selected=input.sessionID;ui.selected=state.selected;state.selectedArtifact=ui.artifacts[state.selected]||'';writeUiState(sessionStorage,ui);state.investigation=null;state.graphSvg='';await refresh();return;}
   if(name==='artifact-select'){state.selectedArtifact=input.artifactID;ui.artifacts[state.selected]=input.artifactID;writeUiState(sessionStorage,ui);publish();return;}
   state.error=null;state.operation=name;publish();
@@ -54,18 +64,19 @@ globalThis.gaiaCommand=async(name,input={})=>{
       case 'investigation-record':state.investigation=await api(`/investigation/${encodeURIComponent(input.sessionID)}`);state.graphSvg=mechanismGraph(state.investigation.mechanism_graph);break;
       case 'new':{const result=await api('/sessions',input);state.selected=result.id;ui.selected=result.id;state.selectedArtifact='';state.investigation=null;state.graphSvg='';writeUiState(sessionStorage,ui);break;}
       case 'provider-discover':{const result=await api('/provider/local-models',{});privateConfiguration=true;state.models=result.models;state.providerCandidate={name:result.name,endpoint:result.endpoint};break;}
-      case 'provider-models':{const result=await api('/provider/models',input);privateConfiguration=false;state.models=result.models;break;}
-      case 'provider-connect':{
-        const chosen={...input,...(privateConfiguration?{...state.providerCandidate,use_local:true}: {})};
-        await api('/provider/connect',chosen);input.apiKey='';delete chosen.apiKey;
-        const proof=await api('/provider/proof',{});state.proof=proof;state.competence=await api('/competence');break;
-      }
+       case 'provider-models':{const result=await api('/provider/models',{endpoint:input.endpoint,key:input.apiKey});input.apiKey='';privateConfiguration=false;state.models=result.models;break;}
+       case 'provider-connect':{
+         const chosen=privateConfiguration?{...state.providerCandidate,use_local:true,model:input.model}:{name:input.name,endpoint:input.endpoint,model:input.model,key:input.apiKey};
+         input.apiKey='';await api('/provider/connect',chosen);delete chosen.key;state.proof=null;state.competence=await api('/competence');break;
+       }
+       case 'provider-proof':state.proof=await api('/provider/proof',{});state.competence=await api('/competence');break;
       case 'provider-remove':await api('/provider/remove',{});privateConfiguration=false;break;
-      case 'chat':await api('/chat',input);break;
+      case 'chat':await api('/chat',input);ui.drafts[input.sessionID]='';writeUiState(sessionStorage,ui);break;
+      case 'extraction-resume':await api('/regions/resume',input);break;
       case 'chat-stop':await api('/chat/stop',input);break;
+      case 'report-export':{const session=state.status.sessions.find(s=>s.id===input.sessionID);if(!session)throw Error('Choose an investigation first.');const url=URL.createObjectURL(new Blob([reportDocument(session,chart)],{type:'text/html;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='gaia-report.html';link.click();URL.revokeObjectURL(url);break;}
       case 'research-search':await api('/research/search',input);break;
       case 'research-read':await api('/research/read',input);break;
-      case 'research-budget':await api('/research/budget',input);break;
       case 'animals':await api('/animals',input);break;
       case 'depth':await api('/sessions/settings',input);break;
       case 'analyze':await api('/analyze',input);break;
@@ -92,12 +103,15 @@ globalThis.gaiaCommand=async(name,input={})=>{
       default:throw new Error('Unregistered UI operation.');
     }
     await refresh();
-  }catch(error){state.error=String(error.message||'Local operation failed.').slice(0,400);}
+  }catch(error){state.error=String(error.message||'Local operation failed.');}
   finally{if(input.apiKey)input.apiKey='';state.operation=null;publish();}
 };
 export async function connect(notify){
   notifier=notify;publish();
-  try{[state.catalog,state.competence,state.sites]=await Promise.all([api('/catalog'),api('/competence'),api('/sites').then(result=>result.sites||result)]);await refresh();}catch(error){state.error=error.message;publish();}
+  const resources=await Promise.allSettled([api('/catalog'),api('/competence')]);
+  if(resources[0].status==='fulfilled')state.catalog=resources[0].value;
+  if(resources[1].status==='fulfilled')state.competence=resources[1].value;
+  try{await refresh();}catch(error){state.error=error.message;publish();}
   const events=new EventSource('/api/events');
   let refreshing=false;
   events.onmessage=async()=>{if(refreshing)return;refreshing=true;try{await refresh();}catch{state.error='Backend event connection interrupted.';publish();}finally{refreshing=false;}};

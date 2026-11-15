@@ -15,12 +15,10 @@ import urllib.parse
 import urllib.request
 from datetime import date, datetime, timezone
 from pathlib import Path
-from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor
 from .catalog import VARIABLES
 
 ROOT = Path(__file__).resolve().parents[1]
-CACHE = ROOT / ".runtime" / "science-cache"
 ALLOWED = {"power.larc.nasa.gov", "modis.ornl.gov", "www.ncei.noaa.gov", "cmr.earthdata.nasa.gov", "api.gbif.org"}
 MAX_BYTES = 48 * 1024 * 1024
 
@@ -29,14 +27,10 @@ def read_json(url, headers=None):
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme != "https" or parsed.hostname not in ALLOWED:
         raise ValueError("Scientific retrieval route is not allowlisted.")
-    # Never include authentication in a cache identifier, saved URL or error.
-    key = hashlib.sha256(url.encode()).hexdigest()
-    CACHE.mkdir(parents=True, exist_ok=True)
-    path = CACHE / f"{key}.json"
-    if path.exists():
-        package = json.loads(path.read_text(encoding="utf-8"))
-        return package["response"], {**package["provenance"], "acquisition_mode": "cached_real_data"}
-    request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "GAIA-SpaceApps/0.1 scientific-prototype", **(headers or {})})
+    # Every request is fetched from the provider for this acquisition. Do not
+    # read or write the historical on-disk science cache: a retained artifact
+    # is a result record, not a substitute for a fresh provider observation.
+    request = urllib.request.Request(url, headers={"Accept": "application/json", "Cache-Control": "no-cache, no-store", "Pragma": "no-cache", "User-Agent": "GAIA-SpaceApps/0.1 scientific-prototype", **(headers or {})})
     for attempt in range(2):
         try:
             if parsed.hostname in ('modis.ornl.gov','cmr.earthdata.nasa.gov','api.gbif.org'):
@@ -54,10 +48,7 @@ def read_json(url, headers=None):
                     if len(data) > MAX_BYTES:
                         raise ValueError("Provider response exceeds the declared 48-MiB acquisition ceiling.")
                     document = json.loads(data)
-            provenance = {"url": url, "retrieved_at": datetime.now(timezone.utc).isoformat(), "raw_sha256": hashlib.sha256(data).hexdigest(), "acquisition_mode": "live_acquisition"}
-            temporary = path.with_name(f'{key}.{uuid4().hex}.tmp')
-            temporary.write_text(json.dumps({"response": document, "provenance": provenance}), encoding="utf-8")
-            temporary.replace(path)
+            provenance = {"url": url, "retrieved_at": datetime.now(timezone.utc).isoformat(), "raw_sha256": hashlib.sha256(data).hexdigest(), "acquisition_mode": "live_acquisition", "cache_policy": "no-store; fetched from provider for this acquisition"}
             return document, provenance
         except urllib.error.HTTPError as exc:
             if exc.code in (429, 500, 502, 503, 504) and attempt == 0:

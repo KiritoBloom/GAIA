@@ -9,7 +9,9 @@ try {
   await configureProvider({ ...provider, model });
   const proof = await proveRuntime();
   mkdirSync(resolve('.runtime/proofs'), { recursive: true });
-  writeFileSync(resolve('.runtime/proofs/runtime.json'), JSON.stringify(proof, null, 2));
+  const output = process.env.GAIA_PROOF_OUTPUT || `.runtime/proofs/runtime-${new Date().toISOString().replaceAll(':', '-')}.json`;
+  writeFileSync(resolve(output), JSON.stringify(proof, null, 2), { flag: 'wx' });
+  console.log('Proof artifact:', output);
   console.log(JSON.stringify(proof, null, 2));
 } catch (error) { console.error('Runtime proof failed:', error.message?.slice(0, 400)); process.exitCode = 1; }
 finally { await closeRuntime(); }

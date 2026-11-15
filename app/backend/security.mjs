@@ -22,11 +22,11 @@ export function publicError(error) {
   let text=String(error?.message || 'Operation failed.');
   for(const [name,value] of Object.entries(process.env)) if(/KEY|TOKEN|SECRET|PASSWORD/i.test(name) && value && value.length>=6) text=text.split(value).join('[redacted]');
   if(/https?:\/\/|Bearer\s|authorization|api.?key|[A-Z]:\\/i.test(text)) return 'Provider or service operation failed; no credentials or unverified result published.';
-  return text.slice(0,350);
+  return text;
 }
 export function validateNumberClaims(claims, artifact) {
   const permitted = artifact?.analysis;
-  if (!Array.isArray(claims) || claims.length > 8) throw new Error('Invalid numerical claim list.');
+  if (!Array.isArray(claims)) throw new Error('Invalid numerical claim list.');
   for (const claim of claims) {
     if (!['slope_per_year', 'slope_per_decade', 'p_value', 'n', 'missing'].includes(claim.field) || !permitted || permitted[claim.field] !== claim.value) throw new Error('Unbacked numerical claim rejected.');
   }
