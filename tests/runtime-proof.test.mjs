@@ -30,16 +30,19 @@ test('failed parallel provider checks abort and await every sibling before clean
 });
 
 test('blank setup form uses only the existing local provider credential without returning it', async () => {
-  const prior = process.env.FreeGG_API_KEY, priorLLM = process.env.LLM_KEY, priorRuntime = process.env.GAIA_PROVIDER_KEY;
-  process.env.FreeGG_API_KEY = 'test-only-local-provider-key'; delete process.env.LLM_KEY; delete process.env.GAIA_PROVIDER_KEY;
+  const prior = process.env.FreeGG_API_KEY, priorBase = process.env.FreeGG_BASE_URL, priorLLM = process.env.LLM_KEY, priorRuntime = process.env.GAIA_PROVIDER_KEY;
+  process.env.FreeGG_API_KEY = 'test-only-local-provider-key'; process.env.FreeGG_BASE_URL = 'http://127.0.0.1:4317/v1'; delete process.env.LLM_KEY; delete process.env.GAIA_PROVIDER_KEY;
   try {
     const result = await configureProvider({ name: 'Local test', endpoint: 'http://127.0.0.1:4317/v1', model: 'test-model', key: '' });
     assert.equal(process.env.GAIA_PROVIDER_KEY, 'test-only-local-provider-key');
     assert.equal(result.configured, true);
     assert.equal(JSON.stringify(result).includes('test-only-local-provider-key'), false);
     assert.equal(providerStatus().local_configuration_available, true);
+    await configureProvider({ name: 'Other endpoint', endpoint: 'https://provider.example/v1', model: 'test-model', key: '' });
+    assert.equal(process.env.GAIA_PROVIDER_KEY, '', 'A saved credential must not be forwarded to a different endpoint.');
   } finally {
     if (prior === undefined) delete process.env.FreeGG_API_KEY; else process.env.FreeGG_API_KEY = prior;
+    if (priorBase === undefined) delete process.env.FreeGG_BASE_URL; else process.env.FreeGG_BASE_URL = priorBase;
     if (priorLLM === undefined) delete process.env.LLM_KEY; else process.env.LLM_KEY = priorLLM;
     if (priorRuntime === undefined) delete process.env.GAIA_PROVIDER_KEY; else process.env.GAIA_PROVIDER_KEY = priorRuntime;
   }

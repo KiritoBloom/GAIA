@@ -1,30 +1,86 @@
-# GAIA: Geospatial Analysis & Investigation Assistant
+![GAIA — Earth-system questions. Traceable evidence.](docs/assets/gaia-banner.png)
 
-A local planetary-intelligence workspace for NASA-derived Earth-system time series, trend uncertainty and competing explanations. GAIA coordinates; AURA (atmosphere), THALASSA (water), CHLORIS (plants) and ZOE (animals) have distinct, bounded scientific roles. Plain-language and technical views use the same numerical evidence and methods.
+# GAIA
 
-Built for NASA Space Apps 2026: [Be An Earth System Trend Detective!](https://www.spaceappschallenge.org/2026/challenges/earth-system-trend-detective/).
+**Geospatial Analysis & Investigation Assistant**
 
-## What works now
+GAIA helps people investigate environmental change using NASA data, reproducible numerical analysis and source-backed explanations. Ask a question in ordinary language; GAIA coordinates the relevant work and returns an answer whose measurements, methods, uncertainty and limitations can be inspected.
 
-- GAIA-first conversation in the local Rune GPU/browser workspace. A new session opens ready to chat; GAIA owns clarification, location resolution, source/variable selection, analysis and selective specialist dispatch. Evidence, research and audit workspaces remain available, but users do not need to operate specialists or freeze a NASA target to ask a question. Earlier React UI is legacy only.
-- User-configured OpenAI-compatible model endpoints and model discovery; masked, session-only credentials. OpenCode **2.3.0** embedded runtime, with actual five-role/tool checks.
-- GAIA-owned NASA MODIS acquisition when a plant signal is relevant: GAIA resolves the requested place, selects a live-catalog fixed site only when it is within 50 km, and freezes its exact site/calendar before asking CHLORIS to assess the trend. The fixed footprint is never presented as a regional mean. New provider requests bypass local response caches; acquired records remain saved in the investigation for provenance and later review.
-- GAIA can autonomously resolve named places with the public Open-Meteo geocoder and acquire selected NASA POWER monthly temperature, precipitation-rate and relative-humidity for a real geocoder result. POWER returns model-derived grid context at a point, not local station observations or a regional mean. These public endpoints need no additional API key.
-- Deterministic seasonal linear regression, Newey–West uncertainty, sensitivity diagnostics, charts and downloadable analysis inputs.
-- Licensed CSV imports, separately labeled as user-declared rather than authenticated NASA observations.
-- Independent-process numerical reproduction without model credentials or renewed data downloads.
-- Registered competing explanations and observation protocols, actual specialist tool traces, chronological-baseline-tested statistical models, bounded contextual comparisons and a staged prediction record with acquisition-denial checks.
-- Real Jev typed semantic reviews, held in shadow mode. A small single-author claim-support microcase evaluation is available through `npm run test:jev`; it is not domain validation or proof of routing benefit.
+Built for **NASA Space Apps 2026 — [Be An Earth System Trend Detective!](https://www.spaceappschallenge.org/2026/challenges/earth-system-trend-detective/)**.
 
-**MODIS verified:** the actual Rune workflow acquired 2001–2025 EVI for the provider-listed Alberta Mixed Grass Prairie footprint, with 25 complete annual growing-season observations. Collection 6.1 was verified against exact NASA CMR granule identifiers; five unverifiable processing revisions were explicitly excluded, not assigned a guessed version. Quality, scaling, actual observation dates and coverage remain inspectable. The resulting trend did not meet the declared significance threshold.
+**[Presentation](docs/submission/gaia-seven-slide-presentation.pdf)** · **[Worked investigation](docs/submission/bc-central-interior-report.md)** · **[Reproducible evidence](docs/submission/bc-central-interior-investigation.json.gz)** · **[Run locally](#run-locally)**
 
-**Not established:** complete plan acceptance, causal attribution, ecological expertise, research-ready forecasts, fully audited locked holdouts or autonomous interventions. Giovanni, CUAHSI, KNMI and AppEEARS provide manual discovery/export routes, not automated adapters. NOAA access returned real station metadata, not a validated station-data trend. Routing, transmission, animal-movement and vegetation-competition models remain explicitly unavailable rather than being replaced with climate models.
+## Why GAIA?
+
+A satellite trend is a starting point, not an explanation. Greenness, weather, water and ecological observations describe different parts of the Earth system—and often cover different places, dates and scales. Connecting them responsibly requires more than finding a paper or drawing a trend line.
+
+GAIA brings that investigation into one workspace:
+
+- **Real data, not generated measurements.** Supported acquisitions retrieve provider data; registered Python methods compute the numerical results.
+- **Connected perspectives.** GAIA selects relevant atmospheric, water, plant and animal specialist functions instead of treating one variable as the whole ecosystem.
+- **Evidence you can inspect.** Series, quality checks, source records, methods and uncertainty remain connected to the investigation.
+- **An honest answer when evidence is insufficient.** Missing observations, failed requests and unsupported capabilities remain visible. A literature-only explanation is not labelled a measured trend.
+
+## From a question to an investigation
+
+1. **Define the question.** GAIA identifies the place, period and outcome, asking for clarification when an ambiguity would materially change the investigation.
+2. **Find suitable evidence.** It resolves real locations or boundaries, checks available methods and acquires supported datasets. A fixed satellite footprint is not silently substituted for a region.
+3. **Analyze in code.** The scientific worker applies product-specific quality rules and registered trend methods, preserving observation dates, units and missing periods.
+4. **Review competing explanations.** Relevant specialists examine support, source dependence, mechanisms and unresolved gaps. Literature informs interpretation without becoming a substitute for measurements.
+5. **Explain and preserve the result.** The conversation presents the findings; evidence, research and investigation-record views expose the supporting work and exports.
+
+The user talks to **GAIA** throughout. Specialist workspaces are read-only extensions of that investigation, not four additional chatbots to manage.
+
+| Function | Investigation perspective |
+|---|---|
+| **GAIA** | Coordinates the question, evidence acquisition, specialist work and final synthesis. |
+| **AURA** | Atmospheric conditions, climate context and the limits of meteorological support. |
+| **THALASSA** | Water processes, compatible hydrologic evidence and physical accounting. |
+| **CHLORIS** | Vegetation signals, satellite quality, seasonal support and plant-evidence interpretation. |
+| **ZOE** | Animal occurrence, observation effort and the distinction between presence and population change. |
+
+These are bounded software functions, not independently validated scientific experts. Their available measurements are limited by the integrations below.
+
+## NASA data and observation imports
+
+| Source | Implemented acquisition | What it represents |
+|---|---|---|
+| **[NASA POWER](https://power.larc.nasa.gov/docs/services/api/temporal/monthly/)** | Monthly temperature, precipitation rate and relative humidity for an owned location. | MERRA-2 model-grid context at a point—not a local station or an arbitrary regional mean. |
+| **[MODIS / ORNL DAAC TESViS](https://modis.ornl.gov/data/modis_webservice.html)** | EVI and quality information for a provider-listed, fixed satellite footprint. | Terrestrial optical greenness over that footprint—not every surrounding landscape. |
+| **[NASA AppEEARS](https://appeears.earthdatacloud.nasa.gov/)** | Monthly **MOD13A3.061 EVI or NDVI plus QA** over an owned polygon, with authenticated submission, task tracking, collection and checksummed files. | Regional landscape greenness—not biomass, biodiversity or forest-only change without an appropriate mask. |
+| **CSV import** | User-supplied observations with declared units, source and spatial support. | Provenance and QA are user-declared, not automatically authenticated; users must check licensing before redistribution. |
+
+AppEEARS is an asynchronous extraction service. An accepted task is **pending work, not numerical evidence**. GAIA retains the original task, waits for collection, retries transient transport failures and distinguishes a paused wait from a genuine provider failure. Regional processing retains source geometry, audits topology preparation and checks spatial membership on the provider grid before publishing values.
+
+NOAA integration currently discovers nearby **station metadata**, not historical station measurements. Giovanni, CUAHSI and KNMI are documented discovery/manual-import routes. Automatic sea-ice extent and GRACE/GRACE-FO ice-sheet mass adapters are **not yet implemented**.
+
+## A worked result: British Columbia's Central Interior
+
+The included investigation demonstrates a completed acquisition and an appropriately qualified answer—not a hand-picked significant trend.
+
+- **Eight numerical artifacts** are retained: regional monthly and seasonal EVI, three monthly POWER variables and their three seasonal derivatives.
+- The study uses the documented **Central Interior ecoprovince** boundary, not every interpretation of “Interior Plateau.”
+- After the declared 80% QA-valid-area rule, monthly EVI retained **101 valid observations and 187 missing months** over 2001–2024. The monthly trend was therefore **inconclusive**.
+- The exploratory July–September EVI series had **21 complete seasons and three missing seasons**. Its result is descriptive-only; no unsupported inferential interval or p-value is presented.
+- Weather context does not establish forest decline or its cause. A compatible forest mask and matched disturbance evidence remain material gaps.
+
+The value is the traceable result: **what was acquired, what survived quality checks, what can be concluded and what evidence is still needed.**
+
+Read the **[full report](docs/submission/bc-central-interior-report.md)** or download the **[complete evidence archive](docs/submission/bc-central-interior-investigation.json.gz)**. Both are accessible without a model-provider account. Additional public examples cover [POWER climate context](docs/examples/british-columbia.json) and a [MODIS prairie footprint](docs/examples/modis-prairie.json).
+
+## Built for inspectable science
+
+**Language models coordinate and explain; deterministic code computes.** GAIA uses the embedded OpenCode runtime for role-bound model sessions and tools, while a separate Python worker retrieves and analyzes scientific data. Jev is an optional, opt-in typed semantic review in shadow mode; it does not override measurements or establish scientific truth. A disabled review, missing TypeSafe credential, oversized review or service failure is recorded without discarding scientific results or stopping the investigation.
+
+For eligible complete monthly records, the registered trend method uses a linear slope with calendar-month effects and Bartlett/Newey–West uncertainty. Default conventions are a 12-month bandwidth, 6/24-month sensitivity checks, nominal 95% intervals and a two-sided 0.05 threshold. Seasonal and incomplete-calendar recipes have separate eligibility rules. Missing periods are not compressed into a false continuous record, and insufficient evidence cannot silently receive a definitive significance claim.
+
+Exports retain analysis inputs, source provenance and method hashes. The reproduction command reruns numerical analyses in an independent local process without model credentials or renewed downloads; it does not regenerate model-written prose.
+
+**A significant association is not a verified cause. A nonsignificant result is not proof of no change.**
 
 ## Run locally
 
-Tested development environment: Windows x64, Python 3.13, an existing Node 24+ installation and npm 10+. Setup installs checksum-verified portable Node **26.13.1**, a project-local GNU Rust/WASM toolchain, w64devkit and matching wasm-bindgen. No system PATH/toolchain is changed. This Rune setup script is Windows-specific; other platforms have not been verified. The browser needs WebGPU (verified in Chromium); no WebGL fallback is claimed.
-
-From a terminal:
+**Verified platform:** Windows x64 with Git and Python 3.13 available on `PATH`, plus Node 24+ and npm 10+ to start setup. Setup provisions the project-local Node 26.13.1 used by the application. The primary interface is a Rust/WASM **Rune** workspace and requires a WebGPU-capable browser, verified in Chromium. Other platforms and a WebGL fallback are not verified.
 
 ```powershell
 git clone https://github.com/KiritoBloom/GAIA.git
@@ -33,80 +89,65 @@ npm run setup
 npm run dev
 ```
 
-Open **http://127.0.0.1:4317/rune/**. The trusted local backend listens at **127.0.0.1:4317**. Stop the launcher with **Ctrl+C**. The first Rune source build can take several minutes; build logs stay in `.runtime/rune`.
+Open **[http://127.0.0.1:4317/rune/](http://127.0.0.1:4317/rune/)**.
 
-Setup creates `.venv`, `node_modules`, `.cache`, `.tmp` and `.runtime` **inside this directory**. It uses local installation caches, no global npm/pip installs, and disables automatic dependency install scripts. OpenCode configuration, database and runtime state are also isolated inside this project. The initial setup downloads packages and the verified Windows runtime from their official distribution services.
+Setup installs dependencies, builds the frontend and provisions checksum-verified portable Node 26.13.1 plus the project-local Rust/WASM toolchain. The first build can take several minutes. Runtime state, installation caches and the Python environment stay inside the project; setup does not replace the system toolchain or perform global npm/pip installs.
 
-For a built frontend:
+### Connect a model
 
-```powershell
-npm run build
-npm start
-```
+1. Open **Settings**. Models are discovered automatically from the connected provider or private local configuration. For a new connection, choose OpenAI Responses, OpenAI Chat/compatible, or Anthropic Messages and enter a masked API key; custom base URLs are available under **Connection details**.
+2. Search/select an actual model, choose a published thinking option or leave **Provider default**, then **Connect**. Official endpoints use native OpenAI or Anthropic clients; custom endpoints use the selected protocol. Discovery does not switch a running investigation’s provider.
+3. Ask an environmental question with a place and period. Inspect **Evidence**, **Research** and **Investigation record** as the work progresses.
 
-Open **http://127.0.0.1:4317/rune/** in this mode. Do not expose this server publicly: it is a single-user local application, not a hardened multi-user service. `npm run dev:legacy` retains the earlier React development view at 5173; it is not the primary interface.
+The synthetic role/tool check is optional and verifies integration, not scientific expertise. Provider calls may incur charges. A selected provider key is held by the local backend, not persisted in browser storage, chat or exports; restarting clears the active provider selection.
 
-## Provider onboarding
+**Jev is off by default and requires no account to run GAIA.** Its Settings switch becomes available with a private `TYPESAFE_API_KEY` or `TYPESAFE_KEY`. Enabling it sends the bounded review context to TypeSafe; results remain separate from scientific calculations. Higher model-thinking settings may increase latency and cost, and published upstream options are not a guarantee of compatibility at every custom gateway.
 
-1. Open **Provider settings**. Numerical acquisition and analysis do not require a model key.
-2. Enter an approved OpenAI-compatible endpoint, provider label and masked key. Examples: `https://api.openai.com/v1`, `https://openrouter.ai/api/v1`, or an appropriate loopback model server.
-3. Discover the actual model catalog and select a model. Arbitrary protocols are not automatically supported; native Anthropic/OAuth adapters are not implemented in this form.
-4. Select **Connect and verify role tools**. Five actual role/tool round trips must pass before conversation is enabled. This uses provider requests and may incur costs. It proves integration, not scientific expertise.
-5. Enter the workspace. A session-only key is held by the local backend; it is not saved in browser storage, chat or exports. Restarting the backend clears that selection.
+Public POWER and TESViS access require no additional API key. Regional AppEEARS extraction requires Earthdata Login credentials supplied privately as `APPEEARS_USERNAME` and `APPEEARS_PASSWORD`; never paste them into a conversation. Optional private configuration belongs in an ignored `.env`, with general examples in [`.env.example`](.env.example).
 
-If you deliberately create a private `.env`, onboarding can use its existing configuration without displaying credentials. Optional names are documented in `.env.example`; do not copy someone else's credentials or commit your file. NASA POWER/public metadata need no developer API key. Giovanni uses your Earthdata/GES DISC web authorization, and AppEEARS uses its own authenticated extraction workflow; do not paste Earthdata passwords into GAIA conversation.
+**Local-first is not offline.** Selected model providers receive prompts and external data services receive acquisition requests. This is a single-user loopback application, not a hardened public hosting service.
 
-Local-first does **not** mean offline: selected providers receive prompts, and NASA services receive region/time requests. Check their privacy policies and costs. Recorded numerical exports can be inspected and reproduced without a model provider.
-
-## First investigation
-
-Start in **Talk to GAIA** and describe the question in ordinary language. Give a place and the change or outcome you want investigated; if the timeframe is material and unclear, GAIA asks one focused follow-up. Otherwise GAIA resolves the place, selects a sensible retrospective period and relevant public data, acquires and analyses it, researches methods/alternative explanations, and assigns only the specialist functions needed. You do not select the roles or pre-acquire observations. The conversation returns the report; evidence, sources, uncertainties and audit details remain inspectable in their workspaces.
-
-GAIA selects only relevant specialist functions and keeps the user-facing conversation with itself. AURA can retrieve POWER weather context; THALASSA supports bounded water methods and compatible gauges; CHLORIS handles MODIS vegetation series and QA when a suitable footprint is available; ZOE handles licensed occurrence context without converting it into abundance or mortality. Some regional ecological outcomes still require a suitable NASA footprint, matched field data, species identification or a source that is not currently automated. GAIA must report those as evidence gaps, not ask the user to configure tools or claim an unavailable observation.
-
-Open **Evidence** and **Investigation record** for readable hypothesis assessments, protocol history, comparisons, source lineage, task status and export. A monthly weather grid and an annual satellite footprint are different supports: GAIA may report them as context, but must not call them a matched ecological test.
-
-The map is a coordinate-support diagram, not a geographic land-cover map. A POWER point represents its reanalysis grid, **not** a local station or arbitrary watershed mean. Monthly precipitation is a mean daily rate in the provider's reported units, not an accumulated monthly total. MODIS greenness is an optical proxy, not yield, infection, species identity or animal abundance.
-
-GAIA's report includes computed numbers and links them to their source records; evidence panels provide the full series and reproduction details. Model interpretation remains separate from measured quantities and never turns association into a verified cause. Plain-language and technical explanations use the same numerical method and certainty standards.
-
-## Verify and reproduce
+## Verify the implementation and reproduce the evidence
 
 ```powershell
+# Run the existing Python and Node tests.
 npm test
+
+# Rebuild the Rune frontend.
 npm run build
-npm run test:runtime
+
+# Reproduce all eight published BC artifact analyses without provider/network access.
+npm run reproduce -- docs/submission/bc-central-interior-investigation.json.gz
 ```
 
-The last command uses your private compatible provider configuration and makes real model requests. Synthetic role checks are kept distinct from Earth observations.
+The recorded verification includes **42 Python tests and 53 Node tests**, a successful Rune build, and reproduction of the eight published analyses with matching input/method hashes and a declared `1e-10` numerical tolerance. Coverage includes ownership, provenance, calendar integrity, quality rules, units, source quotations, provider security and runtime lifecycle. Build/test success is not independent ecological validation.
 
-Download an investigation JSON from **Evidence**, then run:
+`npm run test:runtime` optionally exercises real model-role/tool round trips using a private configured provider. It makes billable provider requests and is separate from numerical reproduction. The recorded live provider run used an OpenAI-compatible endpoint; native OpenAI/Anthropic routing and thinking options were checked against the installed SDK and controlled discovery fixtures, not verified with live accounts for every provider/model combination.
 
-```powershell
-npm run reproduce -- .\gaia-investigation.json
-```
+## Architecture
 
-Real, privacy-reviewed NASA examples are available in [`docs/examples/british-columbia.json`](docs/examples/british-columbia.json) and [`docs/examples/modis-prairie.json`](docs/examples/modis-prairie.json). The MODIS example includes accepted collection identities and QA exclusions. Rerun either without provider credentials or new data downloads:
+| Location | Responsibility |
+|---|---|
+| [`app/rune`](app/rune) | Rust/WASM GPU interface: conversation, evidence, research, specialist workspaces and live activity. |
+| [`app/backend`](app/backend) | Local HTTP/SSE service, embedded OpenCode sessions, scientific access controls, application-owned acquisition waits and worker-backed persistence. |
+| [`science`](science) | Provider adapters, QA, geometry validation, numerical methods, diagnostics and reproduction inputs. |
+| [`skills`](skills) | Versioned investigation and domain procedures. |
+| [`docs/submission`](docs/submission) | Presentation, worked report and complete reproducible evidence. |
 
-```powershell
-npm run reproduce -- docs/examples/british-columbia.json
-```
+The earlier React interface remains a legacy implementation; Rune is the primary submitted workspace.
 
-This reruns numerical analyses in a separate project-local Python process, checks input/method hashes and compares results with a declared `1e-10` numerical tolerance. It does not regenerate language-model prose. Review private coordinates and redistribution permissions before publishing an export.
+## Current boundaries
 
-## Scientific boundaries and sources
+- Numerical coverage is **not universal**. An unsupported ice, animal, water or regional question must expose the missing capability rather than substitute unrelated data.
+- Different spatial footprints, time windows, sensors and derived series are not automatically independent or matched evidence.
+- Optical greenness is not yield, mortality, species identity, abundance or ecological recovery. Animal occurrences are not population counts.
+- Causal attribution, general ecological expertise, research-ready forecasts and autonomous interventions are not established. Several proposed simulation families remain explicitly unavailable.
+- Sensitive coordinates, licensed observations and private investigation material require review before redistribution. An export is not permission to publish everything it contains.
 
-Default monthly method: linear slope plus calendar-month effects; Bartlett/Newey–West HAC bandwidth 12 months with 6/24-month sensitivity; nominal two-sided alpha 0.05 and 95% interval. These are documented prototype conventions, not universally optimal statistical choices. Missing periods are not compressed or imputed; inadequate, short, constant or diagnostically sensitive records cannot silently receive a definitive significant-trend claim. Twenty years is project policy, not a NASA requirement. Annual recipes use explicit yearly bandwidths.
+## License and acknowledgements
 
-- [NASA POWER monthly API](https://power.larc.nasa.gov/docs/services/api/temporal/monthly/) and [data sources](https://power.larc.nasa.gov/docs/methodology/data/sources/).
-- [ORNL DAAC TESViS](https://modis.ornl.gov/data/modis_webservice.html), DOI [10.3334/ORNLDAAC/1600](https://doi.org/10.3334/ORNLDAAC/1600).
-- Newey & West (1987), DOI [10.2307/1913610](https://doi.org/10.2307/1913610); [statsmodels HAC assumptions](https://www.statsmodels.org/stable/generated/statsmodels.stats.sandwich_covariance.cov_hac.html).
-- [OpenCode V2 SDK](https://opencode.ai/docs/build/sdk/), [plugins](https://opencode.ai/docs/build/plugins/) and [providers](https://opencode.ai/docs/providers/).
+GAIA is an independent participant project, **not NASA-endorsed**. Source code is [MIT licensed](LICENSE); third-party software and datasets retain their own licenses and attribution requirements.
 
-A significant trend does not establish a cause. A nonsignificant trend does not establish no change. Nominal intervals cannot correct product transitions, sampling bias, long memory or unmeasured ecosystem processes.
+Built with Rune/rune-kit, OpenCode, NumPy, SciPy, pandas, statsmodels, netCDF4 and Shapely. Statistical foundations include [Newey & West (1987)](https://doi.org/10.2307/1913610). The main-content Geist font is distributed under the [SIL Open Font License](artifacts/fonts/OFL.txt).
 
-## Submission and acknowledgements
-
-GitHub distributes source and inspectable evidence; it does not host a running OpenCode/Python backend. The planned English demonstration is at most seven slides, including title/intro. Judge-facing evidence must be accessible without providing credentials or installing a model provider.
-
-Code, interface and original identity work were developed with AI assistance; measured NASA values are acquired from identified providers, not generated by a language model. Original logo assets and their provenance are described in `artifacts/logos/README.md`. Rune, rune-kit, OpenCode theme, OpenCode, React/Vite/TypeScript (legacy UI), NumPy, SciPy, pandas and statsmodels retain their respective licenses. Rune is pinned to Anomaly revision `165f87a4700a5515b03d4de04876aa2e64a30c21`; see [Rune](https://github.com/anomalyco/rune). GAIA is an independent participant project, not NASA-endorsed.
+Code, interface and identity work used AI assistance. Numerical observations come from identified data providers, not image or language generation. Banner photograph: [NASA/JSC, ISS072-E-724819](https://images.nasa.gov/details/iss072e724819), used as illustration—not an analyzed dataset or an endorsement. See the [original GAIA identity](artifacts/logos/README.md) and [banner source credits](docs/assets/README.md).

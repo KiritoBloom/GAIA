@@ -1,19 +1,40 @@
 import { performance } from 'node:perf_hooks';
 import { sha256 } from './security.mjs';
 import { readFileSync } from 'node:fs';
+import { mkdir, writeFile, rename } from 'node:fs/promises';
+import { resolve, dirname } from 'node:path';
+import { ROOT } from './environment.mjs';
 
 let model;
 const key = () => process.env.TYPESAFE_API_KEY || process.env.TYPESAFE_KEY;
-export const semanticStatus = () => {let evaluation='not_evaluated';try{evaluation=JSON.parse(readFileSync('.runtime/proofs/jev-evaluation.json','utf8')).evaluation;}catch{}return { configured: !!key(), model, influence: 'shadow_only', evaluation };};
+const preferencePath = resolve(ROOT, '.runtime/data/semantic-settings.json');
+let enabled = /^(true|1)$/i.test(process.env.GAIA_JEV_ENABLED || ''), evaluation = 'not_evaluated', saving = Promise.resolve();
+try { const stored = JSON.parse(readFileSync(preferencePath, 'utf8')); if (typeof stored.enabled === 'boolean') enabled = stored.enabled; } catch {}
+try { evaluation = JSON.parse(readFileSync(resolve(ROOT, '.runtime/proofs/jev-evaluation.json'), 'utf8')).evaluation || evaluation; } catch {}
+export const semanticStatus = () => ({ configured: !!key(), enabled, available: enabled && !!key(), optional: true, model, influence: 'shadow_only', evaluation });
+export async function configureSemantic(input) {
+  if (typeof input.enabled !== 'boolean') throw Error('Optional semantic review must be on or off.');
+  const next = input.enabled;
+  const operation = saving.catch(() => {}).then(async () => {
+    await mkdir(dirname(preferencePath), { recursive: true });
+    await writeFile(`${preferencePath}.next`, JSON.stringify({ enabled: next }), 'utf8');
+    await rename(`${preferencePath}.next`, preferencePath);
+    enabled = next;
+  });
+  saving = operation; await operation;
+  return semanticStatus();
+}
 
-export async function semanticJudgment(state, questions, signal) {
+export async function semanticJudgment(state, questions, signal, options = {}) {
   const started = performance.now();
-  const specification = { state, questions, requested_model: model || 'discover' };
+  if (signal?.aborted) throw signal.reason || Error('Investigation cancelled.');
+  if (!enabled && !options.force) return { status: 'disabled', influence: 'shadow_only', reason: 'Optional semantic review is switched off; the scientific workflow is unchanged.' };
   if (!key()) return { status: 'unavailable', influence: 'shadow_only', reason: 'No TypeSafe credential configured.' };
-  if (JSON.stringify(specification).length > 36_000 || Object.keys(questions).length > 24) throw new Error('Semantic judgment budget exceeded.');
-  const headers = { authorization: `Bearer ${key()}`, 'content-type': 'application/json' };
-  const timeout = AbortSignal.any([signal || new AbortController().signal, AbortSignal.timeout(30_000)]);
   try {
+    const specification = { state, questions, requested_model: model || 'discover' };
+    if (JSON.stringify(specification).length > 36_000 || Object.keys(questions).length > 24) return { status: 'skipped', influence: 'shadow_only', reason: 'This optional review exceeds its service budget; scientific results are unaffected.' };
+    const headers = { authorization: `Bearer ${key()}`, 'content-type': 'application/json' };
+    const timeout = AbortSignal.any([signal || new AbortController().signal, AbortSignal.timeout(30_000)]);
     if (!model) {
       const listed = await fetch('https://api.typesafe.ai/v1/models', { headers, signal: timeout });
       if (!listed.ok) throw new Error('Model discovery unavailable.');

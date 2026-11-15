@@ -5,10 +5,11 @@ import { randomUUID } from 'node:crypto';
 import { ROOT } from './environment.mjs';
 import { science } from './science.mjs';
 import { safeRequest, sha256, publicError } from './security.mjs';
-import { providerStatus, localProvider, discoverModels, configureProvider, proveRuntime, setEvidence, closeRuntime, removeProvider, registerScientificAccess, toolTrace } from './runtime.mjs';
+import { providerStatus, localProvider, configuredProvider, discoverModels, configureProvider, proveRuntime, setEvidence, closeRuntime, removeProvider, registerScientificAccess, registerRuntimeObserver, toolTrace } from './runtime.mjs';
+import { providerInput } from './providers.mjs';
 import { coordinate, evidenceReport } from './workflow.mjs';
 import { hypotheses, protocols, evaluateSignature } from './protocols.mjs';
-import { semanticStatus } from './jev.mjs';
+import { semanticStatus, configureSemantic } from './jev.mjs';
 import { reserve, getTest, commit, authorize, evaluate, publicTest, cancel, preparePrediction } from './integrity.mjs';
 import { powerContextRequest } from './scope.mjs';
 import { diagnosticPacket } from './field.mjs';
@@ -25,23 +26,67 @@ import { resolvePlace, ownedPlace } from './location.mjs';
 import { resolveRegion, ownedRegion } from './regions.mjs';
 import { recordEcosystem } from './ecosystems.mjs';
 import { setTimeout as delay } from 'node:timers/promises';
+import {workspaceStore} from './workspace-store.mjs';
+import {providerRequest,transientProviderError} from './extraction-wait.mjs';
+import {artifactDetail,sessionDetail,sessionSummary} from '../rune/snapshot.mjs';
 
 const storePath = resolve(ROOT, '.runtime/data/workspace.json');
 mkdirSync(resolve(ROOT, '.runtime/data'), { recursive: true });
 let sessions = existsSync(storePath) ? JSON.parse(readFileSync(storePath, 'utf8')) : [];
-let clearedStaleExtractionFailures=false;
-for(const session of sessions) { session.chatRunning=false;session.activeGraphID=null;retireThreads(session,'Backend restarted; actual embedded runtime bindings must be recreated.');for(const task of session.taskGraph?.requests||[])if(!task.status||task.status==='running')task.status='interrupted';for(const extraction of session.extractions||[])if(extraction.status==='collected'&&extraction.artifact_id&&extraction.failure){extraction.failure=null;clearedStaleExtractionFailures=true;} }
+for(const session of sessions) {
+  for(const key of ['artifacts','regions','domainDiagnostics','investigations','messages','events'])session[key]||=[];
+  session.roleSummaries||={};
+  session.chatRunning=false;session.activeGraphID=null;retireThreads(session,'Backend restarted; actual embedded runtime bindings must be recreated.');
+  for(const task of session.taskGraph?.requests||[])if(!task.status||task.status==='running')task.status='interrupted';
+  for(const turn of session.liveTurns||[])if(turn.status==='running'){turn.status='interrupted';turn.thinking=false;turn.sequence=(turn.sequence||0)+1;}
+  for(const extraction of session.extractions||[]){
+    if(extraction.status==='collected'&&extraction.artifact_id){extraction.failure=null;continue;}
+    if(extraction.task_id&&(extraction.status!=='failed'||transientProviderError({message:extraction.failure||''}))){extraction.connection_issue=extraction.failure||'Local wait paused by backend restart; the original NASA task is retained.';extraction.failure=null;extraction.status='paused';}
+  }
+}
 const jobs = new Map(), listeners = new Set();
 const extractionRuns=new Map();
 const chats=new Map();
-const save = () => writeFileSync(storePath, JSON.stringify(sessions));
-if(clearedStaleExtractionFailures)save();
+const store=workspaceStore(storePath,()=>sessions);
+const save = session => store.save(session);
+save();
 function event(session, type, data) {
+  if(type==='worker.completed'||type==='worker.failed'){
+    const turns=(session.liveTurns||[]).filter(t=>t.role===data.role&&t.graphID===session.activeGraphID);
+    for(const turn of turns){turn.status=turn===turns.at(-1)?(type==='worker.completed'?'reviewed':'rejected'):'superseded';turn.thinking=false;turn.sequence++;}
+  }
   const item = { id: randomUUID(), sequence: (session.events.at(-1)?.sequence || 0)+1, time: new Date().toISOString(), type, ...data };
-  session.events.push(item); save();
+  session.events.push(item); save(session);
   for (const client of listeners) client.write(`data: ${JSON.stringify({ sessionID: session.id, event: item })}\n\n`);
 }
 function sessionFor(id) { const session = sessions.find(item => item.id === id); if (!session) throw new Error('Investigation not found.'); return session; }
+function statusSession(session, selected) {
+  return selected?sessionDetail(session):sessionSummary(session);
+}
+// Streaming is in-memory and sequence-numbered. Persist at turn boundaries, not
+// by rewriting a potentially large scientific workspace for every token.
+registerRuntimeObserver((sessionID,update)=>{
+  const session=sessions.find(s=>s.id===sessionID);if(!session)return;
+  session.liveTurns||=[];
+  let turn=session.liveTurns.find(t=>t.id===update.id);
+  if(update.kind==='start'){
+    turn={id:update.id,role:update.role,phase:update.phase,time:update.time,graphID:session.activeGraphID,status:'running',thinking:false,text:'',tools:[],sequence:0};session.liveTurns.push(turn);
+  }
+  if(!turn)return;
+  const patch={id:turn.id,sequence:++turn.sequence,kind:update.kind};
+  if(update.kind==='start')patch.turn={...turn};
+  if(update.kind==='text'){
+    if(update.text.startsWith(turn.text))patch.append=update.text.slice(turn.text.length);else patch.text=update.text;
+    turn.text=update.text;
+  }else if(update.kind==='status'){turn.thinking=update.thinking;patch.thinking=turn.thinking;}
+  else if(update.kind==='tool'){
+    let tool=turn.tools.find(t=>t.id===update.toolID);if(!tool){tool={id:update.toolID,label:update.label,time:new Date().toISOString()};turn.tools.push(tool);}
+     tool.status=update.status;if(update.failure)tool.failure=update.failure;else delete tool.failure;patch.tool={...tool};
+     if(update.failure)event(session,'tool.failed',{role:turn.role,summary:`${tool.label}: ${update.failure}`,failure:update.failure});
+  }else if(update.kind==='end'){turn.status=update.status;turn.thinking=false;patch.status=update.status;save(session);}
+  else if(update.kind==='connection'){turn.connection=update.status;patch.connection=update.status;}
+  for(const client of listeners)client.write(`data: ${JSON.stringify({sessionID,stream:patch})}\n\n`);
+});
 function retainArtifact(session,result,jobID) {
   const artifact={id:randomUUID(),created:new Date().toISOString(),...result,manifest_sha256:sha256(result)};
   session.artifacts.push(artifact); setEvidence(session.id,artifact);
@@ -73,7 +118,8 @@ const scientificAccess={
    },
    async resolveRegion(id,role,input,signal){
      if(role!=='gaia')throw Error('Region selection is GAIA-owned.');
-     const session=sessionFor(id),result=await resolveRegion(session,input,signal);
+      const session=sessionFor(id);let result;
+      try{result=await resolveRegion(session,input,signal);}catch(error){event(session,'region.failed',{role,source:input.source||'provided_or_administrative',summary:publicError(error)});throw error;}
      event(session,'region.resolved',{role,summary:`Resolved ${result.results.length} real polygon boundary candidate(s).`});
      return {...result,results:result.results.map(({geometry,...region})=>region)};
    },
@@ -85,12 +131,40 @@ const scientificAccess={
       const months=input.support_months||Array.from({length:12},(_,i)=>i+1);
       if(input.support_months&&!input.support_rationale?.trim())throw Error('A common-pixel season needs an independent ecological or climatic rationale, not significance selection.');
       const request={start:input.start,end:input.end,index:input.index||'EVI',support_months:months,support_rationale:input.support_rationale||'All calendar months; no fitted-result-based season selection.',ecosystem_context:context||null,geometry:region.geometry,label:region.name,boundary_source:region.source,boundary_sha256:region.boundary_sha256,latitude:region.latitude,longitude:region.longitude,min_coverage:0.8};
-     const submitted=await science({...request,operation:'appeears_submit'},signal);
-     const extraction={id:randomUUID(),region_id:region.id,task_id:submitted.task_id,status:submitted.status,created:new Date().toISOString(),request:{...request,submitted_request:submitted.request,metadata:submitted.metadata,metadata_receipt:submitted.metadata_receipt},submission_receipt:submitted.submission_receipt};
-     session.extractions||=[];session.extractions.push(extraction);
+       const extraction={id:randomUUID(),region_id:region.id,task_id:null,status:'submitting',phase:'submission',graphID:session.activeGraphID,requested_by:role,created:new Date().toISOString(),request};
+      session.extractions||=[];session.extractions.push(extraction);
+      event(session,'extraction.submitting',{role,extractionID:extraction.id,summary:`Submitting the owned ${request.index}/QA polygon and full ${request.start}–${request.end} monthly calendar to NASA.`});
+      let submitted;
+      try{submitted=await science({...request,operation:'appeears_submit'},signal);}
+      catch(error){extraction.status=signal?.aborted?'paused':'failed';extraction.failure=signal?.aborted?null:publicError(error);if(error.details)extraction.failure_details=error.details;event(session,'extraction.submission.failed',{role,extractionID:extraction.id,phase:error.details?.phase||'submission',status:extraction.status,summary:signal?.aborted?'Submission interrupted before a task receipt was retained; do not assume NASA cancellation or resubmit blindly.':extraction.failure});throw error;}
+      extraction.task_id=submitted.task_id;extraction.status=submitted.status;extraction.phase='provider_processing';
+      const effectiveGeometry=submitted.effective_geometry||request.geometry;
+      const geometryProcessing={...submitted.geometry_processing,source_region_id:region.id,source_boundary_sha256:region.boundary_sha256,effective_boundary_sha256:sha256(effectiveGeometry)};
+      extraction.request={...request,geometry:effectiveGeometry,boundary_sha256:geometryProcessing.effective_boundary_sha256,geometry_processing:geometryProcessing,submitted_request:submitted.request,metadata:submitted.metadata,metadata_receipt:submitted.metadata_receipt};extraction.submission_receipt=submitted.submission_receipt;
+      if(submitted.geometry_processing&&!submitted.geometry_processing.source_valid)event(session,'region.topology.repaired',{role,extractionID:extraction.id,source_region_id:region.id,summary:'NASA submission uses an audited topology repair of the original invalid source polygon. Original geometry is retained; no simplification or invented study box.'});
      event(session,'extraction.submitted',{role,taskID:extraction.task_id,summary:'Fresh NASA AppEEARS monthly EVI/QA polygon task submitted. Waiting on NASA, with no overall agent deadline.'});
-     return scientificAccess.finishRegion(id,role,{extraction_id:extraction.id},signal);
-   },
+      return scientificAccess.resumeRegion(id,role,{extraction_id:extraction.id},signal);
+    },
+    async resumeRegion(id,role,input,signal){
+      if(!['gaia','chloris'].includes(role))throw Error('Regional extraction access denied.');
+      const session=sessionFor(id),extraction=session.extractions?.find(e=>e.id===input.extraction_id);
+      if(!extraction)throw Error('Foreign extraction denied.');
+      if(extraction.status==='collected')return {extraction_id:extraction.id,task_id:extraction.task_id,status:'collected',artifact_id:extraction.artifact_id};
+      extraction.graphID=session.activeGraphID;extraction.requested_by=role;
+      // Tool execution acknowledges submission; the application owns the queue
+      // wait and cancellation, independently of the tool turn's lifetime.
+      const ownedSignal=chats.get(id)?.signal||signal;
+      scientificAccess.finishRegion(id,role,input,ownedSignal).catch(()=>{});
+      return {extraction_id:extraction.id,task_id:extraction.task_id,status:extraction.status,pending:true,numerical_result_available:false,message:'NASA task accepted. The application waits for collection before GAIA completes the assessment. Do not treat this receipt as observations or submit a replacement task.'};
+    },
+    async waitForExtractions(session,signal){
+      const pending=(session.extractions||[]).filter(extraction=>extraction.graphID===session.activeGraphID&&!['collected','failed'].includes(extraction.status));
+      if(!pending.length)return false;
+      event(session,'gaia.waiting.data',{role:'gaia',summary:'Waiting for owned NASA data tasks to finish; no completed assessment is being claimed.'});
+      await Promise.allSettled(pending.map(extraction=>scientificAccess.finishRegion(session.id,extraction.requested_by||'gaia',{extraction_id:extraction.id},signal)));
+      signal?.throwIfAborted();
+      return true;
+    },
     async finishRegion(id,role,input,signal){
       const key=`${id}:${input.extraction_id}`;
       if(extractionRuns.has(key))return extractionRuns.get(key);
@@ -101,7 +175,9 @@ const scientificAccess={
     async collectRegion(id,role,input,signal){
      if(!['gaia','chloris'].includes(role))throw Error('Regional extraction access denied.');
      const session=sessionFor(id),extraction=session.extractions?.find(e=>e.id===input.extraction_id);
-      if(!extraction)throw Error('Foreign extraction denied.');
+       if(!extraction)throw Error('Foreign extraction denied.');
+       if(!extraction.task_id)throw Error('No accepted NASA task ID was retained for this attempt. Inspect the recorded submission failure; do not call it a queued extraction or blindly submit a duplicate.');
+       if(extraction.status==='collected'&&extraction.artifact_id){const artifact=session.artifacts.find(a=>a.id===extraction.artifact_id);if(artifact)return {id:artifact.id,variable:artifact.acquisition.variable,analysis:artifact.analysis};}
       extraction.failure=null;
      // Resume only this owned asynchronous task. New investigations submit fresh
      // tasks; a resume is never misrepresented as a new provider extraction.
@@ -109,7 +185,8 @@ const scientificAccess={
        let previous;
        for(;;){
          signal?.throwIfAborted();
-         const state=await science({operation:'appeears_status',task_id:extraction.task_id},signal);
+          const retry=error=>{extraction.status='reconnecting';extraction.failure=null;extraction.connection_issue=publicError(error);event(session,'extraction.reconnecting',{role,taskID:extraction.task_id,summary:'NASA connection interrupted; retrying the same owned task. Queue progress is not a failure or an observation.'});};
+          const state=await providerRequest(()=>science({operation:'appeears_status',task_id:extraction.task_id},signal),signal,retry);
           extraction.status=state.status;extraction.provider_status=state.status;extraction.last_receipt=state.receipt;
          if(previous!==state.status){event(session,'extraction.progress',{role,taskID:extraction.task_id,status:state.status,summary:`NASA regional extraction: ${state.status}.`});previous=state.status;}
          if(state.error||state.status==='error')throw Error('NASA AppEEARS extraction failed; no regional trend available.');
@@ -117,7 +194,9 @@ const scientificAccess={
          if(!['pending','processing'].includes(state.status))throw Error('NASA returned an unrecognized extraction state.');
          await delay(15_000,undefined,{signal});
        }
-       const result=await science({...extraction.request,operation:'appeears_collect',task_id:extraction.task_id},signal);
+        extraction.status='collecting';event(session,'extraction.collecting',{role,taskID:extraction.task_id,summary:'NASA processing completed. Downloading and checking the actual returned files.'});
+         const sourceRegion=ownedRegion(session,extraction.region_id);
+         const result=await providerRequest(()=>science({...extraction.request,source_geometry:sourceRegion.geometry,operation:'appeears_collect',task_id:extraction.task_id},signal),signal,error=>{extraction.connection_issue=publicError(error);event(session,'extraction.reconnecting',{role,taskID:extraction.task_id,summary:'Download connection interrupted; retrying collection from the same completed NASA task.'});});
        signal?.throwIfAborted();
        const artifact=retainArtifact(session,result);extraction.artifact_id=artifact.id;extraction.status='collected';extraction.failure=null;
        session.title=`Regional vegetation · ${regionLabel(result)} · ${extraction.request.start}–${extraction.request.end}`;
@@ -125,7 +204,7 @@ const scientificAccess={
         const {geojson,...geometry}=result.acquisition.geometry;
         const {submitted_request,metadata,...provenance}=result.acquisition.provenance;
         return {id:artifact.id,variable:result.acquisition.variable,geometry,analysis:result.analysis,provenance};
-     }catch(error){extraction.status=signal?.aborted?'paused':'failed';extraction.failure=publicError(error);event(session,'extraction.interrupted',{role,taskID:extraction.task_id,summary:extraction.failure});throw error;}
+      }catch(error){extraction.status=signal?.aborted?'paused':'failed';extraction.failure=signal?.aborted?null:publicError(error);event(session,'extraction.interrupted',{role,taskID:extraction.task_id,status:extraction.status,summary:signal?.aborted?'Local waiting paused. NASA task identity is retained for explicit resumption; provider cancellation is not assumed.':extraction.failure});throw error;}
    },
    async resolvePlace(id,role,input,signal){if(role!=='gaia')throw Error('Location resolution is coordinated by GAIA.');return resolvePlace(sessionFor(id),input.query,signal);},
     async acquireLocation(id,role,input,signal){
@@ -203,14 +282,20 @@ const server = http.createServer(async (request, response) => {
   try {
     if(request.method==='GET'&&(url.pathname==='/rune'||url.pathname==='/rune/'||url.pathname.startsWith('/rune/'))){
       const name=url.pathname.replace(/^\/rune\/?/,'')||'index.html';
-      const base=['index.html','bridge.mjs','graph.mjs','ui-state.mjs','report.mjs'].includes(name)?resolve(ROOT,'app/rune'):resolve(ROOT,'.runtime/rune/gaia');
+      const base=['index.html','bridge.mjs','graph.mjs','ui-state.mjs','report.mjs','snapshot.mjs','stream-updates.mjs'].includes(name)?resolve(ROOT,'app/rune'):resolve(ROOT,'.runtime/rune/gaia');
       const file=resolve(base,name),local=relative(base,file);
       if(local.startsWith('..')||isAbsolute(local)||!['.html','.mjs','.js','.wasm'].includes(extname(file))||!existsSync(file))return json(response,{error:'Rune asset unavailable; run the local Rune build.'},404);
       response.writeHead(200,{'Content-Type':extname(file)==='.wasm'?'application/wasm':extname(file)==='.html'?'text/html; charset=utf-8':'text/javascript; charset=utf-8','Cache-Control':'no-store'});
       return createReadStream(file).pipe(response);
     }
-    if (request.method === 'GET' && url.pathname === '/api/status') return json(response, { ...providerStatus(), semantic:semanticStatus(), sessions, jobs: [...jobs.values()].map(job => ({ id: job.id, sessionID: job.sessionID, status: job.status, operation: job.operation, error: job.error })), science: { numerical: 'tested', domain_validation: 'not established', methods: 'seasonal OLS / Newey–West HAC' } });
+    if (request.method === 'GET' && url.pathname === '/api/status') {
+      const uiView=url.searchParams.get('view')==='ui',selectedID=url.searchParams.get('sessionID');
+      const selected=sessions.find(item=>item.id===selectedID)||sessions.find(item=>!item.archived)||sessions[0];
+      const visibleSessions=uiView?sessions.map(item=>statusSession(item,item.id===selected?.id)):sessions;
+      return json(response, { ...providerStatus(), semantic:semanticStatus(), sessions:visibleSessions, jobs: [...jobs.values()].map(job => ({ id: job.id, sessionID: job.sessionID, status: job.status, operation: job.operation, error: job.error })), science: { numerical: 'tested', domain_validation: 'not established', methods: 'seasonal OLS / Newey–West HAC' } });
+    }
     if(request.method==='GET'&&url.pathname.startsWith('/api/investigation/'))return json(response,investigationRecords(sessionFor(url.pathname.split('/').at(-1))));
+    if(request.method==='GET'&&url.pathname.startsWith('/api/artifact/')){const session=sessionFor(url.searchParams.get('sessionID')),id=url.pathname.split('/').at(-1),artifact=session.artifacts.find(a=>a.id===id);if(!artifact)throw Error('Foreign or unknown evidence record denied.');return json(response,artifactDetail(artifact));}
     if (request.method === 'GET' && url.pathname === '/api/catalog') return json(response, {...await science({ operation: 'catalog' }),protocols:Object.values(protocols)});
     if (request.method === 'GET' && url.pathname === '/api/sites') return json(response, await science({ operation: 'sites' }));
     if(request.method==='POST'&&url.pathname==='/api/ecosystem/context'){const input=await body(request);return json(response,await scientificAccess.ecosystem(input.sessionID,'gaia',input));}
@@ -220,7 +305,7 @@ const server = http.createServer(async (request, response) => {
       const input=await body(request),session=sessionFor(input.sessionID),controller=new AbortController();
       const job={id:randomUUID(),sessionID:session.id,operation:'appeears',status:'running',controller};jobs.set(job.id,job);
       json(response,{jobID:job.id},202);
-      try{const result=await (url.pathname.endsWith('/resume')?scientificAccess.finishRegion:scientificAccess.acquireRegion)(session.id,'gaia',input,controller.signal);job.artifactID=result.id;job.status='completed';}
+      try{let result=await (url.pathname.endsWith('/resume')?scientificAccess.finishRegion:scientificAccess.acquireRegion)(session.id,'gaia',input,controller.signal);if(result.pending)result=await scientificAccess.finishRegion(session.id,'gaia',{extraction_id:result.extraction_id},controller.signal);job.artifactID=result.id;job.status='completed';}
       catch(error){job.status=controller.signal.aborted?'cancelled':'failed';job.error=publicError(error);event(session,'job.failed',{jobID:job.id,summary:job.error});}return;
     }
     if(request.method==='POST'&&url.pathname==='/api/mission/plan'){
@@ -258,24 +343,51 @@ const server = http.createServer(async (request, response) => {
       const input = localProvider(), catalog = await discoverModels(input);
       return json(response, { ...catalog, name: input.name });
     }
+    if (request.method === 'POST' && url.pathname === '/api/provider/auto-models') {
+      const connected = providerStatus().configured;
+      if (!connected && !providerStatus().local_configuration_available) return json(response, { available: false, source: 'manual' });
+      const input = connected ? configuredProvider() : localProvider();
+      const catalog = await discoverModels(input);
+      return json(response, { ...catalog, available: true, source: connected ? 'current' : 'local', current_model: connected ? providerStatus().model : process.env.GAIA_MODEL || '', current_variant: connected ? providerStatus().variant : '' });
+    }
+    if (request.method === 'POST' && url.pathname === '/api/provider/current-models') {
+      const input = await body(request), connected = configuredProvider();
+      if (input.endpoint && providerInput({ endpoint: input.endpoint }).endpoint !== connected.endpoint) throw Error('Enter a new credential for a different provider endpoint.');
+      return json(response, { ...await discoverModels({ ...connected, protocol: input.protocol || connected.protocol }), source: 'current' });
+    }
     if (request.method === 'POST' && url.pathname === '/api/provider/models') return json(response, await discoverModels(await body(request)));
     if (request.method === 'POST' && url.pathname === '/api/provider/connect') {
       if(sessions.some(session=>session.chatRunning)||providerStatus().proof?.state==='running')return json(response,{error:'Stop active investigations or finish provider verification before changing the provider.'},409);
       const input = await body(request);
-      const result=await configureProvider(input.use_local ? { ...localProvider(), model: input.model } : input);for(const session of sessions){retireThreads(session,'Provider changed; old runtime bindings cannot continue.');}save();return json(response,result);
+      if(sessions.some(session=>session.chatRunning)||providerStatus().proof?.state==='running')return json(response,{error:'Wait for active investigations before changing provider settings.'},409);
+      if(input.use_current && input.use_local)throw Error('Choose one credential source.');
+      let configuration = input;
+      if(input.use_current || input.use_local) {
+        const privateInput = input.use_current ? configuredProvider() : localProvider();
+        if(input.endpoint && providerInput({endpoint:input.endpoint}).endpoint!==privateInput.endpoint)throw Error('A stored credential cannot be reused for a different endpoint.');
+        configuration = { ...privateInput, model: input.model, variant: input.variant, protocol: input.protocol || privateInput.protocol };
+      }
+      const result=await configureProvider(configuration);for(const session of sessions){retireThreads(session,'Provider changed; old runtime bindings cannot continue.');}save();return json(response,result);
     }
     if (request.method === 'POST' && url.pathname === '/api/provider/proof') return json(response,await proveRuntime(progress=>{const message=`data: ${JSON.stringify({type:'provider.proof.progress',progress})}\n\n`;for(const listener of listeners)listener.write(message);}));
     if (request.method === 'POST' && url.pathname === '/api/provider/remove') {if(chats.size||providerStatus().proof?.state==='running')throw Error('Stop the active investigation or finish provider verification before disconnecting.');const result = await removeProvider(); for (const session of sessions) retireThreads(session,'Provider disconnected.'); save(); return json(response, result); }
+    if (request.method === 'POST' && url.pathname === '/api/semantic/settings') {
+      const input = await body(request);
+      if(chats.size || providerStatus().proof?.state==='running')return json(response,{error:'Wait for the active investigation before changing optional review settings.'},409);
+      return json(response, await configureSemantic(input));
+    }
     if (request.method === 'POST' && url.pathname === '/api/sessions/settings') {
       const input = await body(request), session = sessionFor(input.sessionID);
       if(input.depth!==undefined){if(!['technical','plain'].includes(input.depth))throw Error('Unsupported explanation depth.');session.depth=input.depth;}
+      if(input.title!==undefined){if(typeof input.title!=='string'||!input.title.trim())throw Error('Investigation title must be nonempty text.');session.title=input.title.trim();}
+      if(input.archived!==undefined){if(typeof input.archived!=='boolean')throw Error('Archive state must be true or false.');session.archived=input.archived;}
       event(session, 'settings.updated', { summary: 'Conversation settings changed; numerical methods, uncertainty and existing evidence are unchanged.' });
       return json(response, session);
     }
     if (request.method === 'POST' && url.pathname === '/api/sessions') {
       const input = await body(request);
       const session = { id: randomUUID(), title: 'Untitled investigation', created: new Date().toISOString(), depth: input.depth === 'technical' ? 'technical' : 'plain', messages: [], artifacts: [], events: [], threads: {}, roleSummaries: {}, hypothesisRecords: [] };
-      sessions.unshift(session); save(); return json(response, session, 201);
+      sessions.unshift(session); save(session); return json(response, session, 201);
     }
     if (request.method === 'POST' && url.pathname === '/api/analyze') {
       const input = await body(request), session = sessionFor(input.sessionID);
@@ -309,20 +421,24 @@ const server = http.createServer(async (request, response) => {
       const input = await body(request), session = sessionFor(input.sessionID);
       if (!providerStatus().configured) throw new Error('Connect a compatible model provider to start a GAIA conversation.');
       if (typeof input.text !== 'string' || !input.text.trim()) throw new Error('Message cannot be empty.');
+      const messageID=typeof input.messageID==='string'&&/^[a-f0-9-]{36}$/i.test(input.messageID)?input.messageID:randomUUID();
+      const existing=session.messages.find(message=>message.id===messageID);if(existing)return json(response,{sessionID:session.id,status:session.chatRunning?'running':'recorded',userMessageID:existing.id},202);
       if (session.chatRunning) throw new Error('GAIA is finishing this session’s current reply.');
       session.chatRunning = true;const controller=new AbortController();chats.set(session.id,controller);
-      const user = { id: randomUUID(), role: 'user', text: input.text, time: new Date().toISOString() }; session.messages.push(user);
+      const user = { id: messageID, role: 'user', text: input.text, time: new Date().toISOString() }; session.messages.push(user);
       if(session.title==='Untitled investigation')session.title=input.text.replace(/\s+/g,' ').trim()||'Earth-system investigation';
       event(session, 'gaia.started', { role: 'gaia', summary: 'GAIA is considering the next useful question.' });
-      // The response acknowledges the durable investigation immediately. SSE
+      // The response acknowledges the accepted investigation immediately. SSE
       // delivers progress/results; HTTP clients need not keep one request open
       // for NASA's queue or the entire agent investigation.
       json(response,{sessionID:session.id,status:'running',userMessageID:user.id},202);
       try {
         // No overall investigation deadline: only the user's stop signal cancels working agents.
-        const message = await coordinate(session,input.text,(type,data)=>event(session,type,data),controller.signal); session.messages.push(message);
-        event(session, 'gaia.completed', { role: 'gaia', summary: 'GAIA’s report is ready, with owned evidence, numerical findings and limitations.' });
-      } catch(error){const cancelled=controller.signal.aborted;controller.abort();await Promise.allSettled(Object.values(session.threads).map(stopRuntimeSession));retireThreads(session,cancelled?'User cancelled this owned investigation.':'Investigation was interrupted.');for(const task of session.taskGraph?.requests||[])if(!['completed','failed'].includes(task.status))task.status=cancelled?'cancelled':'interrupted';if(!cancelled)session.messages.push({id:randomUUID(),role:'gaia',text:evidenceReport(session,input.text,[],null,publicError(error)),label:'Partial evidence report; model investigation interrupted, not a completed assessment.',time:new Date().toISOString()});event(session,'gaia.interrupted',{summary:cancelled?'Owned investigation cancelled; completed evidence and source records were retained.':'Investigation interrupted; a clearly labeled partial evidence report is available.',reason:cancelled?'user_cancelled':publicError(error)});} finally { session.chatRunning = false;session.activeGraphID=null;chats.delete(session.id);save(); }return;
+        const message = await coordinate(session,input.text,(type,data)=>event(session,type,data),controller.signal,{waitForExtractions:scientificAccess.waitForExtractions}); session.messages.push(message);
+        const numerical=!!message.investigationID&&session.artifacts.length>0;message.evidence_mode=message.investigationID?(numerical?'numerical_and_sources':'sources_only'):'conversation';
+        if(message.evidence_mode==='sources_only')message.label||='Source-based assessment only; no numerical observations were acquired.';
+        event(session, 'gaia.completed', { role: 'gaia', evidence_mode:message.evidence_mode,summary:numerical?'GAIA’s report is ready, with retained numerical evidence, sources and limitations.':message.investigationID?'Source-based assessment is ready. No numerical dataset was acquired; quantitative findings remain unavailable.':'GAIA replied.' });
+      } catch(error){const cancelled=controller.signal.aborted;controller.abort();await Promise.allSettled(Object.values(session.threads).map(stopRuntimeSession));retireThreads(session,cancelled?'User cancelled this owned investigation.':'Investigation was interrupted.');for(const task of session.taskGraph?.requests||[])if(!['completed','failed'].includes(task.status))task.status=cancelled?'cancelled':'interrupted';if(!cancelled)session.messages.push({id:randomUUID(),role:'gaia',text:evidenceReport(session,input.text,[],null,publicError(error)),label:'Partial evidence report; model investigation interrupted, not a completed assessment.',time:new Date().toISOString()});event(session,'gaia.interrupted',{summary:cancelled?'Owned investigation cancelled; completed evidence and source records were retained.':'Investigation interrupted; a clearly labeled partial evidence report is available.',reason:cancelled?'user_cancelled':publicError(error)});} finally { session.chatRunning = false;session.activeGraphID=null;chats.delete(session.id);save(session); }return;
     }
     if(request.method==='POST'&&url.pathname==='/api/chat/stop'){const input=await body(request),session=sessionFor(input.sessionID),controller=chats.get(session.id);if(!controller)throw Error('No running owned investigation.');controller.abort();await Promise.allSettled(Object.values(session.threads).map(stopRuntimeSession));retireThreads(session,'User explicitly cancelled the investigation.');event(session,'gaia.cancelled',{summary:'User stopped the owned investigation and its actual specialist sessions; partial evidence remains inspectable.'});return json(response,{status:'cancelled'});}
     if (request.method==='POST' && url.pathname==='/api/simulate') {
@@ -387,9 +503,9 @@ const server = http.createServer(async (request, response) => {
     }
     if(request.method==='POST' && url.pathname==='/api/prediction') {
       const input=await body(request),session=sessionFor(input.sessionID);
-      if(input.action==='reserve') {const record=reserve(session.id);session.predictionTest=publicTest(record);save();return json(response,session.predictionTest);}
+      if(input.action==='reserve') {const record=reserve(session.id);session.predictionTest=publicTest(record);save(session);return json(response,session.predictionTest);}
       const record=getTest(session.predictionTest?.id,session.id);
-      if(input.action==='cancel') {session.predictionTest=cancel(record);save();return json(response,session.predictionTest);}
+      if(input.action==='cancel') {session.predictionTest=cancel(record);save(session);return json(response,session.predictionTest);}
       if(input.action==='commit') {
         const training=await science({operation:'power',variable:record.variable,latitude:record.latitude,longitude:record.longitude,start:2001,end:2024,label:'Metadata-selected historical comparison target'},AbortSignal.timeout(180_000));
         const prediction=await science({operation:'simulate',model:'seasonal_continuation_v1',acquisition:training.acquisition,horizon:12,members:64,seed:20261114});commit(record,preparePrediction(prediction,training.acquisition));
@@ -422,8 +538,9 @@ const server = http.createServer(async (request, response) => {
     const known = error instanceof SyntaxError ? 'Invalid JSON request.' : error.message;
     // SDK errors can contain upstream request bodies; only our bounded application
     // errors cross this boundary. Never return SDK stack/cause objects.
+    if(response.headersSent){console.error(`Accepted background operation failed: ${publicError({message:known})}`);return;}
     json(response, { error: publicError({message:known}) }, 400);
   }
 });
 server.listen(4317, '127.0.0.1', () => console.log('GAIA local backend: http://127.0.0.1:4317 (OpenCode SDK 2.3.0; keys remain server-side)'));
-for (const name of ['SIGINT', 'SIGTERM']) process.on(name, async () => { for (const job of jobs.values()) job.controller.abort(); server.close(); await closeRuntime(); process.exit(0); });
+for (const name of ['SIGINT', 'SIGTERM']) process.on(name, async () => { for(const controller of chats.values())controller.abort();for (const job of jobs.values()) job.controller.abort(); server.close(); await closeRuntime();save();await store.close();process.exit(0); });

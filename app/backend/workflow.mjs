@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { createRoleSession, promptRole, setEvidence, toolTrace,providerStatus,stopRuntimeSession } from './runtime.mjs';
 import { hypotheses, protocols } from './protocols.mjs';
-import { semanticJudgment, reviewQuestions } from './jev.mjs';
+import { semanticJudgment, semanticStatus, reviewQuestions } from './jev.mjs';
 import { sha256, publicError } from './security.mjs';
 import { domainSkills, competenceStatus } from './knowledge.mjs';
 import {creativeHypothesis,creativeProtocol,resolveHypothesis,resolveProtocol,assessCandidate} from './creative.mjs';
@@ -49,14 +49,15 @@ export function assistantObject(context) {
   return JSON.parse(text);
 }
 
-export async function coordinate(session, request, emit, signal) {
+export async function coordinate(session, request, emit, signal, {waitForExtractions=async()=>false}={}) {
   const graphID=randomUUID();session.activeGraphID=graphID;
   const snapshot = sha256(session.artifacts.map(item=>item.manifest_sha256));
   await ownedThread(session,'gaia',{scope:investigationScope(session,{question:request}),snapshot,request,graphID},createRoleSession,stopRuntimeSession);
   if (session.artifacts.length) setEvidence(session.id,session.artifacts.at(-1));
   emit('gaia.planning',{role:'gaia',summary:'Choosing the outcome owner and only relevant specialist questions.'});
   const planningPrompt=`${handsFreePlanningInstructions(session,request)}\nFor regional greenness, prefer gaia_resolve_region to obtain an owned real polygon, then gaia_acquire_region for monthly MOD13A3 EVI/QA. A source_url may be a documented public government ArcGIS feature query discovered through literature/source research. Disclose boundary-name differences; do not silently equate an ecoprovince with a user's broader region. A boundary candidate also supplies a bounding-box centre for climate context; do not call that point a regional POWER mean. Acquire relevant POWER separately via an owned place. Tasks may queue at NASA; wait or resume the owned extraction, never fabricate progress or values. EVI across a polygon is landscape greenness, not forest-only without a forest mask. If a region cannot be resolved or AppEEARS fails, explain the gap; use gaia_prepare_vegetation only when a nearby fixed footprint materially helps, clearly distinguished from regional evidence. Select whichever specialists help; do not require all four.`;
-  const context=await promptRole(session.threads.gaia,'gaia',planningPrompt,signal);
+  let context=await promptRole(session.threads.gaia,'gaia',planningPrompt,signal,{phase:'Planning the investigation',field:'question'});
+  if(await waitForExtractions(session,signal))context=await promptRole(session.threads.gaia,'gaia',`The application has finished waiting on your owned NASA task(s). Read gaia_evidence for collected results or actual terminal failures. Do not repeat acquisitions or replace the submitted task. Update your plan using that evidence. Return strict JSON {"action":"clarify","question":"one necessary question"} OR {"action":"investigate","owner":"aura|thalassa|chloris|zoe","domains":[],"hypotheses":[],"question":"next useful step"}. Original request: ${JSON.stringify(request)}`,signal,{phase:'Reviewing collected NASA data',field:'question'});
   let plan;
   try {
     plan=planSchema.parse(assistantObject(context));
@@ -91,7 +92,8 @@ export async function coordinate(session, request, emit, signal) {
          session.taskGraph.requests.push(task);
          emit('worker.started',{role,threadID:task.sessionID,summary:`${role.toUpperCase()} is checking its actual domain quantities and evidence requirements.`});
         const before = toolTrace(session.id).length;
-          const result = await promptRole(task.sessionID,role,`Load your exact procedures ${JSON.stringify(domainSkills(role))} using gaia_skill; inspect gaia_catalog and gaia_evidence. Read relevant sources using gaia_reference or gaia_search_literature and gaia_read_paper. You own ${role}. Research freely within your evidence domain: seek contrary evidence, and use only relevant tools. Do not ask the user to configure a data source. Report missing prerequisites to GAIA. Request a scoped peer only for a real cross-domain question. AURA can acquire POWER context from an owned location/time. CHLORIS can use gaia_acquire_region for a GAIA-owned polygon, gaia_resume_extraction for an exact existing task, or gaia_acquire_vegetation for a frozen catalog footprint. Inspect existing evidence and task states before requesting unnecessary duplicate work. Regional EVI is landscape greenness, not forest-only without a mask; fixed sites are not regional means. If support cannot represent the question, disclose it. THALASSA must not invent chemistry or flow; ZOE must not turn occurrences into population estimates or deaths. Novel models remain proposed, not validated. User question: ${JSON.stringify(question)}. Hypotheses: ${JSON.stringify(candidates)}. Protocol: ${JSON.stringify(protocol)}. Return strict JSON {"summary":"source-linked interpretation","evidence_ids":[],"gaps":[],"protocol":"${protocol.id}","source_evidence":[{"source_id":"owned producer or retrieved paper ID","quote":"exact substring of actual retrieved text"}]}. Include all material findings, evidence IDs, gaps and exact quotations. Cite records with their declared evidence class. Never invent measurements, quotations, causes or source access.`,signal);
+          let result = await promptRole(task.sessionID,role,`Load your exact procedures ${JSON.stringify(domainSkills(role))} using gaia_skill; inspect gaia_catalog and gaia_evidence. Read relevant sources using gaia_reference or gaia_search_literature and gaia_read_paper. You own ${role}. Research freely within your evidence domain: seek contrary evidence, and use only relevant tools. Do not ask the user to configure a data source. Report missing prerequisites to GAIA. Request a scoped peer only for a real cross-domain question. AURA can acquire POWER context from an owned location/time. CHLORIS can use gaia_acquire_region for a GAIA-owned polygon, gaia_resume_extraction for an exact existing task, or gaia_acquire_vegetation for a frozen catalog footprint. Inspect existing evidence and task states before requesting unnecessary duplicate work. NASA submissions return a pending receipt, not observations: the application waits for the original task and will ask you to update the review after collection. Never abandon pending evidence as failed or submit a duplicate. Regional EVI is landscape greenness, not forest-only without a mask; fixed sites are not regional means. If support cannot represent the question, disclose it. THALASSA must not invent chemistry or flow; ZOE must not turn occurrences into population estimates or deaths. Novel models remain proposed, not validated. User question: ${JSON.stringify(question)}. Hypotheses: ${JSON.stringify(candidates)}. Protocol: ${JSON.stringify(protocol)}. Return strict JSON {"summary":"source-linked interpretation","evidence_ids":[],"gaps":[],"protocol":"${protocol.id}","source_evidence":[{"source_id":"owned producer or retrieved paper ID","quote":"exact substring of actual retrieved text"}]}. Include all material findings, evidence IDs, gaps and exact quotations. Cite records with their declared evidence class. Never invent measurements, quotations, causes or source access.`,signal);
+          if(await waitForExtractions(session,signal))result=await promptRole(task.sessionID,role,`NASA waiting has completed. Inspect gaia_evidence for actual collected artifacts or terminal failures, update your full source-grounded review, and remove claims that collected data are still pending. Do not repeat the submission. Return strict JSON {summary,evidence_ids,gaps,protocol,source_evidence}; protocol=${JSON.stringify(protocol.id)}. Retain exact quotations from actually read sources. User question: ${JSON.stringify(question)}`,signal);
         let parsed;
         try{parsed=validateReview(session,assistantObject(result),protocol.id);}catch(error){
           const corrected=await promptRole(task.sessionID,role,`Repair the report structure and citation identifiers using your already completed research; do not repeat that scientific work. Return only JSON {summary,evidence_ids,gaps,protocol,source_evidence}. Include the complete source-grounded summary and all material gaps, evidence IDs and quotations. Protocol must be ${JSON.stringify(protocol.id)}. Scientific evidence IDs must come from this actual owned inventory: ${JSON.stringify(ownedEvidenceRefs(session))}. Diagnostics and scenarios retain their declared evidence classes; speculative models, notebook IDs, unavailable weather variables and fabricated IDs are not observations. Remove an unavailable citation rather than inventing its data. Validation issue: ${publicError(error)}. Retain uncertainty and source quotations from your actual retrieved work.`,signal);
@@ -108,8 +110,8 @@ export async function coordinate(session, request, emit, signal) {
         }
         const competence=competenceStatus(role,providerStatus().model);
         const review = { role,threadID:task.sessionID,...parsed,sources,competence,trace,label:'source-quoted, procedure-executed domain proposal; not independent professional certification',time:new Date().toISOString() };
-        session.roleSummaries[role] = { text:review.summary, source:review.label, threadID:task.sessionID, gaps:parsed.gaps,sources,cited_evidence:parsed.cited_evidence,competence,trace,time:review.time,graphID };
-        task.status='completed'; emit('worker.completed',{role,threadID:task.sessionID,summary:`${role.toUpperCase()} returned an actual artifact-linked domain review.`});
+        session.roleSummaries[role] = { text:review.summary, source:review.label, threadID:task.sessionID, gaps:parsed.gaps,sources,evidence_ids:parsed.evidence_ids,cited_evidence:parsed.cited_evidence,competence,trace,time:review.time,graphID };
+        task.status='completed'; emit('worker.completed',{role,threadID:task.sessionID,evidence_mode:parsed.evidence_ids.length?'owned_evidence_and_sources':'sources_only',summary:parsed.evidence_ids.length?`${role.toUpperCase()} returned an owned-evidence and source-linked review.`:`${role.toUpperCase()} returned a source-backed review; no numerical artifact was available.`});
         return review;
       } catch(error) {
         task.status='failed';task.failure=publicError(error); emit('worker.failed',{role,threadID:task.sessionID,summary:'Domain review unavailable; GAIA will report the retained evidence and this gap.',reason:task.failure});
@@ -159,17 +161,26 @@ export async function coordinate(session, request, emit, signal) {
    }
    const record = { id:randomUUID(),request,snapshot,plan,reviews,recovery,protocol:session.observationPlan,time:new Date().toISOString() };
   session.investigations ||= []; session.investigations.push(record);
-  emit('jev.started',{role:'gaia',summary:'Experimental semantic review of the specified contrast and protocol; shadow-only.'});
-  const semantic = await semanticJudgment({ request, hypotheses:candidates, protocol:session.observationPlan, source_context:session.artifacts.map(item=>({definition:item.acquisition.variable.definition,support:item.acquisition.variable.support,limitations:item.analysis.limitations})), claim:'These records measure their named environmental quantities, not a uniquely established ecological cause.' },reviewQuestions(),signal);
-  session.semanticReviews ||= []; session.semanticReviews.push({id:randomUUID(),...semantic});
-  emit('jev.completed',{role:'gaia',summary:semantic.status === 'completed' ? 'Real typed Jev judgments recorded separately; they cannot alter numerical findings or operational selection.' : 'Jev unavailable; no semantic badge invented and baseline investigation remains intact.'});
+   let semantic;
+   try {
+     if(semanticStatus().available) {
+       emit('jev.started',{role:'gaia',summary:'Optional experimental semantic review; shadow-only and separate from scientific findings.'});
+       semantic = await semanticJudgment({ request, hypotheses:candidates, protocol:session.observationPlan, source_context:session.artifacts.map(item=>({definition:item.acquisition.variable.definition,support:item.acquisition.variable.support,limitations:item.analysis.limitations})), claim:'These records measure their named environmental quantities, not a uniquely established ecological cause.' },reviewQuestions(),signal);
+     } else semantic = {status:semanticStatus().enabled?'unavailable':'disabled',influence:'shadow_only',reason:semanticStatus().enabled?'No TypeSafe credential configured.':'Optional semantic review is switched off.'};
+   } catch(error) {
+     if(signal?.aborted)throw error;
+     semantic={status:'unavailable',influence:'shadow_only',reason:'Optional semantic review failed; the scientific investigation continues unchanged.'};
+   }
+   session.semanticReviews ||= []; session.semanticReviews.push({id:randomUUID(),...semantic});
+   emit(semantic.status==='completed'?'jev.completed':'jev.skipped',{role:'gaia',summary:semantic.status === 'completed' ? 'Real typed Jev judgments recorded separately; they cannot alter numerical findings or operational selection.' : 'Optional Jev review skipped; scientific evidence, calculations and investigation remain intact.',status:semantic.status});
   session.hypothesisRecords = session.hypothesisRecords.map(record=>({...record,evidence:session.artifacts.map(artifact=>assessCandidate(record,artifact,session.artifacts[0]))}));
   session.evidenceUpdates ||= [];
   const added=session.artifacts.filter(item=>!evidenceBefore.artifacts.includes(item.id)).map(item=>item.id);
   session.evidenceUpdates.push({id:randomUUID(),before:evidenceBefore,after:structuredClone(session.hypothesisRecords),added_artifacts:added,mode:'staged_reveal',time:new Date().toISOString(),reason:added.length?'Actual additional records acquired; pre-recorded directional expectations recomputed. No causal winner or reversal is forced.':'Actual existing evidence reviewed; no additional observation or forced assessment change is claimed.'});
   emit('evidence.updated',{role:'gaia',summary:added.length?'Additional real evidence and before/after hypothesis snapshots retained.':'No new observation acquired; review and unchanged-evidence snapshot retained.'});
   const latest = session.artifacts.at(-1); if (latest) setEvidence(session.id,latest);
-  emit('gaia.synthesizing',{role:'gaia',summary:'Summarizing actual completed domain reviews and remaining observations, not repeating the preliminary plan.'});
+   await waitForExtractions(session,signal);
+   emit('gaia.synthesizing',{role:'gaia',summary:'Summarizing actual completed domain reviews and remaining observations, not repeating the preliminary plan.'});
   let text;
   try{
      const findings=session.artifacts.map(item=>{

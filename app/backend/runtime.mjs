@@ -3,27 +3,41 @@ import { createHash, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { ROOT, isolateEnvironment } from './environment.mjs';
 import { agentConfiguration } from './agents.mjs';
-import { safeEndpoint, validRole } from './security.mjs';
+import { validRole, publicError } from './security.mjs';
+import { providerInput, providerPackage, discoverProviderModels, knownModel, modelConfiguration, anthropicVersion } from './providers.mjs';
 import { loadDomainSkill, loadReference } from './knowledge.mjs';
 import { ecosystemProfiles } from './ecosystems.mjs';
+import { publicTextPrefix, publicTool, redactLiveText } from './live-output.mjs';
 
 isolateEnvironment();
 if (existsSync(resolve(ROOT, '.env'))) process.loadEnvFile(resolve(ROOT, '.env'));
 
-let host, creating, selected;
+let host, creating, selected, changing = false;
 const bindings = new Map();
 const receipts = [];
 const artifacts = new Map();
 const traces = [];
 let scientificAccess;
-const providerID = 'gaia-local-provider';
-function providerPackage(endpoint) {
-  const hostname = new URL(endpoint).hostname.toLowerCase();
-  // FreeGG retired Chat Completions and now accepts only the OpenAI Responses API.
-  return hostname === 'freegg.app' || hostname.endsWith('.freegg.app')
-    ? '@opencode/ai/providers/openai-compatible/responses'
-    : '@opencode/ai/providers/openai-compatible';
+let runtimeObserver=()=>{},streamController;
+const activeTurns=new Map();
+export function registerRuntimeObserver(observer){runtimeObserver=observer;}
+function observeRuntimeEvent(event){
+  const data=event.data,turn=data&&activeTurns.get(data.sessionID);if(!turn)return;
+  if(event.type==='session.text.delta'||event.type==='session.text.ended'){
+    const key=`${data.assistantMessageID}:${data.ordinal}`;
+    if(turn.part!==key){turn.part=key;turn.buffer='';}
+    turn.buffer=event.type==='session.text.ended'?data.text:turn.buffer+data.delta;
+    const text=redactLiveText(publicTextPrefix(turn.buffer,turn.field));
+    if(text!==turn.text){turn.text=text;runtimeObserver(turn.investigationID,{id:turn.id,kind:'text',text});}
+  }else if(event.type==='session.reasoning.started'||event.type==='session.reasoning.ended'){
+    runtimeObserver(turn.investigationID,{id:turn.id,kind:'status',thinking:event.type.endsWith('.started')});
+  }else if(event.type==='session.tool.input.started'){
+    turn.tools.set(data.id,publicTool(data.name));runtimeObserver(turn.investigationID,{id:turn.id,kind:'tool',toolID:data.id,label:turn.tools.get(data.id),status:'preparing'});
+  }else if(['session.tool.called','session.tool.success','session.tool.failed'].includes(event.type)){
+    runtimeObserver(turn.investigationID,{id:turn.id,kind:'tool',toolID:data.id,label:turn.tools.get(data.id)||'Scientific tool',status:event.type.endsWith('.called')?'running':event.type.endsWith('.success')?'completed':'failed',...(event.type==='session.tool.failed'?{failure:redactLiveText(publicError({message:data.error?.message||'Scientific tool unavailable.'}))}:{})});
+  }
 }
+const providerID = 'gaia-local-provider';
 export function matchedProofReceipt(receipts, { sessionID, role, nonce, sum, assistantText }) {
   const tokens = assistantText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) || [];
   return receipts.some(receipt => receipt.sessionID === sessionID && receipt.role === role && receipt.nonce === nonce && receipt.sum === sum && tokens.some(token => receipt.tokenHash === createHash('sha256').update(token).digest('hex')));
@@ -38,44 +52,53 @@ export function toolTrace(investigationID) { return traces.filter(item=>item.inv
 function trace(binding, context, tool, output) { traces.push({ id:randomUUID(), investigationID:binding.investigationID, role:binding.role, threadID:context.sessionID, tool, output, time:new Date().toISOString() }); }
 
 export function providerStatus() {
-  return { configured: !!selected, provider: selected?.name, endpoint: selected?.endpoint, model: selected?.model, tested: selected?.tested ?? false,proof:selected?.proof, local_configuration_available: !!(process.env.FreeGG_API_KEY || process.env.LLM_KEY), sdk_version: '2.3.0', transport: 'application-managed specialist sessions' };
+  let local = false; try { local = !!localProvider().endpoint; } catch {}
+  return { configured: !!selected && !changing, changing, provider_settings_version: 1, provider: selected?.name, endpoint: selected?.endpoint, protocol: selected?.protocol, model: selected?.model, variant: selected?.variant || '', tested: selected?.tested ?? false,proof:selected?.proof, local_configuration_available: local, sdk_version: '2.3.0', transport: 'application-managed specialist sessions' };
 }
 
-export async function discoverModels(input) {
-  const endpoint = safeEndpoint(input.endpoint);
-  if (input.key !== undefined && typeof input.key !== 'string') throw new Error('Invalid provider credential.');
-  const response = await fetch(`${endpoint}/models`, { headers: input.key ? { authorization: `Bearer ${input.key}` } : {}, signal: AbortSignal.timeout(25_000) });
-  if (!response.ok) throw new Error(`Provider model discovery returned HTTP ${response.status}. Credentials were not logged.`);
-  if (!response.headers.get('content-type')?.includes('json')) throw new Error('This endpoint returned a web page, not a model API. Use the providerÃ¢â‚¬â„¢s compatible API base (usually ending in /v1).');
-  const data = await response.json();
-  if (!Array.isArray(data.data)) throw new Error('Endpoint did not return a supported OpenAI-compatible model catalog.');
-  return { models: data.data.map(item => item.id).filter(id => typeof id === 'string'), endpoint };
+export const discoverModels = discoverProviderModels;
+// Server-only access for read-only discovery/reusing this endpoint's credential.
+// This object must never be returned to a client or included in an agent prompt.
+export function configuredProvider() {
+  if (!selected || changing) throw Error('No connected provider is available.');
+  return { name: selected.name, endpoint: selected.endpoint, protocol: selected.protocol, key: process.env.GAIA_PROVIDER_KEY || '' };
 }
 
 export function localProvider() {
   const provider = (process.env.LLM_PROVIDER || '').toLowerCase();
-  const endpoints = { openai: 'https://api.openai.com/v1', openrouter: 'https://openrouter.ai/api/v1' };
-  let endpoint = process.env.FreeGG_BASE_URL || endpoints[provider];
+  const endpoints = { openai: 'https://api.openai.com/v1', openrouter: 'https://openrouter.ai/api/v1', anthropic: 'https://api.anthropic.com/v1' };
+  let endpoint = process.env.FreeGG_BASE_URL || process.env.LLM_BASE_URL || endpoints[provider];
   if (endpoint && new URL(endpoint).hostname === 'freegg.app' && new URL(endpoint).pathname === '/') endpoint = new URL('/v1', endpoint).toString();
   if (!endpoint) throw new Error('This folder does not specify a supported provider endpoint; enter it in the masked setup form.');
-  return { name: process.env.FreeGG_BASE_URL ? 'FreeGG' : provider, endpoint, key: process.env.FreeGG_API_KEY || process.env.LLM_KEY };
+  const key = process.env.FreeGG_BASE_URL ? process.env.FreeGG_API_KEY || process.env.LLM_KEY : (provider === 'anthropic' ? process.env.ANTHROPIC_API_KEY : provider === 'openai' ? process.env.OPENAI_API_KEY : '') || process.env.LLM_KEY;
+  return providerInput({ name: process.env.FreeGG_BASE_URL ? 'FreeGG' : provider, endpoint, protocol: process.env.LLM_API_TYPE || undefined, key });
 }
 
 export async function configureProvider(input) {
-  const endpoint = safeEndpoint(input.endpoint);
-  if (input.key !== undefined && typeof input.key !== 'string') throw new Error('Invalid provider credential.');
-  if (typeof input.model !== 'string' || !input.model || /\s/.test(input.model)) throw new Error('Choose an explicit provider model identifier.');
-  if (typeof input.name !== 'string' || !input.name) throw new Error('Invalid provider label.');
-  if (host) await host.close();
-  host = undefined; creating = undefined; bindings.clear();
-  selected = { name: input.name, endpoint, model: input.model, tested: false };
-  // Session-only credential, scoped to this backend process. Never persisted,
-  // returned to the browser or included in an agent prompt.
-   process.env.GAIA_PROVIDER_KEY = input.key || process.env.FreeGG_API_KEY || process.env.LLM_KEY || '';
+  if (changing || activeTurns.size || selected?.proof?.state === 'running') throw Error('Wait for active model work before changing provider settings.');
+  const provider = providerInput(input);
+  if (!provider.key) {
+    try { const local = localProvider(); if (local.endpoint === provider.endpoint) provider.key = local.key; } catch {}
+  }
+  if (typeof input.model !== 'string' || !input.model || /\s|#/.test(input.model) || ['__proto__','constructor','prototype'].includes(input.model)) throw Error('Choose an explicit provider model identifier.');
+  const info = knownModel(provider, input.model);
+  if (info?.tools === false) throw Error('This model does not support the tools GAIA requires.');
+  const variant = input.variant || '';
+  if (typeof variant !== 'string' || variant && !info?.variants.some(item => item.id === variant)) throw Error('Discover this model’s supported thinking choices before selecting a variant.');
+  changing = true;
+  try {
+    if (creating) await creating;
+    if (host) await host.close();
+    streamController?.abort();activeTurns.clear();
+    host = undefined; creating = undefined; bindings.clear();
+    selected = { name: provider.name, endpoint: provider.endpoint, protocol: provider.protocol, model: input.model, variant, modelInfo: info, tested: false };
+    process.env.GAIA_PROVIDER_KEY = provider.key;
+  } finally { changing = false; }
   return providerStatus();
 }
 
 export async function ensureRuntime() {
+  if (changing) throw Error('Provider settings are being updated; try again when the update finishes.');
   if (host) return host;
   if (!selected) throw new Error('Connect a provider before using GAIA conversation. Numerical analysis needs no model key.');
   if (creating) return creating;
@@ -98,9 +121,9 @@ export async function ensureRuntime() {
         editor.add({name:'resolve_location',description:'GAIA only: resolve a user-mentioned place name against the public Open-Meteo geocoder. Returns owned, real coordinate candidates; never infer coordinates from memory.',options:{namespace:'gaia',codemode:false},input:{type:'object',properties:{query:{type:'string',minLength:2}},required:['query'],additionalProperties:false},async execute(input,context){const binding=bindings.get(context.sessionID);if(!binding||binding.role!=='gaia'||!scientificAccess?.resolvePlace)throw Error('Location resolution is GAIA-owned.');const result=await scientificAccess.resolvePlace(binding.investigationID,binding.role,input,context.signal);trace(binding,context,'resolve_location',{query:input.query,candidates:result.results.map(item=>item.id)});return{content:JSON.stringify(result)};}});
          editor.add({name:'acquire_location',description:'GAIA only: acquire relevant registered NASA POWER monthly atmospheric variables for a real location candidate and explicit retrospective interval. Values are MERRA-2 grid estimates, not local station records.',options:{namespace:'gaia',codemode:false},input:{type:'object',properties:{location_id:{type:'string'},start:{type:'integer',minimum:1981},end:{type:'integer',minimum:1981},variables:{type:'array',minItems:1,uniqueItems:true,items:{type:'string',enum:['T2M','PRECTOTCORR','RH2M']}}},required:['location_id','start','end','variables'],additionalProperties:false},async execute(input,context){const binding=bindings.get(context.sessionID);if(!binding||binding.role!=='gaia'||!scientificAccess?.acquireLocation)throw Error('Location-bound acquisition is GAIA-owned.');const result=await scientificAccess.acquireLocation(binding.investigationID,binding.role,input,context.signal);trace(binding,context,'acquire_location',{location_id:input.location_id,artifacts:result.acquired.map(item=>item.id),variables:input.variables});return{content:JSON.stringify(result)};}});
          editor.add({name:'prepare_vegetation',description:'GAIA only: when relevant, choose the nearest live NASA MODIS fixed site within 50 km of an owned geocoded place and prepare a retrospective target for CHLORIS. Fixed-site EVI is not a regional mean, mortality count or species identification.',options:{namespace:'gaia',codemode:false},input:{type:'object',properties:{location_id:{type:'string'},start:{type:'integer',minimum:2000,maximum:2100},end:{type:'integer',minimum:2000,maximum:2100},months:{type:'array',minItems:1,uniqueItems:true,items:{type:'integer',minimum:1,maximum:12}}},required:['location_id'],additionalProperties:false},async execute(input,context){const binding=bindings.get(context.sessionID);if(!binding||binding.role!=='gaia'||!scientificAccess?.prepareVegetation)throw Error('Vegetation target selection is GAIA-owned.');const result=await scientificAccess.prepareVegetation(binding.investigationID,binding.role,input,context.signal);trace(binding,context,'prepare_vegetation',{location_id:input.location_id,siteid:result.selection.siteid,site_distance_km:result.site_distance_km,period:[result.selection.start,result.selection.end],months:result.selection.months});return{content:JSON.stringify(result)};}});
-         editor.add({name:'resolve_region',description:'GAIA: resolve a named region to actual polygon boundaries (Nominatim) or retrieve a public government ArcGIS GeoJSON query source_url found in research. Returns owned region IDs. Never invent a study box or call a point a region.',options:{namespace:'gaia',codemode:false},input:{type:'object',properties:{query:{type:'string'},source_url:{type:'string'}},required:['query'],additionalProperties:false},async execute(input,context){const b=bindings.get(context.sessionID);if(!b||b.role!=='gaia'||!scientificAccess?.resolveRegion)throw Error('Regional boundary selection is GAIA-owned.');const result=await scientificAccess.resolveRegion(b.investigationID,b.role,input,context.signal);trace(b,context,'resolve_region',{query:input.query,regions:result.results.map(r=>({id:r.id,name:r.name,boundary_sha256:r.boundary_sha256}))});return{content:JSON.stringify(result)};}});
-          editor.add({name:'acquire_region',description:'GAIA or CHLORIS: fresh NASA MOD13A3.061 monthly terrestrial EVI or NDVI plus QA for an owned polygon. Choose an index for its measurement properties, not significance. EVI retains dense-canopy sensitivity; both have sparse-soil, atmosphere and mixed-cover caveats. Optional support_months declares a locally justified season for common-pixel sensitivity; primary extraction still retains every month. Captures per-flag QA counts and stable pixel intersection, not a biome mask. Not aquatic chlorophyll, ice condition, mortality or biodiversity. Uses existing Earthdata credentials.',options:{namespace:'gaia',codemode:false},input:{type:'object',properties:{region_id:{type:'string'},start:{type:'integer',minimum:2001},end:{type:'integer',minimum:2001},index:{type:'string',enum:['EVI','NDVI']},support_months:{type:'array',minItems:1,uniqueItems:true,items:{type:'integer',minimum:1,maximum:12}},support_rationale:{type:'string'}},required:['region_id','start','end'],additionalProperties:false},async execute(input,context){const b=bindings.get(context.sessionID);if(!b||b.role!==context.agent||!['gaia','chloris'].includes(b.role)||!scientificAccess?.acquireRegion)throw Error('Regional vegetation acquisition denied.');const result=await scientificAccess.acquireRegion(b.investigationID,b.role,input,context.signal);trace(b,context,'acquire_region',{artifactID:result.id,region_id:input.region_id,index:input.index||'EVI',status:result.analysis.status});return{content:JSON.stringify(result)};}});
-         editor.add({name:'resume_extraction',description:'GAIA or CHLORIS: resume a previously submitted, owned NASA AppEEARS task after cancellation or a network interruption; this resumes the original extraction, not a new one.',options:{namespace:'gaia',codemode:false},input:{type:'object',properties:{extraction_id:{type:'string'}},required:['extraction_id'],additionalProperties:false},async execute(input,context){const b=bindings.get(context.sessionID);if(!b||b.role!==context.agent||!['gaia','chloris'].includes(b.role)||!scientificAccess?.finishRegion)throw Error('Extraction resume denied.');const result=await scientificAccess.finishRegion(b.investigationID,b.role,input,context.signal);trace(b,context,'resume_extraction',{artifactID:result.id,extraction_id:input.extraction_id});return{content:JSON.stringify(result)};}});
+          editor.add({name:'resolve_region',description:'GAIA: resolve an actual owned polygon. For a broad ecological region such as the Sahel use source="ecoregion" and query="Sahel": this searches the registered live RESOLVE 2017 service without inventing a URL or boundary. source="administrative" (default) searches Nominatim; a same-named province is NOT the broad ecological region. A cited public government ArcGIS query source_url remains supported. Select matching returned IDs and disclose operational-boundary differences; never invent a study box or use a point as a region.',options:{namespace:'gaia',codemode:false},input:{type:'object',properties:{query:{type:'string'},source:{type:'string',enum:['ecoregion','administrative']},source_url:{type:'string'}},required:['query'],additionalProperties:false},async execute(input,context){const b=bindings.get(context.sessionID);if(!b||b.role!=='gaia'||!scientificAccess?.resolveRegion)throw Error('Regional boundary selection is GAIA-owned.');const result=await scientificAccess.resolveRegion(b.investigationID,b.role,input,context.signal);trace(b,context,'resolve_region',{query:input.query,source:input.source,regions:result.results.map(r=>({id:r.id,name:r.name,boundary_sha256:r.boundary_sha256}))});return{content:JSON.stringify(result)};}});
+          editor.add({name:'acquire_region',description:'GAIA or CHLORIS: submit fresh NASA MOD13A3.061 monthly terrestrial EVI or NDVI plus QA for an owned polygon. Returns a pending task receipt, NOT observations; the application owns queue waiting and requests an updated review after collection. Never abandon a queued task or submit a duplicate. Choose an index for measurement properties, not significance. Optional support_months needs independent ecological rationale; primary extraction retains every month. Not a biome mask, aquatic chlorophyll, mortality or biodiversity. Uses existing Earthdata credentials.',options:{namespace:'gaia',codemode:false},input:{type:'object',properties:{region_id:{type:'string'},start:{type:'integer',minimum:2001},end:{type:'integer',minimum:2001},index:{type:'string',enum:['EVI','NDVI']},support_months:{type:'array',minItems:1,uniqueItems:true,items:{type:'integer',minimum:1,maximum:12}},support_rationale:{type:'string'}},required:['region_id','start','end'],additionalProperties:false},async execute(input,context){const b=bindings.get(context.sessionID);if(!b||b.role!==context.agent||!['gaia','chloris'].includes(b.role)||!scientificAccess?.acquireRegion)throw Error('Regional vegetation acquisition denied.');const result=await scientificAccess.acquireRegion(b.investigationID,b.role,input,context.signal);trace(b,context,'acquire_region',{extraction_id:result.extraction_id,task_id:result.task_id,region_id:input.region_id,index:input.index||'EVI',status:result.status});return{content:JSON.stringify(result)};}});
+         editor.add({name:'resume_extraction',description:'GAIA or CHLORIS: resume an owned NASA AppEEARS task. Returns a pending receipt promptly; the application waits for data before completing the assessment. Never resubmit this task.',options:{namespace:'gaia',codemode:false},input:{type:'object',properties:{extraction_id:{type:'string'}},required:['extraction_id'],additionalProperties:false},async execute(input,context){const b=bindings.get(context.sessionID);if(!b||b.role!==context.agent||!['gaia','chloris'].includes(b.role)||!scientificAccess?.resumeRegion)throw Error('Extraction resume denied.');const result=await scientificAccess.resumeRegion(b.investigationID,b.role,input,context.signal);trace(b,context,'resume_extraction',{artifactID:result.artifact_id,extraction_id:input.extraction_id,status:result.status});return{content:JSON.stringify(result)};}});
          editor.add({ name: 'evidence', description: 'Read approved numerical evidence, QA, provenance and pending extractions owned by this investigation. No secret access.', options: { namespace: 'gaia', codemode: false }, input: { type: 'object', properties: {}, additionalProperties: false }, async execute(_input, context) {
           const binding = bindings.get(context.sessionID);
           if (!binding || binding.role !== context.agent) throw new Error('Evidence role/session binding denied.');
@@ -149,8 +172,11 @@ export async function ensureRuntime() {
         editor.add({name:'animal_occurrences',description:'ZOE: resolve an explicit scientific taxon and acquire licensed bounded occurrences in the owned scope. Not field identification, census, population trend or pathology.',options:{namespace:'gaia',codemode:false},input:{type:'object',properties:{scientific_name:{type:'string',minLength:3}},required:['scientific_name'],additionalProperties:false},async execute(input,context){const b=bindings.get(context.sessionID);if(!b||b.role!==context.agent||!scientificAccess?.animals)throw Error('Animal actor denied.');const result=await scientificAccess.animals(b.investigationID,b.role,input,context.signal);trace(b,context,'animal_occurrences',{id:result.id,records:result.records.length});return{content:JSON.stringify(result)};}});
       });
     }});
-    const config = { default_agent: 'gaia', model: `${providerID}/${selected.model}`, snapshots: false, warming: {}, agents: agentConfiguration(), permissions: [{ action: '*', resource: '*', effect: 'deny' }], providers: { [providerID]: { name: selected.name, env: ['GAIA_PROVIDER_KEY'], package: providerPackage(selected.endpoint), settings: { baseURL: selected.endpoint }, models: { [selected.model]: { name: selected.model, modelID: selected.model, tools: true } } } } };
+    const config = { default_agent: 'gaia', model: `${providerID}/${selected.model}`, snapshots: false, warming: {}, agents: agentConfiguration(), permissions: [{ action: '*', resource: '*', effect: 'deny' }], providers: { [providerID]: { name: selected.name, env: ['GAIA_PROVIDER_KEY'], package: providerPackage(selected), settings: { baseURL: selected.endpoint }, ...(selected.protocol==='anthropic'?{headers:{'anthropic-version':anthropicVersion}}:{}), models: { [selected.model]: { modelID: selected.model, ...modelConfiguration(selected.modelInfo) } } } } };
     host = await OpenCode.create({ plugins: [plugin], database: { path: resolve(ROOT, '.runtime/data/gaia-opencode.sqlite') }, config: { project: false, claude: false, directory: resolve(ROOT, '.runtime/config'), content: JSON.stringify(config) }, fs: { filewatcher: false, fff: false }, log: { level: 'error', emit() {} } });
+    streamController=new AbortController();
+    const streamSignal=streamController.signal;
+    (async()=>{try{for await(const event of host.events.subscribe({signal:streamSignal,types:['session.text.delta','session.text.ended','session.reasoning.started','session.reasoning.ended','session.tool.input.started','session.tool.called','session.tool.success','session.tool.failed']}))observeRuntimeEvent(event);}catch{if(!streamSignal.aborted)for(const turn of activeTurns.values())runtimeObserver(turn.investigationID,{id:turn.id,kind:'connection',status:'interrupted'});}})();
     return host;
   })();
   try { return await creating; } catch (error) { creating = undefined; throw error; }
@@ -161,18 +187,24 @@ export function setEvidence(investigationID, evidence) { artifacts.set(investiga
 export async function createRoleSession(role, investigationID) {
   if (!validRole(role)) throw new Error('Unknown scientific function.');
   const runtime = await ensureRuntime();
-  const session = await runtime.sessions.create({ agent: role, model: { providerID, id: selected.model }, location: { directory: ROOT }, title: `${role.toUpperCase()} / investigation` });
+  const session = await runtime.sessions.create({ agent: role, model: { providerID, id: selected.model, ...(selected.variant ? { variant: selected.variant } : {}) }, location: { directory: ROOT }, title: `${role.toUpperCase()} / investigation` });
   bindings.set(session.id, { role, investigationID });
   return session.id;
 }
 
-export async function promptRole(sessionID, role, text, signal) {
+export async function promptRole(sessionID, role, text, signal, presentation={}) {
   if (bindings.get(sessionID)?.role !== role) throw new Error('Foreign role/thread continuation denied.');
   const runtime = await ensureRuntime();
-  await runtime.sessions.prompt({ sessionID, text }, { signal });
-  await runtime.sessions.wait({ sessionID }, { signal });
-  const context = await runtime.sessions.context({ sessionID }, { signal });
-  return context;
+  const finalAnswer=role==='gaia'&&text.startsWith('Read updated gaia_evidence and deliver');
+  const turn={id:randomUUID(),investigationID:bindings.get(sessionID).investigationID,role,phase:presentation.phase||(finalAnswer?'Writing the report':role==='gaia'?'Investigating':'Specialist review'),field:presentation.field||(finalAnswer?'reply':role==='gaia'?null:'summary'),text:'',buffer:'',tools:new Map()};
+  activeTurns.set(sessionID,turn);runtimeObserver(turn.investigationID,{id:turn.id,kind:'start',role,phase:turn.phase,time:new Date().toISOString()});
+  try{
+    await runtime.sessions.prompt({ sessionID, text }, { signal });
+    await runtime.sessions.wait({ sessionID }, { signal });
+    const context = await runtime.sessions.context({ sessionID }, { signal });
+    runtimeObserver(turn.investigationID,{id:turn.id,kind:'end',status:'generated'});return context;
+  }catch(error){runtimeObserver(turn.investigationID,{id:turn.id,kind:'end',status:signal?.aborted?'cancelled':'interrupted'});throw error;}
+  finally{activeTurns.delete(sessionID);}
 }
 
 export async function proveRuntime(onProgress=()=>{}) {
@@ -206,5 +238,5 @@ export async function stopRuntimeSession(sessionID) {
   if (host && bindings.has(sessionID)) await host.sessions.interrupt({ sessionID, resume: false });
   bindings.delete(sessionID);
 }
-export async function closeRuntime() { if (host) await host.close(); host = undefined; creating = undefined; bindings.clear(); }
+export async function closeRuntime() { streamController?.abort();activeTurns.clear();if (host) await host.close(); host = undefined; creating = undefined; bindings.clear(); }
 export async function removeProvider() { await closeRuntime(); selected = undefined; delete process.env.GAIA_PROVIDER_KEY; return providerStatus(); }

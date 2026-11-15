@@ -7,6 +7,7 @@ VARIABLES = [
 ]
 
 RESOURCES = [
+    {"id": "resolve_ecoregions", "name": "RESOLVE Ecoregions 2017", "mode": "live named ecological-boundary lookup", "url": "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/Resolve_Ecoregions/FeatureServer/0", "note": "GAIA resolves names through gaia_resolve_region with source=ecoregion, query=the ecological name (for example Sahel). Actual provider polygons and classifications are retained. An operational ecoregion is not every climatic definition, an administrative province or a dated land-cover mask."},
     {"id": "giovanni", "name": "NASA Giovanni", "mode": "manual export / cross-check", "url": "https://giovanni.gsfc.nasa.gov/giovanni/", "note": "Matching area-averaged series, CSV and provenance. Earthdata login/GES DISC authorization may be required; same-source export is not an independent measurement."},
     {"id": "cdo", "name": "NOAA Climate Data Online", "mode": "bounded station discovery", "url": "https://www.ncei.noaa.gov/cdo-web/", "note": "Ground-station context. Check record completeness, site history and representativeness before comparison."},
     {"id": "cuahsi", "name": "CUAHSI HydroClient", "mode": "discovery / licensed import", "url": "https://www.cuahsi.org/data-services/hydrologic-information-system", "note": "Find a gauge or sample series with methods and catchment relationship; a repeated USGS gauge remains the same source."},

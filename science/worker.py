@@ -71,7 +71,10 @@ if __name__ == "__main__":
         result = execute(json.loads(content))
         print(json.dumps({"ok": True, "result": result}, allow_nan=False))
     except (ValueError, KeyError, TypeError) as exc:
-        print(json.dumps({"ok": False, "error": str(exc)[:500]}))
+        failure = {"ok": False, "error": str(exc)[:1000]}
+        if hasattr(exc, 'details'):
+            failure['error_details'] = exc.details
+        print(json.dumps(failure))
         sys.exit(1)
     except Exception:
         print(json.dumps({"ok": False, "error": "Scientific operation failed; no unverified result published."}))

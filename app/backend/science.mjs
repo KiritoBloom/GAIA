@@ -21,7 +21,7 @@ export function science(input, signal, onProgress, capability) {
       if (settled) return;
       try {
         const response = JSON.parse(output);
-        if (!response.ok || code !== 0) finish(new Error(response.error || 'Numerical operation failed.'));
+        if (!response.ok || code !== 0) {const error=new Error(response.error || 'Numerical operation failed.');if(response.error_details)error.details=response.error_details;finish(error);}
         else finish(null, response.result);
       } catch { finish(new Error('Invalid scientific worker response; no result published.')); }
     });
